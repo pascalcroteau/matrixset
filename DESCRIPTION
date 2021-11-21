@@ -1,0 +1,34 @@
+Package: matrixset
+Title: Creating and Manipulating Matrix Ensemble
+Version: 0.0.0.9000
+Authors@R: 
+    person(given = "Pascal",
+           family = "Croteau",
+           role = c("aut", "cre"),
+           email = "croteaupascl@gmail.com",
+           comment = c(ORCID = "YOUR-ORCID-ID"))
+Description: A matrixset is an object that stores a matrix ensemble, matrices
+  that share the same traits. This package helps in creating such objects, and
+  to manipulate them in a tidyverse-like fashion.
+Imports:
+    cli,
+    crayon,
+    dplyr,
+    methods,
+    pillar,
+    purrr,
+    R6,
+    rlang,
+    stringr,
+    tibble,
+    vctrs
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.2
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+Depends: 
+    R (>= 4.0)

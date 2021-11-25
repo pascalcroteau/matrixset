@@ -1,4 +1,11 @@
 
+# GROUPS VIA UPDATE?
+# I'D SAY A GROUP INDEX THAT WOULD APPLY TO BOTH PRIVATE$.COL_DATA$.I (AND ROW WHEN APPRROPRIATE)
+# AND ENCOLS
+
+
+# THINK ABOUT 'CURRENT'
+
 ENCLOS <- R6::R6Class("ENCLOS",
 
                       public = list(
@@ -11,15 +18,26 @@ ENCLOS <- R6::R6Class("ENCLOS",
                           private$.env <- ENV
                         },
 
-                        update = function(mat, idx) {
+                        update = function(mat, idx, gr_idx = NULL) {
                           if (private$.margin == "row") {
                             private$.col_data$.i <- private$.matrices[[mat]][idx,]
-                            private$.enclos <- c(as.list(private$.row_data[idx,,drop = FALSE]),
-                                                 as.list(private$.col_data))
+                            if (is.null(gr_idx)) {
+                              private$.enclos <- c(as.list(private$.row_data[idx,,drop = FALSE]),
+                                                   as.list(private$.col_data))
+                            } else {
+                              private$.enclos <- c(as.list(private$.row_data[idx,,drop = FALSE]),
+                                                   as.list(private$.col_data[gr_idx,,drop = FALSE]))
+                            }
+
                           } else if (private$.margin == "col") {
                             private$.row_data$.j <- private$.matrices[[mat]][,idx]
-                            private$.enclos <- c(as.list(private$.col_data[idx,,drop = FALSE]),
-                                                 as.list(private$.row_data))
+                            if (is.null(gr_idr)) {
+                              private$.enclos <- c(as.list(private$.col_data[idx,,drop = FALSE]),
+                                                   as.list(private$.row_data))
+                            } else {
+                              private$.enclos <- c(as.list(private$.col_data[idx,,drop = FALSE]),
+                                                   as.list(private$.row_data[gr_idx,,drop=FALSE]))
+                            }
                           }
                         },
 
@@ -52,7 +70,12 @@ ENCLOS <- R6::R6Class("ENCLOS",
 norm_call <- function(quo, var)
 {
   expr <- rlang::quo_get_expr(quo)
-  if (rlang::is_formula(expr)) expr <- rlang::f_rhs(expr)
+
+  if (rlang::is_formula(expr)) {
+    expr <- rlang::f_rhs(expr)
+    if (!(is.call(expr) && is(expr, "{"))) expr <- rlang::call2("{", expr)
+  }
+
   colon <- FALSE
   if (rlang::is_call(expr, "::")) {
     pkg <- expr[[2]]
@@ -73,11 +96,13 @@ eval_fun <- function(margin, ms, ..., matidx, env)
 
   if (is.null(matidx)) {
     nmat <- .nmatrix(ms)
+    matnms <- matrixnames(ms)
     enclos <- ENCLOS$new(margin, ms$matrix_set, ms$row_info, ms$column_info,
                          env)
   } else {
-    matidx <- index_to_integer(matidx, length(matidx), names(matidx))
+    matidx <- index_to_integer(matidx, nmatrix(ms), matrixnames(ms))
     nmat <- length(matidx)
+    matnms <- matrixnames(ms)[matidx]
     enclos <- ENCLOS$new(margin, ms$matrix_set[matidx], ms$row_info,
                          ms$column_info, env)
   }
@@ -90,7 +115,7 @@ eval_fun <- function(margin, ms, ..., matidx, env)
   }
 
   rowv <- vector("list", nmat)
-  names(rowv) <- matrixnames(ms)
+  names(rowv) <- matnms
 
   parts <- vector("list", nrow(ms))
   names(parts) <- rownames(ms)

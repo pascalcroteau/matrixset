@@ -95,6 +95,9 @@ row_filter.matrixset <- function(.ms, ..., .preserve = FALSE)
 
   filter_expr <- norm_filt_expr(...)
 
+  assess_all_vars(filter_expr, c(.rowtag(.ms), .rowtraits(.ms)),
+                  rlang::caller_env())
+
   tmp_info <- dplyr::mutate(.ms$row_info, ._idx_ = !!filter_expr)
   idx <- tmp_info$._idx_
 

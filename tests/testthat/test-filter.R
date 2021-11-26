@@ -14,6 +14,8 @@ test_that("matrixset filtering works", {
                       row_tag = "ROW", column_tag = "COL")
   mat_filt2 <- matrixset(a=amat[3:4,], b=bmat[3:4,], row_info=ri[3:4,],
                          column_info=ci, row_tag = "ROW", column_tag = "COL")
+  mat_filt2_null <- matrixset(a=amat[3:4,], b=NULL, row_info=ri[3:4,],
+                         column_info=ci, row_tag = "ROW", column_tag = "COL")
   mat_filtmax <- matrixset(a=amat[4,,drop=FALSE], b=bmat[4,,drop=FALSE],
                            row_info=ri[4,], column_info=ci, row_tag = "ROW",
                            column_tag = "COL")
@@ -25,6 +27,12 @@ test_that("matrixset filtering works", {
 
   expect_identical(row_filter(matset, g > 2), mat_filt2)
   expect_identical(row_filter(matset, g == max(g)), mat_filtmax)
+
+
+
+  matset2 <- matset
+  matset2[,,2] <- NULL
+  expect_identical(row_filter(matset2, g > 2), mat_filt2_null)
 
 
   expect_identical(column_filter(column_group_by(matset, foo), gg >= mean(gg)),
@@ -42,3 +50,14 @@ test_that("matrixset filtering works", {
 
 
 })
+
+
+
+test_that("matrixset filter fails properly", {
+
+  expect_error(row_filter(matrixset(NULL), g > 2), "could not find: 'g'")
+  expect_error(row_filter(matrixset(NULL), g > 2, h > 2), "could not find: 'g', 'h")
+
+})
+
+

@@ -438,7 +438,7 @@ column_group_meta <- function(.ms) UseMethod("column_group_meta")
 #' @export
 column_group_meta.matrixset <- function(.ms) NULL
 #' @export
-column_group_meta.row_grouped_ms <- function(.ms) attr(.ms, "col_group_meta")
+column_group_meta.col_grouped_ms <- function(.ms) attr(.ms, "col_group_meta")
 #' @export
 column_group_meta.dual_grouped_ms <- function(.ms) attr(.ms, "col_group_meta")
 
@@ -450,7 +450,7 @@ column_group_vars <- function(.ms) UseMethod("column_group_vars")
 #' @export
 column_group_vars.matrixset <- function(.ms) NULL
 #' @export
-column_group_vars.row_grouped_ms <- function(.ms) attr(.ms, "col_group_vars")
+column_group_vars.col_grouped_ms <- function(.ms) attr(.ms, "col_group_vars")
 #' @export
 column_group_vars.dual_grouped_ms <- function(.ms) attr(.ms, "col_group_vars")
 
@@ -463,7 +463,7 @@ column_group_keys <- function(.ms) UseMethod("column_group_keys")
 #' @export
 column_group_keys.matrixset <- function(.ms) NULL
 #' @export
-column_group_keys.row_grouped_ms <- function(.ms) attr(.ms, "col_group_keys")
+column_group_keys.col_grouped_ms <- function(.ms) attr(.ms, "col_group_keys")
 #' @export
 column_group_keys.dual_grouped_ms <- function(.ms) attr(.ms, "col_group_keys")
 
@@ -476,7 +476,7 @@ column_group_where <- function(.ms) UseMethod("column_group_where")
 #' @export
 column_group_where.matrixset <- function(.ms) NULL
 #' @export
-column_group_where.row_grouped_ms <- function(.ms) attr(.ms, "col_group_rows")
+column_group_where.col_grouped_ms <- function(.ms) attr(.ms, "col_group_rows")
 #' @export
 column_group_where.dual_grouped_ms <- function(.ms) attr(.ms, "col_group_rows")
 
@@ -488,7 +488,7 @@ column_group_indices <- function(.ms) UseMethod("column_group_indices")
 #' @export
 column_group_indices.matrixset <- function(.ms) NULL
 #' @export
-column_group_indices.row_grouped_ms <- function(.ms) attr(.ms, "col_group_indices")
+column_group_indices.col_grouped_ms <- function(.ms) attr(.ms, "col_group_indices")
 #' @export
 column_group_indices.dual_grouped_ms <- function(.ms) attr(.ms, "col_group_indices")
 
@@ -501,7 +501,7 @@ column_groups <- function(.ms) UseMethod("column_groups")
 #' @export
 column_groups.matrixset <- function(.ms) NULL
 #' @export
-column_groups.row_grouped_ms <- function(.ms) rlang::syms(column_group_vars(.ms))
+column_groups.col_grouped_ms <- function(.ms) rlang::syms(column_group_vars(.ms))
 #' @export
 column_groups.dual_grouped_ms <- function(.ms) rlang::syms(column_group_vars(.ms))
 

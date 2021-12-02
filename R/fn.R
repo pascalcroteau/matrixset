@@ -81,9 +81,9 @@ ENCLOS <- R6::R6Class("ENCLOS",
 
                           private$.margin <- MARGIN
 
-                          if (is.null(.gridx)) {
+                          idx <- setNames(seq(.n), .names)
 
-                            idx <- setNames(seq(.n), .names)
+                          if (is.null(.gridx)) {
 
                             if (MARGIN == "row") {
                               private$.enclos_dat <- list(
@@ -228,21 +228,29 @@ eval_fun <- function(margin, ms, ..., matidx, env)
   cash_status$set(cl)
   on.exit(cash_status$clear(cl))
 
+  if (margin == "row") {
+    n <- nrow(ms)
+    nms <- rownames(ms)
+    gr_idx <- column_group_where(ms)
+  } else if (margin == "col") {
+    n <- ncol(ms)
+    nms <- colnames(ms)
+    gr_idx <- row_group_where(ms)
+  }
+
   if (is.null(matidx)) {
     nmat <- .nmatrix(ms)
     matnms <- matrixnames(ms)
-    enclos <- ENCLOS$new(margin, ms$matrix_set, nrow(ms), rownames(ms),
-                        ms$row_info, ms$column_info, env,
-                        column_group_where(ms))
+    enclos <- ENCLOS$new(margin, ms$matrix_set, n, nms, ms$row_info,
+                         ms$column_info, env, gr_idx)
     # enclos <- ENCLOS$new(margin, ms$matrix_set, ms$row_info, ms$column_info,
     #                      env)
   } else {
     matidx <- index_to_integer(matidx, nmatrix(ms), matrixnames(ms))
     nmat <- length(matidx)
     matnms <- matrixnames(ms)[matidx]
-    enclos <- ENCLOS$new(margin, ms$matrix_set[matidx], nrow(ms), rownames(ms),
-                         ms$row_info, ms$column_info, env,
-                         column_group_where(ms))
+    enclos <- ENCLOS$new(margin, ms$matrix_set[matidx], n, nms, ms$row_info,
+                         ms$column_info, env, gr_idx)
     # enclos <- ENCLOS$new(margin, ms$matrix_set[matidx], ms$row_info,
     #                      ms$column_info, env)
   }
@@ -261,8 +269,8 @@ eval_fun <- function(margin, ms, ..., matidx, env)
   rowv <- vector("list", nmat)
   names(rowv) <- matnms
 
-  parts <- vector("list", nrow(ms))
-  names(parts) <- rownames(ms)
+  parts <- vector("list", n)
+  names(parts) <- nms
 
   lens <- vector("list", nmat)
 
@@ -276,7 +284,7 @@ eval_fun <- function(margin, ms, ..., matidx, env)
     for (k in 1:nmat)
     {
       l <- NULL
-      for (i in 1:nrow(ms))
+      for (i in 1:n)
       {
         if (is.null(group_lbl)) enclos$update(k, i) else enclos$update(k, i, gr)
         pts <- enclos$eval(quosures)
@@ -437,12 +445,46 @@ row_loop.row_grouped_ms <- function(.ms, ..., .matrix = NULL)
 
 row_loop.col_grouped_ms <- function(.ms, ..., .matrix = NULL)
 {
-  eval_obj <- eval_fun(margin="row", ms=.ms, ...,
-                       matidx=.matrix, env=rlang::caller_env())
   vals <- column_group_meta(.ms)
-  vals$.rows <- eval_obj$vals
+  vals$.rows <- NextMethod()
   vals
 }
+
+
+
+
+
+column_loop <- function(.ms, ..., .matrix = NULL, .prefix = "", .sep = " ")
+  UseMethod("column_loop")
+
+
+
+column_loop.matrixset <- function(.ms, ..., .matrix = NULL)
+{
+  eval_obj <- eval_fun(margin="col", ms=.ms, ...,
+                       matidx=.matrix, env=rlang::caller_env())
+  eval_obj$vals
+}
+
+
+
+column_loop.col_grouped_ms <- function(.ms, ..., .matrix = NULL)
+{
+  NextMethod()
+}
+
+
+
+
+column_loop.row_grouped_ms <- function(.ms, ..., .matrix = NULL)
+{
+  vals <- row_group_meta(.ms)
+  vals$.columns <- NextMethod()
+  vals$.rows <- NULL
+  vals
+}
+
+
 
 
 

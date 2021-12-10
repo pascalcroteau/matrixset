@@ -7,6 +7,11 @@ is_matrixish <- function(x)
 
 times <- cli::symbol$times
 
+._NULL_ <- logical()
+attr(._NULL_, ".__NULL__") <- logical()
+
+is_null_obj <- function(x) !is.null(attr(x, ".__NULL__"))
+
 
 style_grey0.8 <- crayon::make_style(grDevices::grey(0.8), grey = TRUE)
 style_dim <- function(nms, dimmed)

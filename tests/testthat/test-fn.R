@@ -1,5 +1,20 @@
 test_that("matrixset general loop works", {
 
+  expect_identical(row_loop(matrixset(NULL), mean), NULL)
+  expect_identical(column_loop(matrixset(NULL), mean), NULL)
+
+  student_results2 <- student_results
+  matrix_elm(student_results2,2) <- NULL
+  mn <- row_loop(student_results2, mean)
+  M <- matrix_elm(student_results2,1)
+  mn_ref <- list(failure=apply(M, 1, function(u) list(mean=mean(u)),simplify = FALSE))
+  mn_ref <- c(mn_ref, list(remedial=lapply(mn_ref$failure, function(u) lapply(u, function(v) NULL))))
+
+  expect_equal(mn, mn_ref)
+
+
+
+
   mn <- row_loop(student_results, mean)
   mn_ref <- lapply(seq(nmatrix(student_results)),
                    function(m) {
@@ -392,3 +407,390 @@ test_that("matrixset general loop works", {
   expect_identical(grmn$.columns, grmn_ref)
 
 })
+
+
+
+
+
+test_that("matrixset 'long' loop works", {
+
+  # with null
+  expect_identical(row_loop_dfl(matrixset(NULL), mean), NULL)
+  expect_identical(column_loop_dfl(matrixset(NULL), mean), NULL)
+
+
+  student_results2 <- student_results
+  matrix_elm(student_results2,2) <- NULL
+  ct <- row_loop_dfl(student_results2, mn=mean, md=median)
+  M <- matrix_elm(student_results2,1)
+  ct_ref <- list(failure=t(apply(M, 1, function(u) c(mn=mean(u), md=median(u)),simplify = TRUE)))
+  ct_ref$failure <- tibble::as_tibble(ct_ref$failure, rownames = ".rowname")
+  ct_ref$remedial <- tibble::tibble(.rowname = character(), mn = logical(), md = logical())
+  expect_identical(ct, ct_ref)
+
+
+
+  student_results2 <- student_results
+  matrix_elm(student_results2,2) <- NULL
+  ct <- column_loop_dfl(student_results2, mn=mean, md=median)
+  M <- matrix_elm(student_results2,1)
+  ct_ref <- list(failure=t(apply(M, 2, function(u) c(mn=mean(u), md=median(u)),simplify = TRUE)))
+  ct_ref$failure <- tibble::as_tibble(ct_ref$failure, rownames = ".colname")
+  ct_ref$remedial <- tibble::tibble(.colname = character(), mn = logical(), md = logical())
+  expect_identical(ct, ct_ref)
+
+
+
+  ct <- row_loop_dfl(student_results, mn=mean, md=median)
+  M <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
+  ct_ref <- lapply(M,
+                   function(m) tibble::tibble(.rowname = rownames(m),
+                                              mn=unname(rowMeans(m)),
+                                              md = unname(apply(m,1,median))))
+  expect_equal(ct, ct_ref)
+
+
+
+  ct <- column_loop_dfl(student_results, mn=mean, md=median)
+  M <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
+  ct_ref <- lapply(M,
+                   function(m) tibble::tibble(.colname = colnames(m),
+                                              mn=unname(colMeans(m)),
+                                              md = unname(apply(m,2,median))))
+  expect_equal(ct, ct_ref)
+
+
+
+  # showcase > 1 length answer
+  summ <- row_loop_dfl(student_results, mn=c(mean(.i), median(.i)), rg=range(.i))
+  M <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
+  summ_ref <- lapply(M,
+                     function(m) {
+                       a <- list(tibble::as_tibble(t(apply(m,1, function(x) c(one=mean(x), two=median(x)))), rownames = ".rowname"),
+                                 tibble::as_tibble(t(apply(m,1, function(x) setNames(range(x), c("one", "two")))), rownames = ".rowname"))
+                       a <- lapply(a,
+                                   function(u) tidyr::pivot_longer(u,
+                                                                   names_to = "mn.name",
+                                                                   values_to = "mn",
+                                                                   cols = c("one", "two")))
+                       colnames(a[[2]])[2:3] <- c("rg.name", "rg")
+                       suppressMessages(a <- dplyr::bind_cols(a))
+                       a$`.rowname...4` <- NULL
+                       a <- dplyr::rename(a, `.rowname` = `.rowname...1`)
+                       a$mn.name <- ifelse(a$mn.name == "one", "..1", "..2")
+                       a$rg.name <- ifelse(a$rg.name == "one", "..1", "..2")
+                       a
+                     })
+  expect_identical(summ, summ_ref)
+
+
+
+  summ <- column_loop_dfl(student_results, mn=c(mean(.j), median(.j)), rg=range(.j))
+  M <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
+  summ_ref <- lapply(M,
+                     function(m) {
+                       a <- list(tibble::as_tibble(t(apply(m,2, function(x) c(one=mean(x), two=median(x)))), rownames = ".colname"),
+                                 tibble::as_tibble(t(apply(m,2, function(x) setNames(range(x), c("one", "two")))), rownames = ".colname"))
+                       a <- lapply(a,
+                                   function(u) tidyr::pivot_longer(u,
+                                                                   names_to = "mn.name",
+                                                                   values_to = "mn",
+                                                                   cols = c("one", "two")))
+                       colnames(a[[2]])[2:3] <- c("rg.name", "rg")
+                       suppressMessages(a <- dplyr::bind_cols(a))
+                       a$`.colname...4` <- NULL
+                       a <- dplyr::rename(a, `.colname` = `.colname...1`)
+                       a$mn.name <- ifelse(a$mn.name == "one", "..1", "..2")
+                       a$rg.name <- ifelse(a$rg.name == "one", "..1", "..2")
+                       a
+                     })
+  expect_identical(summ, summ_ref)
+
+
+
+  summ <- row_loop_dfl(student_results, mn=c(mn=mean(.i), md=median(.i)), rg=range(.i))
+  M <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
+  summ_ref <- lapply(M,
+                     function(m) {
+                       a <- list(tibble::as_tibble(t(apply(m,1, function(x) c(one=mean(x), two=median(x)))), rownames = ".rowname"),
+                                 tibble::as_tibble(t(apply(m,1, function(x) setNames(range(x), c("one", "two")))), rownames = ".rowname"))
+                       a <- lapply(a,
+                                   function(u) tidyr::pivot_longer(u,
+                                                                   names_to = "mn.name",
+                                                                   values_to = "mn",
+                                                                   cols = c("one", "two")))
+                       colnames(a[[2]])[2:3] <- c("rg.name", "rg")
+                       suppressMessages(a <- dplyr::bind_cols(a))
+                       a$`.rowname...4` <- NULL
+                       a <- dplyr::rename(a, `.rowname` = `.rowname...1`)
+                       a$mn.name <- ifelse(a$mn.name == "one", "mn", "md")
+                       a$rg.name <- ifelse(a$rg.name == "one", "..1", "..2")
+                       a
+                     })
+  expect_identical(summ, summ_ref)
+
+
+
+
+  summ <- column_loop_dfl(student_results, mn=c(mn=mean(.j), md=median(.j)), rg=range(.j))
+  M <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
+  summ_ref <- lapply(M,
+                     function(m) {
+                       a <- list(tibble::as_tibble(t(apply(m,2, function(x) c(one=mean(x), two=median(x)))), rownames = ".colname"),
+                                 tibble::as_tibble(t(apply(m,2, function(x) setNames(range(x), c("one", "two")))), rownames = ".colname"))
+                       a <- lapply(a,
+                                   function(u) tidyr::pivot_longer(u,
+                                                                   names_to = "mn.name",
+                                                                   values_to = "mn",
+                                                                   cols = c("one", "two")))
+                       colnames(a[[2]])[2:3] <- c("rg.name", "rg")
+                       suppressMessages(a <- dplyr::bind_cols(a))
+                       a$`.colname...4` <- NULL
+                       a <- dplyr::rename(a, `.colname` = `.colname...1`)
+                       a$mn.name <- ifelse(a$mn.name == "one", "mn", "md")
+                       a$rg.name <- ifelse(a$rg.name == "one", "..1", "..2")
+                       a
+                     })
+  expect_identical(summ, summ_ref)
+
+
+
+
+  # error
+  expect_error(row_loop_dfl(student_results,
+                            mn=mean,
+                            reg = lm(.i ~ national_average + program)),
+               "vectors must be of the same length")
+
+
+
+
+  expect_error(column_loop_dfl(student_results,
+                            mn=mean,
+                            reg = lm(.j ~ teacher + previous_year_score)),
+               "vectors must be of the same length")
+
+
+
+
+  # the trick
+  summ <- row_loop_dfl(student_results, mn=mean, reg = list(lm(.i ~ national_average + program)))
+  M <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
+  meta <- column_info(student_results)
+  summ_ref <- lapply(M,
+                     function(m) {
+                       tibble::tibble(.rowname = rownames(m),
+                                                 mn=unname(rowMeans(m)),
+                                                 reg = unname(apply(m,1,function(x) {
+                                                   meta$.i <- x
+                                                   eval(quote(lm(.i ~ national_average + program)), envir = meta)
+                                                 })))
+                       })
+  expect_equal(summ, summ_ref, ignore_attr = TRUE)
+
+
+
+
+  summ <- column_loop_dfl(student_results, mn=mean, reg = list(lm(.j ~ teacher + previous_year_score)))
+  M <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
+  meta <- row_info(student_results)
+  summ_ref <- lapply(M,
+                     function(m) {
+                       tibble::tibble(.colname = colnames(m),
+                                      mn=unname(colMeans(m)),
+                                      reg = unname(apply(m,2,function(x) {
+                                        meta$.j <- x
+                                        eval(quote(lm(.j ~ teacher + previous_year_score)), envir = meta)
+                                      })))
+                     })
+  expect_equal(summ, summ_ref, ignore_attr = TRUE)
+
+
+
+  # this should fail
+  expect_error(row_loop_dfl(student_results, mn=mean(.i), rg=range(.i)),
+               "vectors must be of the same length")
+
+
+  expect_error(column_loop_dfl(student_results, mn=mean(.j), rg=range(.j)),
+               "vectors must be of the same length")
+
+})
+
+
+
+
+
+
+
+
+test_that("matrixset 'long' loop works", {
+
+  # with null
+  expect_identical(row_loop_dfw(matrixset(NULL), mean), NULL)
+  expect_identical(column_loop_dfw(matrixset(NULL), mean), NULL)
+
+
+  student_results2 <- student_results
+  matrix_elm(student_results2,2) <- NULL
+  ct <- row_loop_dfw(student_results2, mn=mean, md=median)
+  M <- matrix_elm(student_results2,1)
+  ct_ref <- list(failure=t(apply(M, 1, function(u) c(mn=mean(u), md=median(u)),simplify = TRUE)))
+  ct_ref$failure <- tibble::as_tibble(ct_ref$failure, rownames = ".rowname")
+  ct_ref$remedial <- tibble::tibble(.rowname = character(), mn = logical(), md = logical())
+  expect_identical(ct, ct_ref)
+
+
+
+  student_results2 <- student_results
+  matrix_elm(student_results2,2) <- NULL
+  ct <- column_loop_dfw(student_results2, mn=mean, md=median)
+  M <- matrix_elm(student_results2,1)
+  ct_ref <- list(failure=t(apply(M, 2, function(u) c(mn=mean(u), md=median(u)),simplify = TRUE)))
+  ct_ref$failure <- tibble::as_tibble(ct_ref$failure, rownames = ".colname")
+  ct_ref$remedial <- tibble::tibble(.colname = character(), mn = logical(), md = logical())
+  expect_identical(ct, ct_ref)
+
+
+
+  ct <- row_loop_dfw(student_results, mn=mean, md=median)
+  M <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
+  ct_ref <- lapply(M,
+                   function(m) tibble::tibble(.rowname = rownames(m),
+                                              mn=unname(rowMeans(m)),
+                                              md = unname(apply(m,1,median))))
+  expect_equal(ct, ct_ref)
+
+
+
+  ct <- column_loop_dfw(student_results, mn=mean, md=median)
+  M <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
+  ct_ref <- lapply(M,
+                   function(m) tibble::tibble(.colname = colnames(m),
+                                              mn=unname(colMeans(m)),
+                                              md = unname(apply(m,2,median))))
+  expect_equal(ct, ct_ref)
+
+
+
+  # showcase > 1 length answer
+  summ <- row_loop_dfw(student_results, mn=c(mean(.i), median(.i)), rg=range(.i))
+  M <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
+  summ_ref <- lapply(M,
+                     function(m) {
+                       dplyr::bind_cols(tibble::as_tibble(t(apply(m,1, function(x) c(`mn ..1`=mean(x), `mn ..2`=median(x)))), rownames = ".rowname"),
+                                        tibble::as_tibble(t(apply(m,1, function(x) setNames(range(x), c("rg ..1", "rg ..2"))))))
+                     })
+  expect_identical(summ, summ_ref)
+
+
+
+
+  summ <- column_loop_dfw(student_results, mn=c(mean(.j), median(.j)), rg=range(.j))
+  M <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
+  summ_ref <- lapply(M,
+                     function(m) {
+                       dplyr::bind_cols(tibble::as_tibble(t(apply(m,2, function(x) c(`mn ..1`=mean(x), `mn ..2`=median(x)))), rownames = ".colname"),
+                                        tibble::as_tibble(t(apply(m,2, function(x) setNames(range(x), c("rg ..1", "rg ..2"))))))
+                     })
+  expect_identical(summ, summ_ref)
+
+
+
+
+  summ <- row_loop_dfw(student_results, mn=c(mn=mean(.i), md=median(.i)), rg=range(.i))
+  M <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
+  summ_ref <- lapply(M,
+                     function(m) {
+                       dplyr::bind_cols(tibble::as_tibble(t(apply(m,1, function(x) c(`mn mn`=mean(x), `mn md`=median(x)))), rownames = ".rowname"),
+                                        tibble::as_tibble(t(apply(m,1, function(x) setNames(range(x), c("rg ..1", "rg ..2"))))))
+                     })
+  expect_identical(summ, summ_ref)
+
+
+
+
+  summ <- column_loop_dfw(student_results, mn=c(mn=mean(.j), md=median(.j)), rg=range(.j))
+  M <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
+  summ_ref <- lapply(M,
+                     function(m) {
+                       dplyr::bind_cols(tibble::as_tibble(t(apply(m,2, function(x) c(`mn mn`=mean(x), `mn md`=median(x)))), rownames = ".colname"),
+                                        tibble::as_tibble(t(apply(m,2, function(x) setNames(range(x), c("rg ..1", "rg ..2"))))))
+                     })
+  expect_identical(summ, summ_ref)
+
+
+
+
+  # error
+  expect_error(row_loop_dfw(student_results,
+                            mn=mean,
+                            reg = lm(.i ~ national_average + program)),
+               "vectors must be of the same length")
+
+
+
+
+  expect_error(column_loop_dfw(student_results,
+                               mn=mean,
+                               reg = lm(.j ~ teacher + previous_year_score)),
+               "vectors must be of the same length")
+
+
+
+
+  # the trick
+  summ <- row_loop_dfw(student_results, mn=mean, reg = list(lm(.i ~ national_average + program)))
+  M <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
+  meta <- column_info(student_results)
+  summ_ref <- lapply(M,
+                     function(m) {
+                       tibble::tibble(.rowname = rownames(m),
+                                      mn=unname(rowMeans(m)),
+                                      reg = unname(apply(m,1,function(x) {
+                                        meta$.i <- x
+                                        eval(quote(lm(.i ~ national_average + program)), envir = meta)
+                                      })))
+                     })
+  expect_equal(summ, summ_ref, ignore_attr = TRUE)
+
+
+
+
+  summ <- column_loop_dfw(student_results, mn=mean, reg = list(lm(.j ~ teacher + previous_year_score)))
+  M <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
+  meta <- row_info(student_results)
+  summ_ref <- lapply(M,
+                     function(m) {
+                       tibble::tibble(.colname = colnames(m),
+                                      mn=unname(colMeans(m)),
+                                      reg = unname(apply(m,2,function(x) {
+                                        meta$.j <- x
+                                        eval(quote(lm(.j ~ teacher + previous_year_score)), envir = meta)
+                                      })))
+                     })
+  expect_equal(summ, summ_ref, ignore_attr = TRUE)
+
+
+
+  summ <- row_loop_dfw(student_results, reg = list(national = lm(.i ~ national_average), program = lm(.i ~ program)))
+
+
+  #
+  # # this should fail
+  expect_error(row_loop_dfw(student_results, mn=mean(.i), rg=range(.i)),
+               "vectors must be of the same length")
+
+
+  expect_error(column_loop_dfw(student_results, mn=mean(.j), rg=range(.j)),
+               "vectors must be of the same length")
+
+})
+
+
+
+
+
+
+
+

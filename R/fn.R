@@ -89,6 +89,7 @@ ENCLOS <- R6::R6Class("ENCLOS",
                               private$.enclos_dat <- list(
                                 lapply(.mats, function(.m) {
                                   lapply(idx, function(i) c(.i=list(.m[i, ]),
+                                                            .__is_null_ = is.null(.m),
                                                             as.list(.rowinf[i, ])))
                                 })
                               )
@@ -101,6 +102,7 @@ ENCLOS <- R6::R6Class("ENCLOS",
                                 lapply(.mats, function(.m)
                                 {
                                   lapply(idx, function(j) c(.j=list(.m[, j]),
+                                                            .__is_null_ = is.null(.m),
                                                             as.list(.colinf[j, ])))
                                 })
                               )
@@ -115,6 +117,7 @@ ENCLOS <- R6::R6Class("ENCLOS",
                                 lapply(.mats, function(.m)
                                 {
                                   lapply(idx, function(i) c(.i=list(.m[i, gr]),
+                                                            .__is_null_ = is.null(.m),
                                                             as.list(.rowinf[i, ])))
                                 })
                               })
@@ -128,6 +131,7 @@ ENCLOS <- R6::R6Class("ENCLOS",
                                 lapply(.mats, function(.m)
                                 {
                                   lapply(idx, function(j) c(.j=list(.m[gr, j]),
+                                                            .__is_null_ = is.null(.m),
                                                             as.list(.colinf[j, ])))
                                 })
                               })
@@ -170,13 +174,21 @@ ENCLOS <- R6::R6Class("ENCLOS",
                         },
 
 
-                        eval = function(quoS) {
+
+                        eval = function(quoS, .simplify = FALSE) {
                           v <- lapply(quoS,
-                                 function(q) rlang::eval_tidy(q, private$.mask, private$.env))
+                                 function(q) {
+                                   if (eval(quote(.__is_null_), private$.enclos)) {
+                                     if (.simplify) ._NULL_ else NULL
+                                   } else {
+                                     rlang::eval_tidy(q, private$.mask, private$.env)
+                                   }
+                                 })
                           names(v) <- names(quoS)
 
                           is_vect <- sapply(v, is.vector)
-                          lens <- mapply(function(vl, lgl) if (lgl) length(vl) else -1, v, is_vect)
+                          # lens <- mapply(function(vl, lgl) if (lgl) length(vl) else -1, v, is_vect)
+                          lens <- mapply(function(vl, lgl) if (is_null_obj(vl)) -1 else length(vl), v, is_vect)
 
                           list(v=v, lens=lens)
                         }
@@ -222,11 +234,14 @@ norm_call <- function(quo, var)
 }
 
 
-eval_fun <- function(margin, ms, ..., matidx, env)
+
+eval_fun <- function(margin, ms, ..., matidx, .simplify, env)
 {
   cl <- sys.call()
   cash_status$set(cl)
   on.exit(cash_status$clear(cl))
+
+  if (is.null(ms$matrix_set)) return(list(vals = NULL, lens = NULL))
 
   if (margin == "row") {
     n <- nrow(ms)
@@ -287,7 +302,7 @@ eval_fun <- function(margin, ms, ..., matidx, env)
       for (i in 1:n)
       {
         if (is.null(group_lbl)) enclos$update(k, i) else enclos$update(k, i, gr)
-        pts <- enclos$eval(quosures)
+        pts <- enclos$eval(quosures, .simplify)
         parts[[i]] <- pts$v
         l <- union(l, unique(pts$lens))
       }
@@ -307,70 +322,35 @@ eval_fun <- function(margin, ms, ..., matidx, env)
 }
 
 
-#' Apply functions to each matrix row of a matrixset
+#' Apply functions to each matrix row/column of a matrixset
 #'
 #' @description
-#' The `row_loop` functions transform their input by applying a function to each
-#' matrix row of a `matrixset`. The function can be applied to all matrices or
+#' The `row_loop`/`column_loop` functions apply functions to each matrix
+#' row/column of a `matrixset`. The functions can be applied to all matrices or
 #' only a subset.
 #'
-#' @details
-#' If `matrix` is left unspecified (or given as `NULL`), all matrices will be
-#' replaced by `value`. How replacement exactly occurs depends on `value` itself.
-#'
-#' If `value` is a single atomic `vector` (this excludes lists) or `matrix`,
-#' relevant subscripts of all requested matrices will be replaced by the same
-#' `value`. This is conditional to the dimensions being compatible.
-#'
-#' Alternatively, `value` can be a list of atomic vectors/matrices. If `value`
-#' has a single element, the same rules as above apply. Otherwise, the length
-#' of `value` must match the number of matrices for which subscripts have to be
-#' replaced.
-#'
-#' If the list elements are named, the names are matched to the names of the
-#' matrices that need replacement - in which case `value` needs not to be the
-#' same length.
-#'
-#' A final possibility for `value` is for it to be `NULL`. In this case, target
-#' matrices are turned to `NULL`.
+#' The `dfl`/`dfw` versions differ in their output format.
 #'
 #' @section vector `value`:
 #' Contrarily to `matrix` replacement, when submitting an atomic `vector`
 #' `value`, dimensions must match exactly.
 #'
-#' @section Replacing `NULL` matrices:
-#' Replacing subscripts of `NULL` matrices is not possible, unless `value` is
-#' itself `NULL`, or a matrix the same dimensions (number of rows and columns)
-#' as `x`. If `x` has dimnames, `value` must have the same dimnames.
 #'
-#' @param x    `matrixset` object from which to replace element(s)
-#' @param i,j    Indices specifying elements to replace. Indices are numeric or
-#'     character vectors or empty (`NULL`). Note that treating `NULL` as empty
-#'     differs from the usual replacement, where it is treated as `integer(0)`.
-#'     Here a `NULL` (empty) results in selecting all rows or columns.
+#' @param .ms    `matrixset` object
+#' @param ...    functions, separated by commas. They can be specified in one of
+#'     the following way:
 #'
-#'     Numeric values are coerced to integer as by [as.integer()] (and hence
-#'     truncated towards zero).
+#'    * a function name, e.g., `mean`.
+#'    * a function call, where you can use `.i` to represent the current row
+#'       (for `row_loop`) and `.j` for the current column (`column_loop`). Bare
+#'       names of object traits can be used as well. For instance,
+#'       `lm(.i ~ program)`.
+#'    * a formula expression. See examples to see the usefulness of this.
 #'
-#'     Character vectors will be matched to the dimnames of the object.
+#' @param .matrix   matrix indices of which matrix to apply functions to. The
+#'                  default, `NULL`, means all the matrices are used.
 #'
-#'     Can also be logical vectors, indicating elements/slices to replace Such
-#'     vectors are **NOT** recycled, which is an important difference with usual
-#'     matrix replacement. It means that the logical vector must match the
-#'     object dimension in length.
-#'
-#'     Can also be negative integers, indicating elements/slices to leave out of
-#'     the replacement.
-#'
-#'     When indexing, a single argument `i` can be a matrix with two columns.
-#'     This is treated as if the first column was the `i` index and the second
-#'     column the `j` index.
-#'
-#' @param matrix    index specifying matrix or matrices to replace. Index is
-#'                  numeric or character vectors or empty (\code{NULL}). Note
-#'                  that treating \code{NULL} as empty differs from the usual
-#'                  replacement, where it is treated as \code{integer(0)}. Here
-#'                  a \code{NULL} (empty) results in replacing all matrices.
+#'    If not `NULL`, index is numeric or character vectors.
 #'
 #'    Numeric values are coerced to integer as by [as.integer()] (and hence
 #'    truncated towards zero).
@@ -385,7 +365,18 @@ eval_fun <- function(margin, ms, ..., matidx, env)
 #'    Can also be negative integers, indicating elements/slices to leave out of
 #'    the replacement.
 #'
-#' @param value    object to use as replacement value
+#' @returns
+#' A list for every matrix in the matrixset object. Each list is itself a list,
+#' one element for each row/column. And finally, each of these sub-list is a
+#' list, the results of each function.
+#'
+#' If each function returns a vector of the same dimension, you can use either
+#' the `_dfl` or the `_dfw` version. What they do is to return a list of
+#' `tibble`s. The `dfl` version will stack the function results, in a long
+#' format while the `dfw` version will put them side-by-side, in a wide format.
+#'
+#' See the grouping section to learn about the result format in the grouping
+#' context.
 #'
 #' @examples
 #' # an hypothetical example of students that failed 3 courses and their results
@@ -419,30 +410,32 @@ eval_fun <- function(margin, ms, ..., matidx, env)
 #' student_results["student 2",,"remedial"] <- c(0.77, 0.83, 0.75)
 #' student_results[2,,2] <- matrix(c(0.77, 0.83, 0.75), 1, 3)
 #'
-#'
-#' @noRd
-row_loop <- function(.ms, ..., .matrix = NULL, .prefix = "", .sep = " ")
+#' @name loop
+#' @export
+row_loop <- function(.ms, ..., .matrix = NULL)
   UseMethod("row_loop")
 
 
-
+#' @rdname loop
+#' @export
 row_loop.matrixset <- function(.ms, ..., .matrix = NULL)
 {
-  eval_obj <- eval_fun(margin="row", ms=.ms, ...,
-                       matidx=.matrix, env=rlang::caller_env())
+  eval_obj <- eval_fun(margin="row", ms=.ms, ..., matidx=.matrix,
+                       .simplify = FALSE, env=rlang::caller_env())
   eval_obj$vals
 }
 
 
-
+#' @rdname loop
+#' @export
 row_loop.row_grouped_ms <- function(.ms, ..., .matrix = NULL)
 {
   NextMethod()
 }
 
 
-
-
+#' @rdname loop
+#' @export
 row_loop.col_grouped_ms <- function(.ms, ..., .matrix = NULL)
 {
   vals <- column_group_meta(.ms)
@@ -452,30 +445,32 @@ row_loop.col_grouped_ms <- function(.ms, ..., .matrix = NULL)
 
 
 
-
-
-column_loop <- function(.ms, ..., .matrix = NULL, .prefix = "", .sep = " ")
+#' @rdname loop
+#' @export
+column_loop <- function(.ms, ..., .matrix = NULL)
   UseMethod("column_loop")
 
 
-
+#' @rdname loop
+#' @export
 column_loop.matrixset <- function(.ms, ..., .matrix = NULL)
 {
-  eval_obj <- eval_fun(margin="col", ms=.ms, ...,
-                       matidx=.matrix, env=rlang::caller_env())
+  eval_obj <- eval_fun(margin="col", ms=.ms, ..., matidx=.matrix,
+                       .simplify = FALSE, env=rlang::caller_env())
   eval_obj$vals
 }
 
 
-
+#' @rdname loop
+#' @export
 column_loop.col_grouped_ms <- function(.ms, ..., .matrix = NULL)
 {
   NextMethod()
 }
 
 
-
-
+#' @rdname loop
+#' @export
 column_loop.row_grouped_ms <- function(.ms, ..., .matrix = NULL)
 {
   vals <- row_group_meta(.ms)
@@ -487,20 +482,27 @@ column_loop.row_grouped_ms <- function(.ms, ..., .matrix = NULL)
 
 
 
+#' @rdname loop
+#' @export
+row_loop_dfl <- function(.ms, ..., .matrix = NULL, .prefix = "", .sep = " ")
+  UseMethod("row_loop_dfl")
 
 
-
-row_loop_tbl.matrixset <- function(.ms, ..., .matrix = NULL, .prefix = "",
+#' @rdname loop
+#' @export
+row_loop_dfl.matrixset <- function(.ms, ..., .matrix = NULL, .prefix = "",
                                    .sep = " ")
 {
-  eval_obj <- eval_fun(margin="row", ms=.ms, ...,
-                       matidx=.matrix, env=rlang::caller_env())
+  eval_obj <- eval_fun(margin="row", ms=.ms, ..., matidx=.matrix,
+                       .simplify = TRUE, env=rlang::caller_env())
+
+  if (is.null(eval_obj$vals)) return(NULL)
 
   purrr::map2(eval_obj$vals, eval_obj$lens,
               function(vals, lens) {
                 lens_unq <- unique(lens)
                 if (length(lens_unq) > 1)
-                  stop("vectors must be of the same length")
+                  stop("vectors must be of the same length", call. = FALSE)
                 if (lens_unq > 1) {
                   purrr::map_dfr(vals,
                                  function(u) {
@@ -512,7 +514,7 @@ row_loop_tbl.matrixset <- function(.ms, ..., .matrix = NULL, .prefix = "",
                                    )
                                  }, .id = .rowtag(.ms))
 
-                } else if (lens_unq < 1) {
+                } else if (lens_unq == 0L) {
                   stop("function results must be non-empty vectors")
                 } else {
                   tbls <- purrr::map(vals, tibble::as_tibble)
@@ -526,24 +528,91 @@ row_loop_tbl.matrixset <- function(.ms, ..., .matrix = NULL, .prefix = "",
 
 
 
-row_loop_tbw.matrixset <- function(.ms, ..., .matrix = NULL, .prefix = "",
-                                   .sep = " ")
+
+#' @rdname loop
+#' @export
+column_loop_dfl <- function(.ms, ..., .matrix = NULL, .prefix = "", .sep = " ")
+  UseMethod("column_loop_dfl")
+
+
+#' @rdname loop
+#' @export
+column_loop_dfl.matrixset <- function(.ms, ..., .matrix = NULL, .prefix = "",
+                                      .sep = " ")
 {
-  eval_obj <- eval_fun(margin="row", ms=.ms, ...,
-                       matidx=.matrix, env=rlang::caller_env())
+  eval_obj <- eval_fun(margin="col", ms=.ms, ..., matidx=.matrix,
+                       .simplify = TRUE, env=rlang::caller_env())
+
+  if (is.null(eval_obj$vals)) return(NULL)
 
   purrr::map2(eval_obj$vals, eval_obj$lens,
               function(vals, lens) {
-                if (any(lens < 1)) {
+                lens_unq <- unique(lens)
+                if (length(lens_unq) > 1)
+                  stop("vectors must be of the same length", call. = FALSE)
+                if (lens_unq > 1) {
+                  purrr::map_dfr(vals,
+                                 function(u) {
+                                   purrr::imap_dfc(u, function(v, nm) {
+                                     names(v) <- make_names(v, "")
+                                     tibble::enframe(v,
+                                                     name = paste0(.prefix, nm, ".name"),
+                                                     value = nm)}
+                                   )
+                                 }, .id = .coltag(.ms))
+
+                } else if (lens_unq == 0L) {
+                  stop("function results must be non-empty vectors")
+                } else {
+                  tbls <- purrr::map(vals, tibble::as_tibble)
+                  dplyr::bind_rows(tbls , .id = .coltag(.ms) )
+                }
+              })
+
+
+}
+
+
+
+
+
+
+#' @rdname loop
+#' @export
+row_loop_dfw <- function(.ms, ..., .matrix = NULL, .prefix = "", .sep = " ")
+  UseMethod("row_loop_dfw")
+
+
+#' @rdname loop
+#' @export
+row_loop_dfw.matrixset <- function(.ms, ..., .matrix = NULL, .prefix = "",
+                                   .sep = " ")
+{
+  eval_obj <- eval_fun(margin="row", ms=.ms, ..., matidx=.matrix,
+                       .simplify = TRUE, env=rlang::caller_env())
+
+  if (is.null(eval_obj$vals)) return(NULL)
+
+  purrr::map2(eval_obj$vals, eval_obj$lens,
+              function(vals, lens) {
+                lens_unq <- unique(lens)
+                if (length(lens_unq) > 1)
+                  stop("vectors must be of the same length", call. = FALSE)
+
+                if (any(lens == 0L)) {
                   stop("function results must be non-empty vectors")
                 } else if (any(lens > 1)) {
 
                   purrr::map_dfr(vals,
                                  function(u) {
                                    purrr::imap_dfc(u, function(v, nm) {
-                                     names(v) <- concat(nm, make_names(v, ""), sep = .sep)
+                                     # names(v) <- concat(nm, make_names(v, ""), sep = .sep)
 
-                                     tibble::as_tibble_row(v)
+                                     # tibble::as_tibble_row(v)
+                                     names(v) <- concat(nm, make_names(v, ""), sep = .sep)
+                                     df <- tibble::enframe(v, value = nm)
+                                     tidyr::pivot_wider(df, names_from = "name",
+                                                        values_from = tidyselect::all_of(nm))
                                    }
                                    )
                                  }, .id = .rowtag(.ms))
@@ -551,6 +620,56 @@ row_loop_tbw.matrixset <- function(.ms, ..., .matrix = NULL, .prefix = "",
                 } else {
                   tbls <- purrr::map(vals, tibble::as_tibble)
                   dplyr::bind_rows(tbls , .id = .rowtag(.ms))
+                }
+              })
+
+}
+
+
+
+#' @rdname loop
+#' @export
+column_loop_dfw <- function(.ms, ..., .matrix = NULL, .prefix = "", .sep = " ")
+  UseMethod("column_loop_dfw")
+
+
+#' @rdname loop
+#' @export
+column_loop_dfw.matrixset <- function(.ms, ..., .matrix = NULL, .prefix = "",
+                                      .sep = " ")
+{
+  eval_obj <- eval_fun(margin="col", ms=.ms, ..., matidx=.matrix,
+                       .simplify = TRUE, env=rlang::caller_env())
+
+  if (is.null(eval_obj$vals)) return(NULL)
+
+  purrr::map2(eval_obj$vals, eval_obj$lens,
+              function(vals, lens) {
+                lens_unq <- unique(lens)
+                if (length(lens_unq) > 1)
+                  stop("vectors must be of the same length", call. = FALSE)
+
+                if (any(lens == 0L)) {
+                  stop("function results must be non-empty vectors")
+                } else if (any(lens > 1)) {
+
+                  purrr::map_dfr(vals,
+                                 function(u) {
+                                   purrr::imap_dfc(u, function(v, nm) {
+                                     # names(v) <- concat(nm, make_names(v, ""), sep = .sep)
+
+                                     # tibble::as_tibble_row(v)
+                                     names(v) <- concat(nm, make_names(v, ""), sep = .sep)
+                                     df <- tibble::enframe(v, value = nm)
+                                     tidyr::pivot_wider(df, names_from = "name",
+                                                        values_from = tidyselect::all_of(nm))
+                                   }
+                                   )
+                                 }, .id = .coltag(.ms))
+
+                } else {
+                  tbls <- purrr::map(vals, tibble::as_tibble)
+                  dplyr::bind_rows(tbls , .id = .coltag(.ms))
                 }
               })
 

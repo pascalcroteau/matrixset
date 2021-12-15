@@ -607,6 +607,60 @@ test_that("matrixset 'long' loop works", {
 
 
 
+
+  summ <- row_loop_dfl(student_results, reg = list(lm(.i ~ national_average), lm(.i ~ program)))
+  M <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
+  meta <- column_info(student_results)
+  summ_ref <- lapply(M,
+                     function(m) {
+                       u <- tibble::tibble(
+                         .rowname = rownames(student_results),
+                         a=unname(apply(m,1,function(x) {
+                           meta$.i <- x
+                           eval(quote(lm(.i ~ national_average)), envir = meta)
+                         })),
+                         b=unname(apply(m,1,function(x) {
+                           meta$.i <- x
+                           eval(quote(lm(.i ~ program)), envir = meta)
+                         })))
+                       u <- tidyr::pivot_longer(u, names_to = "reg.name",
+                                           values_to = "reg",
+                                           cols = c("a", "b"))
+                       u$reg.name <- ifelse(u$reg.name == "a", "..1", "..2")
+                       u
+                     })
+  expect_equal(summ, summ_ref, ignore_attr = TRUE)
+
+
+
+
+  summ <- column_loop_dfl(student_results, reg = list(lm(.j ~ class), lm(.j ~ teacher)))
+  M <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
+  meta <- row_info(student_results)
+  summ_ref <- lapply(M,
+                     function(m) {
+                       u <- tibble::tibble(
+                         .colname = colnames(student_results),
+                         a=unname(apply(m,2,function(x) {
+                           meta$.j <- x
+                           eval(quote(lm(.j ~ class)), envir = meta)
+                         })),
+                         b=unname(apply(m,2,function(x) {
+                           meta$.j <- x
+                           eval(quote(lm(.j ~ teacher)), envir = meta)
+                         })))
+                       u <- tidyr::pivot_longer(u, names_to = "reg.name",
+                                                values_to = "reg",
+                                                cols = c("a", "b"))
+                       u$reg.name <- ifelse(u$reg.name == "a", "..1", "..2")
+                       u
+                     })
+  expect_equal(summ, summ_ref, ignore_attr = TRUE)
+
+
+
+
+
   # this should fail
   expect_error(row_loop_dfl(student_results, mn=mean(.i), rg=range(.i)),
                "vectors must be of the same length")
@@ -624,7 +678,7 @@ test_that("matrixset 'long' loop works", {
 
 
 
-test_that("matrixset 'long' loop works", {
+test_that("matrixset 'wide' loop works", {
 
   # with null
   expect_identical(row_loop_dfw(matrixset(NULL), mean), NULL)
@@ -774,6 +828,21 @@ test_that("matrixset 'long' loop works", {
 
 
   summ <- row_loop_dfw(student_results, reg = list(national = lm(.i ~ national_average), program = lm(.i ~ program)))
+  M <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
+  meta <- column_info(student_results)
+  summ_ref <- lapply(M,
+                     function(m) {
+                       tibble::tibble(.rowname = rownames(m),
+                                      `reg national` = unname(apply(m,1,function(x) {
+                                        meta$.i <- x
+                                        eval(quote(lm(.i ~ national_average)), envir = meta)
+                                      })),
+                                      `reg program` = unname(apply(m,1,function(x) {
+                                        meta$.i <- x
+                                        eval(quote(lm(.i ~ program)), envir = meta)
+                                      })))
+                     })
+  expect_equal(summ, summ_ref, ignore_attr = TRUE)
 
 
   #

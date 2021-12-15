@@ -36,21 +36,21 @@ column_loop(.ms, ..., .matrix = NULL)
 
 \method{column_loop}{row_grouped_ms}(.ms, ..., .matrix = NULL)
 
-row_loop_dfl(.ms, ..., .matrix = NULL, .prefix = "", .sep = " ")
+row_loop_dfl(.ms, ..., .matrix = NULL)
 
-\method{row_loop_dfl}{matrixset}(.ms, ..., .matrix = NULL, .prefix = "", .sep = " ")
+\method{row_loop_dfl}{matrixset}(.ms, ..., .matrix = NULL)
 
-column_loop_dfl(.ms, ..., .matrix = NULL, .prefix = "", .sep = " ")
+column_loop_dfl(.ms, ..., .matrix = NULL)
 
-\method{column_loop_dfl}{matrixset}(.ms, ..., .matrix = NULL, .prefix = "", .sep = " ")
+\method{column_loop_dfl}{matrixset}(.ms, ..., .matrix = NULL)
 
-row_loop_dfw(.ms, ..., .matrix = NULL, .prefix = "", .sep = " ")
+row_loop_dfw(.ms, ..., .matrix = NULL)
 
-\method{row_loop_dfw}{matrixset}(.ms, ..., .matrix = NULL, .prefix = "", .sep = " ")
+\method{row_loop_dfw}{matrixset}(.ms, ..., .matrix = NULL)
 
-column_loop_dfw(.ms, ..., .matrix = NULL, .prefix = "", .sep = " ")
+column_loop_dfw(.ms, ..., .matrix = NULL)
 
-\method{column_loop_dfw}{matrixset}(.ms, ..., .matrix = NULL, .prefix = "", .sep = " ")
+\method{column_loop_dfw}{matrixset}(.ms, ..., .matrix = NULL)
 }
 \arguments{
 \item{.ms}{\code{matrixset} object}
@@ -83,6 +83,19 @@ number of matrices in length.
 
 Can also be negative integers, indicating elements/slices to leave out of
 the replacement.}
+}
+\value{
+A list for every matrix in the matrixset object. Each list is itself a list,
+one element for each row/column. And finally, each of these sub-list is a
+list, the results of each function.
+
+If each function returns a vector of the same dimension, you can use either
+the \verb{_dfl} or the \verb{_dfw} version. What they do is to return a list of
+\code{tibble}s. The \code{dfl} version will stack the function results, in a long
+format while the \code{dfw} version will put them side-by-side, in a wide format.
+
+See the grouping section to learn about the result format in the grouping
+context.
 }
 \description{
 The \code{row_loop}/\code{column_loop} functions apply functions to each matrix

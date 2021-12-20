@@ -6,66 +6,6 @@
 
 # THINK ABOUT 'CURRENT'
 
-# ENCLOS <- R6::R6Class("ENCLOS",
-#
-#                       public = list(
-#
-#                         initialize = function(MARGIN, .mats, .rowinf, .colinf, ENV) {
-#                           private$.margin <- MARGIN
-#                           private$.matrices <- .mats
-#                           private$.row_data <- .rowinf
-#                           private$.col_data <- .colinf
-#                           private$.env <- ENV
-#                         },
-#
-#                         update = function(mat, idx, gr_idx = NULL) {
-#                           if (private$.margin == "row") {
-#                             private$.col_data$.i <- private$.matrices[[mat]][idx,]
-#                             if (is.null(gr_idx)) {
-#                               private$.enclos <- c(as.list(private$.row_data[idx,,drop = FALSE]),
-#                                                    as.list(private$.col_data))
-#                             } else {
-#                               private$.enclos <- c(as.list(private$.row_data[idx,,drop = FALSE]),
-#                                                    as.list(private$.col_data[gr_idx,,drop = FALSE]))
-#                             }
-#
-#                           } else if (private$.margin == "col") {
-#                             private$.row_data$.j <- private$.matrices[[mat]][,idx]
-#                             if (is.null(gr_idr)) {
-#                               private$.enclos <- c(as.list(private$.col_data[idx,,drop = FALSE]),
-#                                                    as.list(private$.row_data))
-#                             } else {
-#                               private$.enclos <- c(as.list(private$.col_data[idx,,drop = FALSE]),
-#                                                    as.list(private$.row_data[gr_idx,,drop=FALSE]))
-#                             }
-#                           }
-#                         },
-#
-#                         eval = function(quoS) {
-#                           mask <- rlang::as_data_mask(private$.enclos)
-#                           v <- lapply(quoS,
-#                                  function(q) rlang::eval_tidy(q, mask, private$.env))
-#                           names(v) <- names(quoS)
-#
-#                           is_vect <- sapply(v, is.vector)
-#                           lens <- mapply(function(vl, lgl) if (lgl) length(vl) else -1, v, is_vect)
-#
-#                           list(v=v, lens=lens)
-#                         }
-#
-#                       ),
-#
-#                       private = list(
-#                         .margin = NULL,
-#                         .matrices = NULL,
-#                         .row_data = NULL,
-#                         .col_data = NULL,
-#                         .enclos = NULL,
-#                         .env = NULL
-#                       )
-#
-#                       )
-
 
 
 
@@ -86,26 +26,26 @@ ENCLOS <- R6::R6Class("ENCLOS",
                           if (is.null(.gridx)) {
 
                             if (MARGIN == "row") {
-                              private$.enclos_dat <- list(
-                                lapply(.mats, function(.m) {
+                              private$.enclos_dat <- lapply(.mats, function(.m) {
+                                list(
                                   lapply(idx, function(i) c(.i=list(.m[i, ]),
                                                             .__is_null_ = is.null(.m),
                                                             as.list(.rowinf[i, ])))
-                                })
-                              )
+                                )
+                              })
 
                               private$.info <- list(as.list(.colinf))
 
                             } else if (MARGIN == "col") {
 
-                              private$.enclos_dat <- list(
-                                lapply(.mats, function(.m)
-                                {
+                              private$.enclos_dat <- lapply(.mats, function(.m)
+                              {
+                                list(
                                   lapply(idx, function(j) c(.j=list(.m[, j]),
                                                             .__is_null_ = is.null(.m),
                                                             as.list(.colinf[j, ])))
-                                })
-                              )
+                                )
+                              })
 
                               private$.info <- list(as.list(.rowinf))
 
@@ -113,8 +53,8 @@ ENCLOS <- R6::R6Class("ENCLOS",
 
                           } else {
                             if (MARGIN == "row") {
-                              private$.enclos_dat <- lapply(.gridx, function(gr) {
-                                lapply(.mats, function(.m)
+                              private$.enclos_dat <- lapply(.mats, function(.m) {
+                                lapply(.gridx, function(gr)
                                 {
                                   lapply(idx, function(i) c(.i=list(.m[i, gr]),
                                                             .__is_null_ = is.null(.m),
@@ -127,8 +67,8 @@ ENCLOS <- R6::R6Class("ENCLOS",
                               })
 
                             } else if (MARGIN == "col") {
-                              private$.enclos_dat <- lapply(.gridx, function(gr) {
-                                lapply(.mats, function(.m)
+                              private$.enclos_dat <- lapply(.mats, function(.m) {
+                                lapply(.gridx, function(gr)
                                 {
                                   lapply(idx, function(j) c(.j=list(.m[gr, j]),
                                                             .__is_null_ = is.null(.m),
@@ -166,10 +106,10 @@ ENCLOS <- R6::R6Class("ENCLOS",
                               assign(nm, private$.info[[gr_idx]][[nm]], private$.enclos)
 
                             for (nm in private$.dat_names)
-                              assign(nm, private$.enclos_dat[[gr_idx]][[mat]][[idx]][[nm]], private$.enclos)
+                              assign(nm, private$.enclos_dat[[mat]][[gr_idx]][[idx]][[nm]], private$.enclos)
                           } else if (idx > 1 || mat > 1) {
                             for (nm in private$.dat_names)
-                              assign(nm, private$.enclos_dat[[gr_idx]][[mat]][[idx]][[nm]], private$.enclos)
+                              assign(nm, private$.enclos_dat[[mat]][[gr_idx]][[idx]][[nm]], private$.enclos)
                           }
                         },
 
@@ -177,13 +117,13 @@ ENCLOS <- R6::R6Class("ENCLOS",
 
                         eval = function(quoS, .simplify = FALSE) {
                           v <- lapply(quoS,
-                                 function(q) {
-                                   if (eval(quote(.__is_null_), private$.enclos)) {
-                                     if (.simplify) ._NULL_ else NULL
-                                   } else {
-                                     rlang::eval_tidy(q, private$.mask, private$.env)
-                                   }
-                                 })
+                                      function(q) {
+                                        if (eval(quote(.__is_null_), private$.enclos)) {
+                                          if (.simplify) ._NULL_ else NULL
+                                        } else {
+                                          rlang::eval_tidy(q, private$.mask, private$.env)
+                                        }
+                                      })
                           names(v) <- names(quoS)
 
                           is_vect <- sapply(v, is.vector)
@@ -206,7 +146,8 @@ ENCLOS <- R6::R6Class("ENCLOS",
                         .env = NULL
                       )
 
-                      )
+)
+
 
 
 
@@ -235,92 +176,6 @@ norm_call <- function(quo, var)
 
 
 
-# eval_fun <- function(margin, ms, ..., matidx, .simplify, env)
-# {
-#   cl <- sys.call()
-#   cash_status$set(cl)
-#   on.exit(cash_status$clear(cl))
-#
-#   if (is.null(ms$matrix_set)) return(list(vals = NULL, lens = NULL))
-#
-#   if (margin == "row") {
-#     n <- nrow(ms)
-#     nms <- rownames(ms)
-#     gr_idx <- column_group_where(ms)
-#   } else if (margin == "col") {
-#     n <- ncol(ms)
-#     nms <- colnames(ms)
-#     gr_idx <- row_group_where(ms)
-#   }
-#
-#   if (is.null(matidx)) {
-#     nmat <- .nmatrix(ms)
-#     matnms <- matrixnames(ms)
-#     enclos <- ENCLOS$new(margin, ms$matrix_set, n, nms, ms$row_info,
-#                          ms$column_info, env, gr_idx)
-#     # enclos <- ENCLOS$new(margin, ms$matrix_set, ms$row_info, ms$column_info,
-#     #                      env)
-#   } else {
-#     matidx <- index_to_integer(matidx, nmatrix(ms), matrixnames(ms))
-#     nmat <- length(matidx)
-#     matnms <- matrixnames(ms)[matidx]
-#     enclos <- ENCLOS$new(margin, ms$matrix_set[matidx], n, nms, ms$row_info,
-#                          ms$column_info, env, gr_idx)
-#     # enclos <- ENCLOS$new(margin, ms$matrix_set[matidx], ms$row_info,
-#     #                      ms$column_info, env)
-#   }
-#
-#   quosures <- rlang::enquos(..., .named = TRUE, .ignore_empty = "all")
-#   var_lab <- switch(margin, "row" = ".i", "col"=".j")
-#
-#   for (i in seq_along(quosures)) {
-#     quosures[[i]] <- norm_call(quosures[[i]], var_lab)
-#   }
-#
-#   group_lbl <- switch(margin,
-#                       "row" = column_group_keys(ms),
-#                       "col" = row_group_keys(ms))
-#
-#   rowv <- vector("list", nmat)
-#   names(rowv) <- matnms
-#
-#   parts <- vector("list", n)
-#   names(parts) <- nms
-#
-#   lens <- vector("list", nmat)
-#
-#   if (!is.null(group_lbl)) {
-#     ngroup <- nrow(group_lbl)
-#     grouprow <- vector("list", ngroup)
-#   } else ngroup <- 1
-#
-#   for (gr in seq(ngroup))
-#   {
-#     for (k in 1:nmat)
-#     {
-#       l <- NULL
-#       for (i in 1:n)
-#       {
-#         if (is.null(group_lbl)) enclos$update(k, i) else enclos$update(k, i, gr)
-#         pts <- enclos$eval(quosures, .simplify)
-#         parts[[i]] <- pts$v
-#         l <- union(l, unique(pts$lens))
-#       }
-#       rowv[[k]] <- parts
-#       lens[[k]] <- l
-#     }
-#
-#     if (!is.null(group_lbl)) grouprow[[gr]] <- list(row_vals = rowv, lens = lens)
-#   }
-#
-#   if (!is.null(group_lbl)) {
-#     rowv <- purrr::map(grouprow, 1)
-#     lens <- purrr::map(grouprow, 2)
-#   }
-#
-#   list(vals=rowv, lens=lens)
-# }
-
 
 
 #' @importFrom rlang :=
@@ -330,7 +185,7 @@ eval_fun <- function(margin, ms, ..., matidx, .simplify, env)
   cash_status$set(cl)
   on.exit(cash_status$clear(cl))
 
-  if (is.null(ms$matrix_set)) return(list(vals = NULL, lens = NULL))
+  if (is.null(ms$matrix_set)) return(NULL)
 
   wide <- NULL
   if (!is.logical(.simplify)) {
@@ -382,16 +237,19 @@ eval_fun <- function(margin, ms, ..., matidx, .simplify, env)
   parts <- vector("list", n)
   names(parts) <- nms
 
-  lens <- vector("list", nmat)
+  # lens <- vector("list", nmat)
 
   if (!is.null(group_lbl)) {
     ngroup <- nrow(group_lbl)
     grouprow <- vector("list", ngroup)
-  } else ngroup <- 1
+  } else {
+    ngroup <- 1
+  }
 
-  for (gr in seq(ngroup))
+
+  for (k in 1:nmat)
   {
-    for (k in 1:nmat)
+    for (gr in seq(ngroup))
     {
       l <- NULL
       for (i in 1:n)
@@ -437,19 +295,14 @@ eval_fun <- function(margin, ms, ..., matidx, .simplify, env)
 
         parts[[i]] <- vals
       }
-      rowv[[k]] <- parts
-      lens[[k]] <- l
+
+      if (is.null(group_lbl)) grouprow <- parts else grouprow[[gr]] <- parts
+
     }
-
-    if (!is.null(group_lbl)) grouprow[[gr]] <- list(row_vals = rowv, lens = lens)
+    rowv[[k]] <- grouprow
   }
 
-  if (!is.null(group_lbl)) {
-    rowv <- purrr::map(grouprow, 1)
-    lens <- purrr::map(grouprow, 2)
-  }
-
-  list(vals=rowv, lens=lens)
+  rowv
 }
 
 
@@ -549,13 +402,16 @@ row_loop <- function(.ms, ..., .matrix = NULL)
   UseMethod("row_loop")
 
 
+#' @export
+row_loop.NULL <- function(.ms, ..., .matrix = NULL) NULL
+
+
 #' @rdname loop
 #' @export
 row_loop.matrixset <- function(.ms, ..., .matrix = NULL)
 {
-  eval_obj <- eval_fun(margin="row", ms=.ms, ..., matidx=.matrix,
-                       .simplify = FALSE, env=rlang::caller_env())
-  eval_obj$vals
+  eval_fun(margin="row", ms=.ms, ..., matidx=.matrix,
+           .simplify = FALSE, env=rlang::caller_env())
 }
 
 
@@ -571,9 +427,12 @@ row_loop.row_grouped_ms <- function(.ms, ..., .matrix = NULL)
 #' @export
 row_loop.col_grouped_ms <- function(.ms, ..., .matrix = NULL)
 {
-  vals <- column_group_meta(.ms)
-  vals$.rows <- NextMethod()
-  vals
+  ans <- column_group_meta(.ms)
+  vals <- NextMethod()
+  lapply(vals, function(v) {
+    ans$.rows <- v
+    ans
+  })
 }
 
 
@@ -584,13 +443,17 @@ column_loop <- function(.ms, ..., .matrix = NULL)
   UseMethod("column_loop")
 
 
+
+#' @export
+column_loop.NULL <- function(.ms, ..., .matrix = NULL) NULL
+
+
 #' @rdname loop
 #' @export
 column_loop.matrixset <- function(.ms, ..., .matrix = NULL)
 {
-  eval_obj <- eval_fun(margin="col", ms=.ms, ..., matidx=.matrix,
-                       .simplify = FALSE, env=rlang::caller_env())
-  eval_obj$vals
+  eval_fun(margin="col", ms=.ms, ..., matidx=.matrix,
+           .simplify = FALSE, env=rlang::caller_env())
 }
 
 
@@ -606,10 +469,14 @@ column_loop.col_grouped_ms <- function(.ms, ..., .matrix = NULL)
 #' @export
 column_loop.row_grouped_ms <- function(.ms, ..., .matrix = NULL)
 {
-  vals <- row_group_meta(.ms)
-  vals$.columns <- NextMethod()
-  vals$.rows <- NULL
-  vals
+  ans_tmp <- row_group_meta(.ms)
+  vals <- NextMethod()
+  ans <- lapply(vals, function(v) {
+    ans_tmp$.columns <- v
+    ans_tmp$.rows <- NULL
+    ans_tmp
+  })
+  ans
 }
 
 
@@ -621,6 +488,10 @@ row_loop_dfl <- function(.ms, ..., .matrix = NULL)
   UseMethod("row_loop_dfl")
 
 
+#' @export
+row_loop_dfl.NULL <- function(.ms, ..., .matrix = NULL) NULL
+
+
 #' @rdname loop
 #' @export
 row_loop_dfl.matrixset <- function(.ms, ..., .matrix = NULL)
@@ -628,12 +499,41 @@ row_loop_dfl.matrixset <- function(.ms, ..., .matrix = NULL)
   eval_obj <- eval_fun(margin="row", ms=.ms, ..., matidx=.matrix,
                        .simplify = "long", env=rlang::caller_env())
 
-  if (is.null(eval_obj$vals)) return(NULL)
+  if (is.null(eval_obj)) return(NULL)
 
-  lapply(eval_obj$vals, function(vals) {
+  lapply(eval_obj, function(vals) {
     dplyr::bind_rows(vals, .id = .rowtag(.ms))
   })
 
+}
+
+
+#' @rdname loop
+#' @export
+row_loop.row_grouped_ms <- function(.ms, ..., .matrix = NULL)
+{
+  NextMethod()
+}
+
+
+#' @rdname loop
+#' @export
+row_loop_dfl.col_grouped_ms <- function(.ms, ..., .matrix = NULL)
+{
+  eval_obj <- eval_fun(margin="row", ms=.ms, ..., matidx=.matrix,
+                       .simplify = "long", env=rlang::caller_env())
+
+  if (is.null(eval_obj)) return(NULL)
+
+  group_inf <- column_group_keys(.ms)
+
+  lapply(eval_obj, function(mats) {
+
+    purrr::map2_dfr(mats, seq_along(mats),
+                    function(gr, i) dplyr::bind_cols(group_inf[i, ],
+                                                     dplyr::bind_rows(gr,
+                                                                      .id = .rowtag(.ms))))
+  })
 }
 
 
@@ -646,6 +546,10 @@ column_loop_dfl <- function(.ms, ..., .matrix = NULL)
   UseMethod("column_loop_dfl")
 
 
+#' @export
+column_loop_dfl.NULL <- function(.ms, ..., .matrix = NULL) NULL
+
+
 #' @rdname loop
 #' @export
 column_loop_dfl.matrixset <- function(.ms, ..., .matrix = NULL)
@@ -653,14 +557,43 @@ column_loop_dfl.matrixset <- function(.ms, ..., .matrix = NULL)
   eval_obj <- eval_fun(margin="col", ms=.ms, ..., matidx=.matrix,
                        .simplify = "long", env=rlang::caller_env())
 
-  if (is.null(eval_obj$vals)) return(NULL)
+  if (is.null(eval_obj)) return(NULL)
 
-  lapply(eval_obj$vals, function(vals) {
+  lapply(eval_obj, function(vals) {
     dplyr::bind_rows(vals, .id = .coltag(.ms))
   })
 
 }
 
+
+
+#' @rdname loop
+#' @export
+column_loop.col_grouped_ms <- function(.ms, ..., .matrix = NULL)
+{
+  NextMethod()
+}
+
+
+#' @rdname loop
+#' @export
+column_loop_dfl.row_grouped_ms <- function(.ms, ..., .matrix = NULL)
+{
+  eval_obj <- eval_fun(margin="col", ms=.ms, ..., matidx=.matrix,
+                       .simplify = "long", env=rlang::caller_env())
+
+  if (is.null(eval_obj)) return(NULL)
+
+  group_inf <- row_group_keys(.ms)
+
+  lapply(eval_obj, function(mats) {
+
+    purrr::map2_dfr(mats, seq_along(mats),
+                    function(gr, i) dplyr::bind_cols(group_inf[i, ],
+                                                     dplyr::bind_rows(gr,
+                                                                      .id = .coltag(.ms))))
+  })
+}
 
 
 

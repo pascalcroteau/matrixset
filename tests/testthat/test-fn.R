@@ -781,6 +781,56 @@ test_that("matrixset 'long' loop works", {
   names(grmn_ref) <- matrixnames(student_results)
   expect_identical(grmn, grmn_ref)
 
+
+
+  grmn <- row_loop_dfl(column_group_by(student_results, program), ct=c(mean(.i), median(.i)))
+  grs <- column_group_meta(column_group_by(student_results, program))
+  mn_ref <- lapply(seq(nmatrix(student_results)),
+                   function(m) {
+                     ans <- grs
+                     grmn_ref <- lapply(grs$.rows, function(gr) {
+                       M <- matrix_elm(student_results,m)
+                       apply(M[, gr, drop = FALSE], 1, function(u) tibble::tibble(ct.name = c("..1", "..2"), ct=c(mean(u), median(u))),simplify = FALSE)
+                     })
+                     ans$.rows <- grmn_ref
+                     ans
+                   })
+  mn_ref <- lapply(mn_ref, function(u) tidyr::unnest_longer(u, .rows))
+  mn_ref <- lapply(mn_ref, function(u) tidyr::unnest_wider(u, .rows))
+  mn_ref <- lapply(mn_ref, function(u) tidyr::unnest(u, c(ct.name, ct)))
+  mn_ref <- lapply(mn_ref, function(u) {
+    u <- u[, c(1,4,2,3)]
+    colnames(u)[2] <- ".rowname"
+    u
+  })
+  names(mn_ref) <- matrixnames(student_results)
+  expect_identical(grmn, mn_ref)
+
+
+
+  grmn <- column_loop_dfl(row_group_by(student_results, teacher, class), ct=c(mean(.j), median(.j)))
+  grs <- row_group_meta(row_group_by(student_results, teacher, class))
+  grmn_ref <- lapply(seq(nmatrix(student_results)), function(m) {
+    ans <- grs
+    ans$.rows <- NULL
+    mn_ref <- lapply(grs$.rows, function(gr) {
+      M <- matrix_elm(student_results,m)
+      apply(M[gr, , drop = FALSE], 2, function(u) tibble::tibble(ct.name = c("..1", "..2"), ct=c(mean(u), median(u))),simplify = FALSE)
+    })
+    ans$.columns <- mn_ref
+    ans
+  })
+  grmn_ref <- lapply(grmn_ref, function(u) tidyr::unnest_longer(u, .columns))
+  grmn_ref <- lapply(grmn_ref, function(u) tidyr::unnest_wider(u, .columns))
+  grmn_ref <- lapply(grmn_ref, function(u) tidyr::unnest(u, c(ct.name, ct)))
+  grmn_ref <- lapply(grmn_ref, function(u) {
+    u <- u[, c(1,2,5,3,4)]
+    colnames(u)[3] <- ".colname"
+    u
+  })
+  names(grmn_ref) <- matrixnames(student_results)
+  expect_identical(grmn, grmn_ref)
+
 })
 
 
@@ -965,6 +1015,240 @@ test_that("matrixset 'wide' loop works", {
 
   expect_error(column_loop_dfw(student_results, mn=mean(.j), rg=range(.j)),
                "vectors must be of the same length")
+
+
+
+
+
+
+
+  # grouped
+  grmn <- row_loop_dfw(column_group_by(student_results, program), mean, median)
+  grs <- column_group_meta(column_group_by(student_results, program))
+  mn_ref <- lapply(seq(nmatrix(student_results)),
+                   function(m) {
+                     ans <- grs
+                     grmn_ref <- lapply(grs$.rows, function(gr) {
+                       M <- matrix_elm(student_results,m)
+                       apply(M[, gr, drop = FALSE], 1, function(u) list(mean=mean(u), median = median(u)),simplify = FALSE)
+                     })
+                     ans$.rows <- grmn_ref
+                     ans
+                   })
+  mn_ref <- lapply(mn_ref, function(u) tidyr::unnest_longer(u, .rows))
+  mn_ref <- lapply(mn_ref, function(u) tidyr::unnest_wider(u, .rows))
+  mn_ref <- lapply(mn_ref, function(u) {
+    u <- u[, c(1,4,2,3)]
+    colnames(u)[2] <- ".rowname"
+    u
+  })
+  names(mn_ref) <- matrixnames(student_results)
+  expect_identical(grmn, mn_ref)
+
+
+
+
+  grmn <- column_loop_dfw(row_group_by(student_results, teacher, class), mean, median)
+  grs <- row_group_meta(row_group_by(student_results, teacher, class))
+  grmn_ref <- lapply(seq(nmatrix(student_results)), function(m) {
+    ans <- grs
+    ans$.rows <- NULL
+    mn_ref <- lapply(grs$.rows, function(gr) {
+      M <- matrix_elm(student_results,m)
+      apply(M[gr, , drop = FALSE], 2, function(u) list(mean=mean(u), median = median(u)),simplify = FALSE)
+    })
+    ans$.columns <- mn_ref
+    ans
+  })
+  grmn_ref <- lapply(grmn_ref, function(u) tidyr::unnest_longer(u, .columns))
+  grmn_ref <- lapply(grmn_ref, function(u) tidyr::unnest_wider(u, .columns))
+  grmn_ref <- lapply(grmn_ref, function(u) {
+    u <- u[, c(1,2,5,3,4)]
+    colnames(u)[3] <- ".colname"
+    u
+  })
+  names(grmn_ref) <- matrixnames(student_results)
+  expect_identical(grmn, grmn_ref)
+
+
+
+
+  grmn <- row_loop_dfw(column_group_by(student_results, program), mn=mean, md=median(.i))
+  grs <- column_group_meta(column_group_by(student_results, program))
+  mn_ref <- lapply(seq(nmatrix(student_results)),
+                   function(m) {
+                     ans <- grs
+                     grmn_ref <- lapply(grs$.rows, function(gr) {
+                       M <- matrix_elm(student_results,m)
+                       apply(M[, gr, drop = FALSE], 1, function(u) list(mn=mean(u), md = median(u)),simplify = FALSE)
+                     })
+                     ans$.rows <- grmn_ref
+                     ans
+                   })
+  mn_ref <- lapply(mn_ref, function(u) tidyr::unnest_longer(u, .rows))
+  mn_ref <- lapply(mn_ref, function(u) tidyr::unnest_wider(u, .rows))
+  mn_ref <- lapply(mn_ref, function(u) {
+    u <- u[, c(1,4,2,3)]
+    colnames(u)[2] <- ".rowname"
+    u
+  })
+  names(mn_ref) <- matrixnames(student_results)
+  expect_identical(grmn, mn_ref)
+
+
+
+
+  grmn <- column_loop_dfw(row_group_by(student_results, teacher, class), mn=mean, md=median(.j))
+  grs <- row_group_meta(row_group_by(student_results, teacher, class))
+  grmn_ref <- lapply(seq(nmatrix(student_results)), function(m) {
+    ans <- grs
+    ans$.rows <- NULL
+    mn_ref <- lapply(grs$.rows, function(gr) {
+      M <- matrix_elm(student_results,m)
+      apply(M[gr, , drop = FALSE], 2, function(u) list(mn=mean(u), md = median(u)),simplify = FALSE)
+    })
+    ans$.columns <- mn_ref
+    ans
+  })
+  grmn_ref <- lapply(grmn_ref, function(u) tidyr::unnest_longer(u, .columns))
+  grmn_ref <- lapply(grmn_ref, function(u) tidyr::unnest_wider(u, .columns))
+  grmn_ref <- lapply(grmn_ref, function(u) {
+    u <- u[, c(1,2,5,3,4)]
+    colnames(u)[3] <- ".colname"
+    u
+  })
+  names(grmn_ref) <- matrixnames(student_results)
+  expect_identical(grmn, grmn_ref)
+
+
+
+  grmn <- row_loop_dfw(column_group_by(student_results, program), ct=c(mean(.i), median(.i)))
+  grs <- column_group_meta(column_group_by(student_results, program))
+  mn_ref <- lapply(seq(nmatrix(student_results)),
+                   function(m) {
+                     ans <- grs
+                     grmn_ref <- lapply(grs$.rows, function(gr) {
+                       M <- matrix_elm(student_results,m)
+                       apply(M[, gr, drop = FALSE], 1, function(u) tibble::tibble(ct.name = c("ct ..1", "ct ..2"), ct=c(mean(u), median(u))),simplify = FALSE)
+                     })
+                     ans$.rows <- grmn_ref
+                     ans
+                   })
+  mn_ref <- lapply(mn_ref, function(u) tidyr::unnest_longer(u, .rows))
+  mn_ref <- lapply(mn_ref, function(u) tidyr::unnest_wider(u, .rows))
+  mn_ref <- lapply(mn_ref, function(u) tidyr::unnest(u, c(ct.name, ct)))
+  mn_ref <- lapply(mn_ref, function(u) tidyr::pivot_wider(u, names_from = "ct.name", values_from = "ct"))
+  mn_ref <- lapply(mn_ref, function(u) {
+    colnames(u)[2] <- ".rowname"
+    u
+  })
+  names(mn_ref) <- matrixnames(student_results)
+  expect_identical(grmn, mn_ref)
+
+
+
+  grmn <- column_loop_dfw(row_group_by(student_results, teacher, class), ct=c(mean(.j), median(.j)))
+  grs <- row_group_meta(row_group_by(student_results, teacher, class))
+  grmn_ref <- lapply(seq(nmatrix(student_results)), function(m) {
+    ans <- grs
+    ans$.rows <- NULL
+    mn_ref <- lapply(grs$.rows, function(gr) {
+      M <- matrix_elm(student_results,m)
+      apply(M[gr, , drop = FALSE], 2, function(u) tibble::tibble(ct.name = c("d..1", "d..2"), ct=c(mean(u), median(u))),simplify = FALSE)
+    })
+    ans$.columns <- mn_ref
+    ans
+  })
+  grmn_ref <- lapply(grmn_ref, function(u) tidyr::unnest_longer(u, .columns))
+  grmn_ref <- lapply(grmn_ref, function(u) tidyr::unnest_wider(u, .columns))
+  grmn_ref <- lapply(grmn_ref, function(u) tidyr::unnest(u, c(ct.name, ct)))
+  grmn_ref <- lapply(grmn_ref, function(u) tidyr::pivot_wider(u, names_from = "ct.name", values_from = "ct"))
+  grmn_ref <- lapply(grmn_ref, function(u) {
+    colnames(u)[3:5] <- c(".colname", "ct ..1", "ct ..2")
+    u
+  })
+  names(grmn_ref) <- matrixnames(student_results)
+  expect_identical(grmn, grmn_ref)
+
+
+
+  grmn <- row_loop_dfw(column_group_by(student_results, program),
+                       ct=c(mn=mean(.i), md=median(.i)),
+                       rg=range,
+                       fit=list(lm(.i ~ 1), lm(.i ~ school_average)))
+  grs <- column_group_meta(column_group_by(student_results, program))
+  mn_ref <- lapply(seq(nmatrix(student_results)),
+                   function(m) {
+                     ans <- grs
+                     grmn_ref <- lapply(grs$.rows, function(gr) {
+                       M <- matrix_elm(student_results,m)
+                       meta <- column_info(student_results)
+                       rows <- lapply(seq(nrow(M)), function(i) {
+                         u <- M[i, gr]
+                         info <- meta[gr, ]
+                         info$.i <- u
+                         tibble::tibble(ct.name = c("ct mn", "ct md"),
+                                        ct=c(mean(u), median(u)),
+                                        rg.name=c("rg ..1", "rg ..2"),
+                                        rg=range(u),
+                                        fit.name = c("fit ..1", "fit ..2"),
+                                        fit=list(eval(quote(lm(.i ~ 1)), info),
+                                                 eval(quote(lm(.i ~ school_average)), info)))
+                       })
+                       names(rows) <- rownames(student_results)
+                       dplyr::bind_rows(rows, .id = ".rowname")
+                     })
+                     ans$.rows <- grmn_ref
+                     ans
+                   })
+  mn_ref <- lapply(mn_ref, function(u) tidyr::unnest(u, .rows))
+  mn_ref <- lapply(mn_ref, function(u) tidyr::pivot_wider(u, names_from = c("ct.name", "rg.name", "fit.name"), values_from = c("ct", "rg", "fit")))
+  mn_ref <- lapply(mn_ref, function(u) {
+    colnames(u)[3:8] <- c("ct mn", "ct md", "rg ..1", "rg ..2", "fit ..1", "fit ..2")
+    u
+  })
+  names(mn_ref) <- matrixnames(student_results)
+  expect_identical(grmn, mn_ref, ignore_attr = TRUE)
+
+
+
+  grmn <- column_loop_dfw(row_group_by(student_results, teacher, class),
+                          ct=c(mn=mean(.j), md=median(.j)),
+                          rg=range,
+                          fit=list(lm(.j ~ 1), lm(.j ~ previous_year_score)))
+  grs <- row_group_meta(row_group_by(student_results, teacher, class))
+  mn_ref <- lapply(seq(nmatrix(student_results)),
+                   function(m) {
+                     ans <- grs
+                     grmn_ref <- lapply(grs$.rows, function(gr) {
+                       M <- matrix_elm(student_results,m)
+                       meta <- row_info(student_results)
+                       cols <- lapply(seq(ncol(M)), function(j) {
+                         u <- M[gr, j]
+                         info <- meta[gr, ]
+                         info$.j <- u
+                         tibble::tibble(ct.name = c("ct mn", "ct md"),
+                                        ct=c(mean(u), median(u)),
+                                        rg.name=c("rg ..1", "rg ..2"),
+                                        rg=range(u),
+                                        fit.name = c("fit ..1", "fit ..2"),
+                                        fit=list(eval(quote(lm(.j ~ 1)), info),
+                                                 eval(quote(lm(.j ~ previous_year_score)), info)))
+                       })
+                       names(cols) <- colnames(student_results)
+                       dplyr::bind_rows(cols, .id = ".colname")
+                     })
+                     ans$.rows <- grmn_ref
+                     ans
+                   })
+  mn_ref <- lapply(mn_ref, function(u) tidyr::unnest(u, .rows))
+  mn_ref <- lapply(mn_ref, function(u) tidyr::pivot_wider(u, names_from = c("ct.name", "rg.name", "fit.name"), values_from = c("ct", "rg", "fit")))
+  mn_ref <- lapply(mn_ref, function(u) {
+    colnames(u)[3:8] <- c("ct mn", "ct md", "rg ..1", "rg ..2", "fit ..1", "fit ..2")
+    u
+  })
+  names(mn_ref) <- matrixnames(student_results)
+  expect_identical(grmn, mn_ref, ignore_attr = TRUE)
 
 })
 

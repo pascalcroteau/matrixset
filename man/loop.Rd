@@ -12,12 +12,20 @@
 \alias{column_loop.row_grouped_ms}
 \alias{row_loop_dfl}
 \alias{row_loop_dfl.matrixset}
+\alias{row_loop_dfl.row_grouped_ms}
+\alias{row_loop_dfl.col_grouped_ms}
 \alias{column_loop_dfl}
 \alias{column_loop_dfl.matrixset}
+\alias{column_loop_dfl.col_grouped_ms}
+\alias{column_loop_dfl.row_grouped_ms}
 \alias{row_loop_dfw}
 \alias{row_loop_dfw.matrixset}
+\alias{row_loop_dfw.row_grouped_ms}
+\alias{row_loop_dfw.col_grouped_ms}
 \alias{column_loop_dfw}
 \alias{column_loop_dfw.matrixset}
+\alias{column_loop_dfw.col_grouped_ms}
+\alias{column_loop_dfw.row_grouped_ms}
 \title{Apply functions to each matrix row/column of a matrixset}
 \usage{
 row_loop(.ms, ..., .matrix = NULL)
@@ -40,17 +48,33 @@ row_loop_dfl(.ms, ..., .matrix = NULL)
 
 \method{row_loop_dfl}{matrixset}(.ms, ..., .matrix = NULL)
 
+\method{row_loop_dfl}{row_grouped_ms}(.ms, ..., .matrix = NULL)
+
+\method{row_loop_dfl}{col_grouped_ms}(.ms, ..., .matrix = NULL)
+
 column_loop_dfl(.ms, ..., .matrix = NULL)
 
 \method{column_loop_dfl}{matrixset}(.ms, ..., .matrix = NULL)
+
+\method{column_loop_dfl}{col_grouped_ms}(.ms, ..., .matrix = NULL)
+
+\method{column_loop_dfl}{row_grouped_ms}(.ms, ..., .matrix = NULL)
 
 row_loop_dfw(.ms, ..., .matrix = NULL)
 
 \method{row_loop_dfw}{matrixset}(.ms, ..., .matrix = NULL)
 
+\method{row_loop_dfw}{row_grouped_ms}(.ms, ..., .matrix = NULL)
+
+\method{row_loop_dfw}{col_grouped_ms}(.ms, ..., .matrix = NULL)
+
 column_loop_dfw(.ms, ..., .matrix = NULL)
 
 \method{column_loop_dfw}{matrixset}(.ms, ..., .matrix = NULL)
+
+\method{column_loop_dfw}{col_grouped_ms}(.ms, ..., .matrix = NULL)
+
+\method{column_loop_dfw}{row_grouped_ms}(.ms, ..., .matrix = NULL)
 }
 \arguments{
 \item{.ms}{\code{matrixset} object}

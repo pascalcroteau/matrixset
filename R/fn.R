@@ -101,16 +101,23 @@ ENCLOS <- R6::R6Class("ENCLOS",
 
                           if (is.null(gr_idx)) gr_idx <- 1
 
-                          if (gr_idx > 1) {
-                            for (nm in private$.info_names)
-                              assign(nm, private$.info[[gr_idx]][[nm]], private$.enclos)
+                          # if (gr_idx > 1) {
+                          #   for (nm in private$.info_names)
+                          #     assign(nm, private$.info[[gr_idx]][[nm]], private$.enclos)
+                          #
+                          #   for (nm in private$.dat_names)
+                          #     assign(nm, private$.enclos_dat[[mat]][[gr_idx]][[idx]][[nm]], private$.enclos)
+                          # } else if (idx > 1 || mat > 1) {
+                          #   for (nm in private$.dat_names)
+                          #     assign(nm, private$.enclos_dat[[mat]][[gr_idx]][[idx]][[nm]], private$.enclos)
+                          # }
 
-                            for (nm in private$.dat_names)
-                              assign(nm, private$.enclos_dat[[mat]][[gr_idx]][[idx]][[nm]], private$.enclos)
-                          } else if (idx > 1 || mat > 1) {
-                            for (nm in private$.dat_names)
-                              assign(nm, private$.enclos_dat[[mat]][[gr_idx]][[idx]][[nm]], private$.enclos)
-                          }
+                          for (nm in private$.info_names)
+                            assign(nm, private$.info[[gr_idx]][[nm]], private$.enclos)
+
+                          for (nm in private$.dat_names)
+                            assign(nm, private$.enclos_dat[[mat]][[gr_idx]][[idx]][[nm]], private$.enclos)
+
                         },
 
 
@@ -510,7 +517,7 @@ row_loop_dfl.matrixset <- function(.ms, ..., .matrix = NULL)
 
 #' @rdname loop
 #' @export
-row_loop.row_grouped_ms <- function(.ms, ..., .matrix = NULL)
+row_loop_dfl.row_grouped_ms <- function(.ms, ..., .matrix = NULL)
 {
   NextMethod()
 }
@@ -569,7 +576,7 @@ column_loop_dfl.matrixset <- function(.ms, ..., .matrix = NULL)
 
 #' @rdname loop
 #' @export
-column_loop.col_grouped_ms <- function(.ms, ..., .matrix = NULL)
+column_loop_dfl.col_grouped_ms <- function(.ms, ..., .matrix = NULL)
 {
   NextMethod()
 }
@@ -612,12 +619,46 @@ row_loop_dfw.matrixset <- function(.ms, ..., .matrix = NULL)
   eval_obj <- eval_fun(margin="row", ms=.ms, ..., matidx=.matrix,
                        .simplify = "wide", env=rlang::caller_env())
 
-  if (is.null(eval_obj$vals)) return(NULL)
+  # if (is.null(eval_obj$vals)) return(NULL)
+  #
+  # lapply(eval_obj$vals, function(vals) {
+  #   dplyr::bind_rows(vals, .id = .rowtag(.ms))
+  # })
+  if (is.null(eval_obj)) return(NULL)
 
-  lapply(eval_obj$vals, function(vals) {
+  lapply(eval_obj, function(vals) {
     dplyr::bind_rows(vals, .id = .rowtag(.ms))
   })
 
+}
+
+
+#' @rdname loop
+#' @export
+row_loop_dfw.row_grouped_ms <- function(.ms, ..., .matrix = NULL)
+{
+  NextMethod()
+}
+
+
+#' @rdname loop
+#' @export
+row_loop_dfw.col_grouped_ms <- function(.ms, ..., .matrix = NULL)
+{
+  eval_obj <- eval_fun(margin="row", ms=.ms, ..., matidx=.matrix,
+                       .simplify = "wide", env=rlang::caller_env())
+
+  if (is.null(eval_obj)) return(NULL)
+
+  group_inf <- column_group_keys(.ms)
+
+  lapply(eval_obj, function(mats) {
+
+    purrr::map2_dfr(mats, seq_along(mats),
+                    function(gr, i) dplyr::bind_cols(group_inf[i, ],
+                                                     dplyr::bind_rows(gr,
+                                                                      .id = .rowtag(.ms))))
+  })
 }
 
 
@@ -628,6 +669,10 @@ column_loop_dfw <- function(.ms, ..., .matrix = NULL)
   UseMethod("column_loop_dfw")
 
 
+#' @export
+column_loop_dfw.NULL <- function(.ms, ..., .matrix = NULL) NULL
+
+
 #' @rdname loop
 #' @export
 column_loop_dfw.matrixset <- function(.ms, ..., .matrix = NULL)
@@ -635,15 +680,46 @@ column_loop_dfw.matrixset <- function(.ms, ..., .matrix = NULL)
   eval_obj <- eval_fun(margin="col", ms=.ms, ..., matidx=.matrix,
                        .simplify = "wide", env=rlang::caller_env())
 
-  if (is.null(eval_obj$vals)) return(NULL)
+  # if (is.null(eval_obj$vals)) return(NULL)
+  #
+  # lapply(eval_obj$vals, function(vals) {
+  #   dplyr::bind_rows(vals, .id = .coltag(.ms))
+  # })
+  if (is.null(eval_obj)) return(NULL)
 
-  lapply(eval_obj$vals, function(vals) {
+  lapply(eval_obj, function(vals) {
     dplyr::bind_rows(vals, .id = .coltag(.ms))
   })
 
 }
 
 
+#' @rdname loop
+#' @export
+column_loop_dfw.col_grouped_ms <- function(.ms, ..., .matrix = NULL)
+{
+  NextMethod()
+}
 
+
+#' @rdname loop
+#' @export
+column_loop_dfw.row_grouped_ms <- function(.ms, ..., .matrix = NULL)
+{
+  eval_obj <- eval_fun(margin="col", ms=.ms, ..., matidx=.matrix,
+                       .simplify = "wide", env=rlang::caller_env())
+
+  if (is.null(eval_obj)) return(NULL)
+
+  group_inf <- row_group_keys(.ms)
+
+  lapply(eval_obj, function(mats) {
+
+    purrr::map2_dfr(mats, seq_along(mats),
+                    function(gr, i) dplyr::bind_cols(group_inf[i, ],
+                                                     dplyr::bind_rows(gr,
+                                                                      .id = .coltag(.ms))))
+  })
+}
 
 

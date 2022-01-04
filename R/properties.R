@@ -254,6 +254,7 @@ column_traits.matrixset <- function(x) .coltraits(x)
   x
 }
 
+
 #' @export
 `row_traits<-.row_grouped_ms` <- function(x, value)
 {
@@ -320,6 +321,7 @@ column_traits.matrixset <- function(x) .coltraits(x)
 }
 
 
+
 #' @export
 `column_traits<-.col_grouped_ms` <- function(x, value)
 {
@@ -369,6 +371,7 @@ row_info.matrixset <- function(x)
 
 
 
+
 #' @rdname properties
 #' @export
 `row_info<-` <- function(x, value) UseMethod("row_info<-")
@@ -402,6 +405,8 @@ row_info.matrixset <- function(x)
 
   x
 }
+
+
 
 #' @export
 `row_info<-.row_grouped_ms` <- function(x, value)
@@ -451,6 +456,7 @@ column_info.matrixset <- function(x)
 
 
 
+
 #' @rdname properties
 #' @export
 `column_info<-` <- function(x, value) UseMethod("column_info<-")
@@ -484,6 +490,7 @@ column_info.matrixset <- function(x)
 
   x
 }
+
 
 #' @export
 `column_info<-.col_grouped_ms` <- function(x, value)
@@ -687,3 +694,4 @@ print.matrixset <- function(x, ..., n_matrices = 2)
   cat("\n\ncolumn_info:\n")
   print(tibble::as_tibble(x$column_info))
 }
+

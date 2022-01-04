@@ -478,6 +478,7 @@ matrixset <- function(..., expand = NULL, row_info = NULL, column_info = NULL,
 
 
 
+
 #' Coerce object into `matrixset`
 #'
 #' @description

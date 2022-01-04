@@ -107,6 +107,7 @@ row_filter.matrixset <- function(.ms, ..., .preserve = FALSE)
 }
 
 
+
 #' @export
 row_filter.row_grouped_ms <- function(.ms, ..., .preserve = FALSE)
 {
@@ -151,6 +152,7 @@ row_filter.row_grouped_ms <- function(.ms, ..., .preserve = FALSE)
   .ms
 
 }
+
 
 
 
@@ -257,6 +259,7 @@ column_filter.matrixset <- function(.ms, ..., .preserve = FALSE)
 }
 
 
+
 #' @export
 column_filter.col_grouped_ms <- function(.ms, ..., .preserve = FALSE)
 {
@@ -304,6 +307,7 @@ column_filter.col_grouped_ms <- function(.ms, ..., .preserve = FALSE)
   .ms
 
 }
+
 
 
 

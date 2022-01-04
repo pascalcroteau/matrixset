@@ -151,6 +151,7 @@ row_group_by <- function(.ms, ..., .add = FALSE, .drop = row_group_by_drop_defau
 }
 
 
+
 #' @rdname group_by
 #' @export
 column_group_by <- function(.ms, ..., .add = FALSE, .drop = column_group_by_drop_default(.ms))
@@ -194,6 +195,7 @@ column_group_by <- function(.ms, ..., .add = FALSE, .drop = column_group_by_drop
 
   .ms
 }
+
 
 
 #' Default value for .drop argument of function row_group_by()
@@ -286,6 +288,7 @@ row_ungroup <- function(.ms, ...)
 
 
 
+
 #' @rdname group_by
 #' @export
 column_ungroup <- function(.ms, ...)
@@ -331,6 +334,7 @@ column_ungroup <- function(.ms, ...)
 
   .ms
 }
+
 
 
 # ADD GROUP_META, WHICH IS DPLYR'S GROUP_DATA

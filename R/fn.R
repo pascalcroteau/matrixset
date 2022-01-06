@@ -47,6 +47,34 @@ current_n_column <- function()
 }
 
 
+#' @export
+row_pos <- function()
+{
+  context_env("row_pos()")$enclos$row_pos()
+}
+
+
+#' @export
+row_rel_pos <- function()
+{
+  context_env("row_rel_pos()")$enclos$row_rel_pos()
+}
+
+
+#' @export
+column_pos <- function()
+{
+  context_env("column_pos()")$enclos$col_pos()
+}
+
+
+#' @export
+column_rel_pos <- function()
+{
+  context_env("column_rel_pos()")$enclos$col_rel_pos()
+}
+
+
 
 
 # ENCLOS_MAT <- R6::R6Class("ENCLOS_MAT",
@@ -225,6 +253,9 @@ ENCLOS_MAT <- R6::R6Class("ENCLOS_MAT",
                             private$.row_info <- list(as.list(.rowinf))
                             private$.col_info <- list(as.list(.colinf))
 
+                            private$.row_idx <- list(seq_len(nrow(.rowinf)))
+                            private$.col_idx <- list(seq_len(nrow(.colinf)))
+
                             for (midx in seq_along(.mats)) {
                               private$.enclos_dat[[midx]] <- vector("list", 1)
                               private$.enclos_dat[[midx]][[1]] <- vector("list", 1)
@@ -239,6 +270,9 @@ ENCLOS_MAT <- R6::R6Class("ENCLOS_MAT",
                             private$.row_info <- vector("list", length(.gridx_row))
                             private$.col_info <- list(as.list(.colinf))
 
+                            private$.row_idx <- vector("list", length(.gridx_row))
+                            private$.col_idx <- list(seq_len(nrow(.colinf)))
+
                             for (midx in seq_along(.mats)) {
                               private$.enclos_dat[[midx]] <- vector("list", length(.gridx_row))
 
@@ -250,6 +284,7 @@ ENCLOS_MAT <- R6::R6Class("ENCLOS_MAT",
                                 private$.enclos_dat[[midx]][[gr]][[1]] <- c(.m=list(.m[g, , drop = FALSE]),
                                                                             .__is_null_ = is.null(.m))
                                 private$.row_info[[gr]] <- as.list(.rowinf[g, ])
+                                private$.row_idx[[gr]] <- g
                               }
                             }
 
@@ -257,6 +292,9 @@ ENCLOS_MAT <- R6::R6Class("ENCLOS_MAT",
 
                             private$.row_info <- list(as.list(.rowinf))
                             private$.col_info <- vector("list", length(.gridx_col))
+
+                            private$.row_idx <- list(seq_len(nrow(.rowinf)))
+                            private$.col_idx <- vector("list", length(.gridx_col))
 
                             for (midx in seq_along(.mats)) {
                               private$.enclos_dat[[midx]] <- vector("list", 1)
@@ -269,6 +307,7 @@ ENCLOS_MAT <- R6::R6Class("ENCLOS_MAT",
                                 private$.enclos_dat[[midx]][[1]][[gr]] <- c(.m=list(.m[, g, drop = FALSE]),
                                                                             .__is_null_ = is.null(.m))
                                 private$.col_info[[gr]] <- as.list(.colinf[g, ])
+                                private$.col_idx[[gr]] <- g
                               }
                             }
 
@@ -276,6 +315,9 @@ ENCLOS_MAT <- R6::R6Class("ENCLOS_MAT",
 
                             private$.row_info <- vector("list", length(.gridx_row))
                             private$.col_info <- vector("list", length(.gridx_col))
+
+                            private$.row_idx <- vector("list", length(.gridx_row))
+                            private$.col_idx <- vector("list", length(.gridx_col))
 
                             for (midx in seq_along(.mats)) {
                               private$.enclos_dat[[midx]] <- vector("list", length(.gridx_row))
@@ -286,12 +328,16 @@ ENCLOS_MAT <- R6::R6Class("ENCLOS_MAT",
 
                                 gr <- .gridx_row[[grrow]]
                                 private$.row_info[[grrow]] <- as.list(.rowinf[gr, ])
+                                private$.row_idx[[grrow]] <- gr
 
                                 for (grcol in seq_along(.gridx_col)) {
                                   gc <- .gridx_col[[grcol]]
                                   private$.enclos_dat[[midx]][[grrow]][[grcol]] <- c(.m=list(.m[gr, gc, drop = FALSE]),
                                                                                      .__is_null_ = is.null(.m))
-                                  if (grrow == 1) private$.col_info[[grcol]] <- as.list(.colinf[gc, ])
+                                  if (grrow == 1) {
+                                    private$.col_info[[grcol]] <- as.list(.colinf[gc, ])
+                                    private$.col_idx[[grcol]] <- gc
+                                  }
                                 }
                               }
                             }
@@ -315,7 +361,6 @@ ENCLOS_MAT <- R6::R6Class("ENCLOS_MAT",
                           if (is.null(gr_idx_col)) gr_idx_col <- 1
 
                           new_mat <- mat != private$.prev_mat
-                          new_idx <- idx != private$.prev_idx
                           new_group_row <- gr_idx_row != private$.prev_gr_row
                           new_group_col <- gr_idx_col != private$.prev_gr_col
 
@@ -336,7 +381,7 @@ ENCLOS_MAT <- R6::R6Class("ENCLOS_MAT",
 
 
 
-                          if (new_mat || new_idx || new_group_row || new_group_col) {
+                          if (new_mat || new_group_row || new_group_col) {
 
                             if (new_mat) private$.prev_mat <- mat
 
@@ -388,7 +433,31 @@ ENCLOS_MAT <- R6::R6Class("ENCLOS_MAT",
                           gr_idx <- private$.prev_gr_col
                           if (gr_idx == 0) gr_idx <- 1
                           length(private$.col_info[[gr_idx]][[1]])
-                        }
+                        },
+
+
+                        row_pos = function() {
+                          gr_idx <- private$.prev_gr_row
+                          if (gr_idx == 0) gr_idx <- 1
+                          private$.row_idx[[gr_idx]]
+                        },
+
+
+                        row_rel_pos = function() {
+                          seq_len(self$current_n_row())
+                        },
+
+
+                        col_pos = function() {
+                          gr_idx <- private$.prev_gr_col
+                          if (gr_idx == 0) gr_idx <- 1
+                          private$.col_idx[[gr_idx]]
+                        },
+
+
+                        col_rel_pos = function() {
+                          seq_len(self$current_n_col())
+                        },
 
 
                         clean = function() context_del()
@@ -400,8 +469,9 @@ ENCLOS_MAT <- R6::R6Class("ENCLOS_MAT",
                         .col_info = NULL,
                         .row_info_names = NULL,
                         .col_info_names = NULL,
+                        .row_idx = NULL,
+                        .col_idx = NULL,
                         .prev_mat = 0,
-                        .prev_idx = 0,
                         .prev_gr_row = 0,
                         .prev_gr_col = 0,
                         .enclos_dat = NULL,
@@ -580,6 +650,9 @@ ENCLOS <- R6::R6Class("ENCLOS",
                               private$.row_info <- vector("list", .n)
                               private$.col_info <- list(as.list(.colinf))
 
+                              private$.row_idx <- vector("list", .n)
+                              private$.col_idx <- list(seq_len(nrow(.colinf)))
+
                               for (midx in seq_along(.mats)) {
                                 private$.enclos_dat[[midx]] <- vector("list", 1)
                                 private$.enclos_dat[[midx]][[1]] <- vector("list", .n)
@@ -589,6 +662,7 @@ ENCLOS <- R6::R6Class("ENCLOS",
                                   private$.enclos_dat[[midx]][[1]][[i]] <- c(.i=list(.m[i, ]),
                                                                              .__is_null_ = is.null(.m))
                                   private$.row_info[[i]] <- as.list(.rowinf[i, ])
+                                  private$.row_idx[[i]] <- i
                                 }
                               }
 
@@ -596,6 +670,9 @@ ENCLOS <- R6::R6Class("ENCLOS",
 
                               private$.row_info <- list(as.list(.rowinf))
                               private$.col_info <- vector("list", .n)
+
+                              private$.row_idx <- list(seq_len(nrow(.rowinf)))
+                              private$.col_idx <- vector("list", .n)
 
                               for (midx in seq_along(.mats)) {
                                 private$.enclos_dat[[midx]] <- vector("list", 1)
@@ -606,6 +683,7 @@ ENCLOS <- R6::R6Class("ENCLOS",
                                   private$.enclos_dat[[midx]][[1]][[i]] <- c(.j=list(.m[, i]),
                                                                              .__is_null_ = is.null(.m))
                                   private$.col_info[[i]] <- as.list(.colinf[i, ])
+                                  private$.col_idx[[i]] <- i
                                 }
                               }
 
@@ -618,6 +696,9 @@ ENCLOS <- R6::R6Class("ENCLOS",
                               private$.row_info <- vector("list", .n)
                               private$.col_info <- vector("list", length(.gridx))
 
+                              private$.row_idx <- vector("list", .n)
+                              private$.col_idx <- vector("list", length(.gridx))
+
                               for (midx in seq_along(.mats)) {
                                 private$.enclos_dat[[midx]] <- vector("list", length(.gridx))
 
@@ -629,9 +710,13 @@ ENCLOS <- R6::R6Class("ENCLOS",
                                   for (i in idx) {
                                     private$.enclos_dat[[midx]][[gr]][[i]] <- c(.i=list(.m[i, g]),
                                                                                .__is_null_ = is.null(.m))
-                                    if (gr == 1) private$.row_info[[i]] <- as.list(.rowinf[i, ])
+                                    if (gr == 1) {
+                                      private$.row_info[[i]] <- as.list(.rowinf[i, ])
+                                      private$.row_idx[[i]] <- i
+                                    }
                                   }
                                   private$.col_info[[gr]] <- as.list(.colinf[g, ])
+                                  private$.col_idx[[gr]] <- g
                                 }
                               }
 
@@ -639,6 +724,9 @@ ENCLOS <- R6::R6Class("ENCLOS",
 
                               private$.row_info <- vector("list", length(.gridx))
                               private$.col_info <- vector("list", .n)
+
+                              private$.row_idx <- vector("list", length(.gridx))
+                              private$.col_idx <- vector("list", .n)
 
                               for (midx in seq_along(.mats)) {
                                 private$.enclos_dat[[midx]] <- vector("list", length(.gridx))
@@ -651,9 +739,13 @@ ENCLOS <- R6::R6Class("ENCLOS",
                                   for (i in idx) {
                                     private$.enclos_dat[[midx]][[gr]][[i]] <- c(.j=list(.m[g, i]),
                                                                                 .__is_null_ = is.null(.m))
-                                    if (gr == 1) private$.col_info[[i]] <- as.list(.colinf[i, ])
+                                    if (gr == 1) {
+                                      private$.col_info[[i]] <- as.list(.colinf[i, ])
+                                      private$.col_idx[[i]] <- i
+                                    }
                                   }
                                   private$.row_info[[gr]] <- as.list(.rowinf[g, ])
+                                  private$.row_idx[[gr]] <- g
                                 }
                               }
 
@@ -736,6 +828,76 @@ ENCLOS <- R6::R6Class("ENCLOS",
                         },
 
 
+                        current_row_info = function() {
+                          if (private$.margin == "col") {
+                            idx <- private$.prev_gr
+                            if (idx == 0) idx <- 1
+                          } else idx <- private$.prev_idx
+
+                          tibble::as_tibble(private$.row_info[[idx]])
+                        },
+
+
+                        current_column_info = function() {
+                          if (private$.margin == "row") {
+                            idx <- private$.prev_gr
+                            if (idx == 0) idx <- 1
+                          } else idx <- private$.prev_idx
+
+                          tibble::as_tibble(private$.col_info[[idx]])
+                        },
+
+
+                        current_n_row = function() {
+                          if (private$.margin == "col") {
+                            idx <- private$.prev_gr
+                            if (idx == 0) idx <- 1
+                          } else idx <- private$.prev_idx
+
+                          length(private$.row_info[[idx]][[1]])
+                        },
+
+
+                        current_n_col = function() {
+                          if (private$.margin == "row") {
+                            idx <- private$.prev_gr
+                            if (idx == 0) idx <- 1
+                          } else idx <- private$.prev_idx
+
+                          length(private$.col_info[[idx]][[1]])
+                        },
+
+
+                        row_pos = function() {
+                          if (private$.margin == "col") {
+                            idx <- private$.prev_gr
+                            if (idx == 0) idx <- 1
+                          } else idx <- private$.prev_idx
+
+                          private$.row_idx[[idx]]
+                        },
+
+
+                        row_rel_pos = function() {
+                          seq_len(self$current_n_row())
+                        },
+
+
+                        col_pos = function() {
+                          if (private$.margin == "row") {
+                            idx <- private$.prev_gr
+                            if (idx == 0) idx <- 1
+                          } else idx <- private$.prev_idx
+
+                          private$.col_idx[[idx]]
+                        },
+
+
+                        col_rel_pos = function() {
+                          seq_len(self$current_n_col())
+                        },
+
+
                         clean = function() context_del()
 
                       ),
@@ -746,6 +908,8 @@ ENCLOS <- R6::R6Class("ENCLOS",
                         .col_info = NULL,
                         .row_info_names = NULL,
                         .col_info_names = NULL,
+                        .row_idx = NULL,
+                        .col_idx = NULL,
                         .prev_mat = 0,
                         .prev_idx = 0,
                         .prev_gr = 0,

@@ -350,11 +350,12 @@ test_that("matrixset general loop works", {
   mn_ref <- lapply(seq(nmatrix(student_results)),
                    function(m) {
                      ans <- grs
+                     ans$.rows <- NULL
                      grmn_ref <- lapply(grs$.rows, function(gr) {
                        M <- matrix_elm(student_results,m)
                        apply(M[, gr, drop = FALSE], 1, function(u) list(mean=mean(u)),simplify = FALSE)
                      })
-                     ans$.rows <- grmn_ref
+                     ans$.vals <- grmn_ref
                      ans
                    })
   names(mn_ref) <- matrixnames(student_results)
@@ -372,7 +373,7 @@ test_that("matrixset general loop works", {
       M <- matrix_elm(student_results,m)
       apply(M[gr, , drop = FALSE], 2, function(u) list(mean=mean(u)),simplify = FALSE)
     })
-    ans$.columns <- mn_ref
+    ans$.vals <- mn_ref
     ans
   })
   names(grmn_ref) <- matrixnames(student_results)
@@ -386,11 +387,12 @@ test_that("matrixset general loop works", {
   mn_ref <- lapply(seq(nmatrix(student_results)),
                    function(m) {
                      ans <- grs
+                     ans$.rows <- NULL
                      grmn_ref <- lapply(grs$.rows, function(gr) {
                        M <- matrix_elm(student_results,m)
                        apply(M[, gr, drop = FALSE], 1, function(u) list(mn=mean(u)),simplify = FALSE)
                      })
-                     ans$.rows <- grmn_ref
+                     ans$.vals <- grmn_ref
                      ans
                    })
   names(mn_ref) <- matrixnames(student_results)
@@ -408,7 +410,7 @@ test_that("matrixset general loop works", {
       M <- matrix_elm(student_results,m)
       apply(M[gr, , drop = FALSE], 2, function(u) list(mn=mean(u)),simplify = FALSE)
     })
-    ans$.columns <- mn_ref
+    ans$.vals <- mn_ref
     ans
   })
   names(grmn_ref) <- matrixnames(student_results)
@@ -1426,7 +1428,7 @@ test_that("matrixset matrix loop works", {
                        list(mean=mean(M[, gr]))
                      })
                      ans$.rows <- NULL
-                     ans$.mats <- grmn_ref
+                     ans$.vals <- grmn_ref
                      ans
                    })
   names(mn_ref) <- matrixnames(student_results)
@@ -1445,7 +1447,7 @@ test_that("matrixset matrix loop works", {
                        list(mn=mean(M[, gr]))
                      })
                      ans$.rows <- NULL
-                     ans$.mats <- grmn_ref
+                     ans$.vals <- grmn_ref
                      ans
                    })
   names(mn_ref) <- matrixnames(student_results)
@@ -1464,7 +1466,7 @@ test_that("matrixset matrix loop works", {
                        list(mean=mean(M[gr, ]), rg=range(M[gr, ]))
                      })
                      ans$.rows <- NULL
-                     ans$.mats <- grmn_ref
+                     ans$.vals <- grmn_ref
                      ans
                    })
   names(mn_ref) <- matrixnames(student_results)
@@ -1491,8 +1493,8 @@ test_that("matrixset matrix loop works", {
                      # ans
                    })
   names(mn_ref) <- matrixnames(student_results)
-  expect_identical(grmn$failure$.mats, mn_ref$failure)
-  expect_identical(grmn$remedial$.mats, mn_ref$remedial)
+  expect_identical(grmn$failure$.vals, mn_ref$failure)
+  expect_identical(grmn$remedial$.vals, mn_ref$remedial)
 
 
 

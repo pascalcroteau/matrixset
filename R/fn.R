@@ -1171,18 +1171,55 @@ eval_fun <- function(margin, ms, ..., matidx, .simplify, env)
 
 
 
-#' Apply functions to each matrix row/column of a matrixset
+#' Apply functions to each matrix of a matrixset
 #'
 #' @description
-#' The `row_loop`/`column_loop` functions apply functions to each matrix
-#' row/column of a `matrixset`. The functions can be applied to all matrices or
-#' only a subset.
+#' The `matrix_loop` function applies functions to each matrix of a `matrixset`.
+#' The `row_loop`/`column_loop` functions do the same but separaterly for the
+#' row/column. The functions can be applied to all matrices or only a subset.
 #'
 #' The `dfl`/`dfw` versions differ in their output format.
 #'
-#' @section vector `value`:
-#' Contrarily to `matrix` replacement, when submitting an atomic `vector`
-#' `value`, dimensions must match exactly.
+#' @section Pronouns:
+#' The `rlang` pronouns `.data` and `.env` are available. Two scenarios for
+#' which they can be useful are:
+#'  * The annotation names are stored in a character variable. You can make use
+#'      of the variable by using `.data[[var]]`. See the example for an
+#'      illustration of this.
+#'  * You want to make use of a global variable that has the same name as an
+#'      annotation. You can use `.env[[var]]` or `.env$var` to make sure to use
+#'      the proper variable.
+#'
+#' The matrixset package defines its own pronouns: `.m`, `.i` and `.j`, which
+#' are discussed in the function specification argument (`...`).
+#'
+#' It is not necessary to import any of the pronouns (or load `rlang` in the
+#' case of `.data` and `.env`) in a interactive session.
+#'
+#' It is useful however when writing a package to avoid the `R CMD check` notes.
+#' As needed, you can import `.data` and `.env` (from `rlang`) or any of `.i`,
+#' `.j` or `.m` from `matrixset`.
+#'
+#' @section Grouped matrixsets:
+#' If groups have been defined, functions will be evaluated within them. When
+#' both row and column grouping has been registered, functions are evaluated at
+#' each cross-combination of row/column groups.
+#'
+#' The output format is different when the `.ms` matrixset object is grouped.
+#' A list for every matrix is still returned, but each of these lists now holds
+#' a tibble.
+#'
+#' Each tibble has a column called `.vals`, where the function results are
+#' stored. This column is a list, one element per group. The group labels are
+#' given by the other columns of the tibble. For a given group, things are like
+#' the ungrouped version: further sub-lists for rows/columns - if applicable -
+#' and function values.
+#'
+#' The dfl/dfw versions are more similar in their output format to their
+#' ungrouped version. The format is almost identical, except that additional
+#' columns are reported to identify the group labels.
+#'
+#' See the examples.
 #'
 #'
 #' @param .ms    `matrixset` object
@@ -1190,11 +1227,14 @@ eval_fun <- function(margin, ms, ..., matidx, .simplify, env)
 #'     the following way:
 #'
 #'    * a function name, e.g., `mean`.
-#'    * a function call, where you can use `.i` to represent the current row
-#'       (for `row_loop`) and `.j` for the current column (`column_loop`). Bare
-#'       names of object traits can be used as well. For instance,
-#'       `lm(.i ~ program)`.
+#'    * a function call, where you can use `.m` to represent the current matrix
+#'       (for `matrix_loop`), `.i` to represent the current row (for `row_loop`)
+#'       and `.j` for the current column (`column_loop`). Bare names of object
+#'       traits can be used as well. For instance, `lm(.i ~ program)`.
 #'    * a formula expression. See examples to see the usefulness of this.
+#'
+#'    The functions can be named; these names will be used to provide names to
+#'    the results.
 #'
 #' @param .matrix   matrix indices of which matrix to apply functions to. The
 #'                  default, `NULL`, means all the matrices are used.
@@ -1215,51 +1255,102 @@ eval_fun <- function(margin, ms, ..., matidx, .simplify, env)
 #'    the replacement.
 #'
 #' @returns
-#' A list for every matrix in the matrixset object. Each list is itself a list,
-#' one element for each row/column. And finally, each of these sub-list is a
-#' list, the results of each function.
+#' A list for every matrix in the matrixset object. Each list is itself a list.
+#' For `matrix_loop`, it is a list of the function values. Otherwise, it is a
+#' list with one element for each row/column. And finally, for
+#' `row_loop`/`column_loop`, each of these sub-list is a list, the results of
+#' each function.
 #'
-#' If each function returns a vector of the same dimension, you can use either
-#' the `_dfl` or the `_dfw` version. What they do is to return a list of
-#' `tibble`s. The `dfl` version will stack the function results, in a long
-#' format while the `dfw` version will put them side-by-side, in a wide format.
+#' If each function returns a `vector` of the same dimension, you can use either
+#' the `_dfl` or the `_dfw` version (`matrix_loop` excluded). What they do is to
+#' return a list of `tibble`s. The `dfl` version will stack the function results
+#' in a long format while the `dfw` version will put them side-by-side, in a
+#' wide format.
+#'
+#' If the functions returned vectors of more than one element, there will be a
+#' column to store the values and one for the function ID (dfl), or one column
+#' per combination of function/result (dfw)
 #'
 #' See the grouping section to learn about the result format in the grouping
 #' context.
 #'
 #' @examples
-#' # an hypothetical example of students that failed 3 courses and their results
-#' # after remedial class
-#' set.seed(1121)
-#' failure <- matrix(runif(20*3,0,.5), 20, 3)
-#' remedial <- matrix(c(c(runif(10, 0.55, 0.75), runif(10, 0.65, 0.8)),
-#'                      runif(20, 0.65, 0.90),
-#'                      c(runif(10, 0.6, 0.8), runif(10, 0.65, 0.95))), 20, 3)
-#' rownames(failure) <- rownames(remedial) <- paste("student", 1:20)
-#' colnames(failure) <- colnames(remedial) <- c("Mathematics", "English", "Science")
-#' student_info <- data.frame(student = paste("student", 1:20),
-#'                            class = gl(4,5,labels = paste0("class", LETTERS[1:4])),
-#'                            teacher = gl(2,10,labels = paste0("Professor", 1:2)))
-#' student_results <- matrixset(failure = failure, remedial = remedial,
-#'                              row_info = student_info, row_key = "student")
+#' # The firs example takes the whole matrix average, while the second takes
+#' # every row average
+#' (mn_mat <- matrix_loop(student_results, mean))
+#' (mn_row <- row_loop(student_results, mean))
 #'
-#' # you can replace a line for all matrices at once. In the example, the "wrong"
-#' # tag refers to the fact that the 'failure' results do not make sense after
-#' # replacement
-#' student_results_wrong <- student_results
-#' student_results_wrong["student 2",,] <- c(0.81, 0.88, 0.71) # obviously, integer index works too
-#' # note how all matrices had the same replacement
-#' student_results_wrong
+#' # More than one function can be provided. It's a good idea in this case to
+#' # name them
+#' (mn_col <- column_loop(student_results, avr=mean, med=median))
 #'
-#' # this already makes more sense in the context of the example
-#' student_results[2,,] <- list(c(0,0.45,0.1), c(0.81, 0.88, 0.71))
-#' student_results
+#' # the dfl/dfw versions returns nice tibbles - if the functions return values
+#' # of the same length.
+#' (mn_l <- column_loop_dfl(student_results, avr=mean, med=median))
+#' (mn_w <- column_loop_dfw(student_results, avr=mean, med=median))
 #'
-#' # or even these two equivalent commands
-#' student_results["student 2",,"remedial"] <- c(0.77, 0.83, 0.75)
-#' student_results[2,,2] <- matrix(c(0.77, 0.83, 0.75), 1, 3)
+#' # There is no difference between the two versions for length-1 vector results.
+#' # hese will differ, however
+#' (rg_l <- column_loop_dfl(student_results, rg=range))
+#' (rg_w <- column_loop_dfw(student_results, rg=range))
+#'
+#' # More complex examples can be used, by using pronouns and data annotation
+#' (vals <- column_loop(student_results, avr=mean, avr_trim=mean(.j, trim=.05),
+#'                                       reg=lm(.j ~ teacher)))
+#'
+#' # You can wrap complex function results, such as for lm, into a list, to use
+#' # the dfl/dfr version
+#' (vals_tidy <- column_loop_dfw(student_results, avr=mean, avr_trim=mean(.j, trim=.05),
+#'                                                reg=list(lm(.j ~ teacher))))
+#'
+#' # You can provide complex expressions by using formulas
+#' (r <- column_loop(student_results,
+#'                                   res= ~ {
+#'                                     log_score <- log(.j)
+#'                                     p <- predict(lm(log_score ~ teacher + class))
+#'                                     .j - exp(p)
+#'                                   }))
+#'
+#' # the .data pronoun can be useful to use names stored in variables
+#' fn <- function(nm) {
+#'   if (!is.character(nm) && length(nm) != 1) stop("this example won't work")
+#'   column_loop(student_results, lm(.j ~ .data[[nm]]))
+#' }
+#' fn("teacher")
+#'
+#' # You can use variables that are outside the scope of the matrixset object.
+#' # You don't need to do anything special if that variable is not named as an
+#' # annotation
+#' pass_grade <- 0.5
+#' (passed <- row_loop_dfw(student_results, pass = ~ .i >= pass_grade))
+#'
+#' # use .env if shares an annotation name
+#' previous_year_score <- 0.5
+#' (passed <- row_loop_dfw(student_results, pass = ~ .i >= .env$previous_year_score))
+#'
+#' # Grouping structure makes looping easy. Look at the output format
+#' cl_prof_gr <- row_group_by(student_results, class, teacher)
+#' (gr_summ <- column_loop(cl_prof_gr, avr=mean, med=median))
+#' (gr_summ_tidy <- column_loop_dfw(cl_prof_gr, avr=mean, med=median))
+#' # to showcase how we can play with format
+#' (gr_summ_tidy_long <- column_loop_dfl(cl_prof_gr, summ = ~ c(avr=mean(.j), med=median(.j))))
+#'
+#' # It is even possible to combine groupings
+#' cl_prof_program_gr <- column_group_by(cl_prof_gr, program)
+#' (mat_summ <- matrix_loop(cl_prof_program_gr, avr = mean, med = median, rg = range))
+#' # it doesn' make much sense, but this is to showcase format
+#' (summ_gr <- matrix_loop(cl_prof_program_gr, avr = mean, med = median, rg = range))
+#' (summ_gr_long <- column_loop_dfl(cl_prof_program_gr,
+#'                                  ct = ~ c(avr = mean(.j), med = median(.j)),
+#'                                  rg = range))
+#' (summ_gr_wide <- column_loop_dfw(cl_prof_program_gr,
+#'                                  ct = c(avr = mean(.j), med = median(.j)),
+#'                                  rg = range))
 #'
 #' @name loop
+
+
+
 #' @export
 row_loop <- function(.ms, ..., .matrix = NULL)
   UseMethod("row_loop")
@@ -1293,7 +1384,8 @@ row_loop.col_grouped_ms <- function(.ms, ..., .matrix = NULL)
   ans <- column_group_meta(.ms)
   vals <- NextMethod()
   lapply(vals, function(v) {
-    ans$.rows <- v
+    ans$.rows <- NULL
+    ans$.vals <- v
     ans
   })
 }
@@ -1307,7 +1399,8 @@ row_loop.dual_grouped_ms <- function(.ms, ..., .matrix = NULL)
   ans <- column_group_meta(.ms)
   vals <- NextMethod()
   lapply(vals, function(v) {
-    ans$.rows <- v
+    ans$.rows <- NULL
+    ans$.vals <- v
     ans
   })
 }
@@ -1349,7 +1442,7 @@ column_loop.row_grouped_ms <- function(.ms, ..., .matrix = NULL)
   ans_tmp <- row_group_meta(.ms)
   vals <- NextMethod()
   ans <- lapply(vals, function(v) {
-    ans_tmp$.columns <- v
+    ans_tmp$.vals <- v
     ans_tmp$.rows <- NULL
     ans_tmp
   })
@@ -1364,7 +1457,7 @@ column_loop.dual_grouped_ms <- function(.ms, ..., .matrix = NULL)
   ans_tmp <- row_group_meta(.ms)
   vals <- NextMethod()
   ans <- lapply(vals, function(v) {
-    ans_tmp$.columns <- v
+    ans_tmp$.vals <- v
     ans_tmp$.rows <- NULL
     ans_tmp
   })
@@ -1719,7 +1812,7 @@ matrix_loop.row_grouped_ms <- function(.ms, ..., .matrix = NULL)
   ans <- row_group_meta(.ms)
   vals <- NextMethod()
   lapply(vals, function(v) {
-    ans$.mats <- v
+    ans$.vals <- v
     ans$.rows <- NULL
     ans
   })
@@ -1733,7 +1826,7 @@ matrix_loop.col_grouped_ms <- function(.ms, ..., .matrix = NULL)
   ans <- column_group_meta(.ms)
   vals <- NextMethod()
   lapply(vals, function(v) {
-    ans$.mats <- v
+    ans$.vals <- v
     ans$.rows <- NULL
     ans
   })
@@ -1760,7 +1853,7 @@ matrix_loop.dual_grouped_ms <- function(.ms, ..., .matrix = NULL)
 
   vals <- NextMethod()
   lapply(vals, function(v) {
-    meta$.mats <- unlist(v, recursive = FALSE)
+    meta$.vals <- unlist(v, recursive = FALSE)
     meta
   })
 

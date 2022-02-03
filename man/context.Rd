@@ -33,9 +33,8 @@ These functions are designed to work inside certain \code{matrixset} functions, 
 have access to current group/matrix/row/column. Because of that, they will
 not work in a general context.
 
-The functions within which the context functions will work are \code{\link[=matrix_loop]{matrix_loop()}},
-\code{\link[=row_loop]{row_loop()}}, \code{\link[=row_loop_dfl]{row_loop_dfl()}}, \code{\link[=row_loop_dfw]{row_loop_dfw()}}, \code{\link[=column_loop]{column_loop()}},
-\code{\link[=column_loop_dfl]{column_loop_dfl()}} and \code{\link[=column_loop_dfw]{column_loop_dfw()}}.
+The functions within which the context functions will work are \code{\link[=apply_mat]{apply_mat()}},
+\code{\link[=apply_row]{apply_row()}} and \code{\link[=apply_column]{apply_column()}} - as well as their *_dfl/*dfw variant.
 
 Note that "current" refers to the current matrix/group/row/column, as
 applicable, and possibly combined.

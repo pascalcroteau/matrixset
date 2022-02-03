@@ -2,128 +2,159 @@
 % Please edit documentation in R/fn.R
 \name{loop}
 \alias{loop}
-\alias{row_loop}
-\alias{row_loop.matrixset}
-\alias{row_loop.row_grouped_ms}
-\alias{row_loop.col_grouped_ms}
-\alias{row_loop.dual_grouped_ms}
-\alias{column_loop}
-\alias{column_loop.matrixset}
-\alias{column_loop.col_grouped_ms}
-\alias{column_loop.row_grouped_ms}
-\alias{column_loop.dual_grouped_ms}
-\alias{row_loop_dfl}
-\alias{row_loop_dfl.matrixset}
-\alias{row_loop_dfl.row_grouped_ms}
-\alias{row_loop_dfl.col_grouped_ms}
-\alias{row_loop_dfl.dual_grouped_ms}
-\alias{column_loop_dfl}
-\alias{column_loop_dfl.matrixset}
-\alias{column_loop_dfl.col_grouped_ms}
-\alias{column_loop_dfl.row_grouped_ms}
-\alias{column_loop_dfl.dual_grouped_ms}
-\alias{row_loop_dfw}
-\alias{row_loop_dfw.matrixset}
-\alias{row_loop_dfw.row_grouped_ms}
-\alias{row_loop_dfw.col_grouped_ms}
-\alias{row_loop_dfw.dual_grouped_ms}
-\alias{column_loop_dfw}
-\alias{column_loop_dfw.matrixset}
-\alias{column_loop_dfw.col_grouped_ms}
-\alias{column_loop_dfw.row_grouped_ms}
-\alias{column_loop_dfw.dual_grouped_ms}
-\alias{matrix_loop}
-\alias{matrix_loop.matrixset}
-\alias{matrix_loop.row_grouped_ms}
-\alias{matrix_loop.col_grouped_ms}
-\alias{matrix_loop.dual_grouped_ms}
+\alias{apply_row}
+\alias{apply_row.matrixset}
+\alias{apply_row.row_grouped_ms}
+\alias{apply_row.col_grouped_ms}
+\alias{apply_row.dual_grouped_ms}
+\alias{apply_column}
+\alias{apply_column.matrixset}
+\alias{apply_column.col_grouped_ms}
+\alias{apply_column.row_grouped_ms}
+\alias{apply_column.dual_grouped_ms}
+\alias{apply_row_dfl}
+\alias{apply_row_dfl.matrixset}
+\alias{apply_row_dfl.row_grouped_ms}
+\alias{apply_row_dfl.col_grouped_ms}
+\alias{apply_row_dfl.dual_grouped_ms}
+\alias{apply_column_dfl}
+\alias{apply_column_dfl.matrixset}
+\alias{apply_column_dfl.col_grouped_ms}
+\alias{apply_column_dfl.row_grouped_ms}
+\alias{apply_column_dfl.dual_grouped_ms}
+\alias{apply_row_dfw}
+\alias{apply_row_dfw.matrixset}
+\alias{apply_row_dfw.row_grouped_ms}
+\alias{apply_row_dfw.col_grouped_ms}
+\alias{apply_row_dfw.dual_grouped_ms}
+\alias{apply_column_dfw}
+\alias{apply_column_dfw.matrixset}
+\alias{apply_column_dfw.col_grouped_ms}
+\alias{apply_column_dfw.row_grouped_ms}
+\alias{apply_column_dfw.dual_grouped_ms}
+\alias{apply_mat}
+\alias{apply_mat.matrixset}
+\alias{apply_mat.row_grouped_ms}
+\alias{apply_mat.col_grouped_ms}
+\alias{apply_mat.dual_grouped_ms}
+\alias{apply_mat_dfl}
+\alias{apply_mat_dfl.matrixset}
+\alias{apply_mat_dfl.row_grouped_ms}
+\alias{apply_mat_dfl.col_grouped_ms}
+\alias{apply_mat_dfl.dual_grouped_ms}
+\alias{apply_mat_dfw}
+\alias{apply_mat_dfw.matrixset}
+\alias{apply_mat_dfw.row_grouped_ms}
+\alias{apply_mat_dfw.col_grouped_ms}
+\alias{apply_mat_dfw.dual_grouped_ms}
 \title{Apply functions to each matrix of a matrixset}
 \usage{
-row_loop(.ms, ..., .matrix = NULL)
+apply_row(.ms, ..., .matrix = NULL)
 
-\method{row_loop}{matrixset}(.ms, ..., .matrix = NULL)
+\method{apply_row}{matrixset}(.ms, ..., .matrix = NULL)
 
-\method{row_loop}{row_grouped_ms}(.ms, ..., .matrix = NULL)
+\method{apply_row}{row_grouped_ms}(.ms, ..., .matrix = NULL)
 
-\method{row_loop}{col_grouped_ms}(.ms, ..., .matrix = NULL)
+\method{apply_row}{col_grouped_ms}(.ms, ..., .matrix = NULL)
 
-\method{row_loop}{dual_grouped_ms}(.ms, ..., .matrix = NULL)
+\method{apply_row}{dual_grouped_ms}(.ms, ..., .matrix = NULL)
 
-column_loop(.ms, ..., .matrix = NULL)
+apply_column(.ms, ..., .matrix = NULL)
 
-\method{column_loop}{matrixset}(.ms, ..., .matrix = NULL)
+\method{apply_column}{matrixset}(.ms, ..., .matrix = NULL)
 
-\method{column_loop}{col_grouped_ms}(.ms, ..., .matrix = NULL)
+\method{apply_column}{col_grouped_ms}(.ms, ..., .matrix = NULL)
 
-\method{column_loop}{row_grouped_ms}(.ms, ..., .matrix = NULL)
+\method{apply_column}{row_grouped_ms}(.ms, ..., .matrix = NULL)
 
-\method{column_loop}{dual_grouped_ms}(.ms, ..., .matrix = NULL)
+\method{apply_column}{dual_grouped_ms}(.ms, ..., .matrix = NULL)
 
-row_loop_dfl(.ms, ..., .matrix = NULL)
+apply_row_dfl(.ms, ..., .matrix = NULL)
 
-\method{row_loop_dfl}{matrixset}(.ms, ..., .matrix = NULL)
+\method{apply_row_dfl}{matrixset}(.ms, ..., .matrix = NULL)
 
-\method{row_loop_dfl}{row_grouped_ms}(.ms, ..., .matrix = NULL)
+\method{apply_row_dfl}{row_grouped_ms}(.ms, ..., .matrix = NULL)
 
-\method{row_loop_dfl}{col_grouped_ms}(.ms, ..., .matrix = NULL)
+\method{apply_row_dfl}{col_grouped_ms}(.ms, ..., .matrix = NULL)
 
-\method{row_loop_dfl}{dual_grouped_ms}(.ms, ..., .matrix = NULL)
+\method{apply_row_dfl}{dual_grouped_ms}(.ms, ..., .matrix = NULL)
 
-column_loop_dfl(.ms, ..., .matrix = NULL)
+apply_column_dfl(.ms, ..., .matrix = NULL)
 
-\method{column_loop_dfl}{matrixset}(.ms, ..., .matrix = NULL)
+\method{apply_column_dfl}{matrixset}(.ms, ..., .matrix = NULL)
 
-\method{column_loop_dfl}{col_grouped_ms}(.ms, ..., .matrix = NULL)
+\method{apply_column_dfl}{col_grouped_ms}(.ms, ..., .matrix = NULL)
 
-\method{column_loop_dfl}{row_grouped_ms}(.ms, ..., .matrix = NULL)
+\method{apply_column_dfl}{row_grouped_ms}(.ms, ..., .matrix = NULL)
 
-\method{column_loop_dfl}{dual_grouped_ms}(.ms, ..., .matrix = NULL)
+\method{apply_column_dfl}{dual_grouped_ms}(.ms, ..., .matrix = NULL)
 
-row_loop_dfw(.ms, ..., .matrix = NULL)
+apply_row_dfw(.ms, ..., .matrix = NULL)
 
-\method{row_loop_dfw}{matrixset}(.ms, ..., .matrix = NULL)
+\method{apply_row_dfw}{matrixset}(.ms, ..., .matrix = NULL)
 
-\method{row_loop_dfw}{row_grouped_ms}(.ms, ..., .matrix = NULL)
+\method{apply_row_dfw}{row_grouped_ms}(.ms, ..., .matrix = NULL)
 
-\method{row_loop_dfw}{col_grouped_ms}(.ms, ..., .matrix = NULL)
+\method{apply_row_dfw}{col_grouped_ms}(.ms, ..., .matrix = NULL)
 
-\method{row_loop_dfw}{dual_grouped_ms}(.ms, ..., .matrix = NULL)
+\method{apply_row_dfw}{dual_grouped_ms}(.ms, ..., .matrix = NULL)
 
-column_loop_dfw(.ms, ..., .matrix = NULL)
+apply_column_dfw(.ms, ..., .matrix = NULL)
 
-\method{column_loop_dfw}{matrixset}(.ms, ..., .matrix = NULL)
+\method{apply_column_dfw}{matrixset}(.ms, ..., .matrix = NULL)
 
-\method{column_loop_dfw}{col_grouped_ms}(.ms, ..., .matrix = NULL)
+\method{apply_column_dfw}{col_grouped_ms}(.ms, ..., .matrix = NULL)
 
-\method{column_loop_dfw}{row_grouped_ms}(.ms, ..., .matrix = NULL)
+\method{apply_column_dfw}{row_grouped_ms}(.ms, ..., .matrix = NULL)
 
-\method{column_loop_dfw}{dual_grouped_ms}(.ms, ..., .matrix = NULL)
+\method{apply_column_dfw}{dual_grouped_ms}(.ms, ..., .matrix = NULL)
 
-matrix_loop(.ms, ..., .matrix = NULL)
+apply_mat(.ms, ..., .matrix = NULL)
 
-\method{matrix_loop}{matrixset}(.ms, ..., .matrix = NULL)
+\method{apply_mat}{matrixset}(.ms, ..., .matrix = NULL)
 
-\method{matrix_loop}{row_grouped_ms}(.ms, ..., .matrix = NULL)
+\method{apply_mat}{row_grouped_ms}(.ms, ..., .matrix = NULL)
 
-\method{matrix_loop}{col_grouped_ms}(.ms, ..., .matrix = NULL)
+\method{apply_mat}{col_grouped_ms}(.ms, ..., .matrix = NULL)
 
-\method{matrix_loop}{dual_grouped_ms}(.ms, ..., .matrix = NULL)
+\method{apply_mat}{dual_grouped_ms}(.ms, ..., .matrix = NULL)
+
+apply_mat_dfl(.ms, ..., .matrix = NULL)
+
+\method{apply_mat_dfl}{matrixset}(.ms, ..., .matrix = NULL)
+
+\method{apply_mat_dfl}{row_grouped_ms}(.ms, ..., .matrix = NULL)
+
+\method{apply_mat_dfl}{col_grouped_ms}(.ms, ..., .matrix = NULL)
+
+\method{apply_mat_dfl}{dual_grouped_ms}(.ms, ..., .matrix = NULL)
+
+apply_mat_dfw(.ms, ..., .matrix = NULL)
+
+\method{apply_mat_dfw}{matrixset}(.ms, ..., .matrix = NULL)
+
+\method{apply_mat_dfw}{row_grouped_ms}(.ms, ..., .matrix = NULL)
+
+\method{apply_mat_dfw}{col_grouped_ms}(.ms, ..., .matrix = NULL)
+
+\method{apply_mat_dfw}{dual_grouped_ms}(.ms, ..., .matrix = NULL)
 }
 \arguments{
 \item{.ms}{\code{matrixset} object}
 
-\item{...}{functions, separated by commas. They can be specified in one of
+\item{...}{expressions, separated by commas. They can be specified in one of
 the following way:
 \itemize{
 \item a function name, e.g., \code{mean}.
 \item a function call, where you can use \code{.m} to represent the current matrix
-(for \code{matrix_loop}), \code{.i} to represent the current row (for \code{row_loop})
-and \code{.j} for the current column (\code{column_loop}). Bare names of object
+(for \code{apply_mat}), \code{.i} to represent the current row (for \code{apply_row})
+and \code{.j} for the current column (\code{apply_column}). Bare names of object
 traits can be used as well. For instance, \code{lm(.i ~ program)}.
-\item a formula expression. See examples to see the usefulness of this.
+\item a formula expression. The pronouns \code{.m}, \code{.i} and \code{.j} can be used as
+well. See examples to see the usefulness of this.
 }
 
-The functions can be named; these names will be used to provide names to
+The expressions can be named; these names will be used to provide names to
 the results.}
 
 \item{.matrix}{matrix indices of which matrix to apply functions to. The
@@ -146,16 +177,15 @@ the replacement.}
 }
 \value{
 A list for every matrix in the matrixset object. Each list is itself a list.
-For \code{matrix_loop}, it is a list of the function values. Otherwise, it is a
+For \code{apply_mat}, it is a list of the function values. Otherwise, it is a
 list with one element for each row/column. And finally, for
-\code{row_loop}/\code{column_loop}, each of these sub-list is a list, the results of
+\code{apply_row}/\code{apply_column}, each of these sub-list is a list, the results of
 each function.
 
 If each function returns a \code{vector} of the same dimension, you can use either
-the \verb{_dfl} or the \verb{_dfw} version (\code{matrix_loop} excluded). What they do is to
-return a list of \code{tibble}s. The \code{dfl} version will stack the function results
-in a long format while the \code{dfw} version will put them side-by-side, in a
-wide format.
+the \verb{_dfl} or the \verb{_dfw} version. What they do is to return a list of
+\code{tibble}s. The \code{dfl} version will stack the function results in a long format
+while the \code{dfw} version will put them side-by-side, in a wide format.
 
 If the functions returned vectors of more than one element, there will be a
 column to store the values and one for the function ID (dfl), or one column
@@ -165,8 +195,8 @@ See the grouping section to learn about the result format in the grouping
 context.
 }
 \description{
-The \code{matrix_loop} function applies functions to each matrix of a \code{matrixset}.
-The \code{row_loop}/\code{column_loop} functions do the same but separaterly for the
+The \code{apply_mat} function applies functions to each matrix of a \code{matrixset}.
+The \code{apply_row}/\code{apply_column} functions do the same but separately for the
 row/column. The functions can be applied to all matrices or only a subset.
 
 The \code{dfl}/\code{dfw} versions differ in their output format.
@@ -221,34 +251,34 @@ See the examples.
 \examples{
 # The firs example takes the whole matrix average, while the second takes
 # every row average
-(mn_mat <- matrix_loop(student_results, mean))
-(mn_row <- row_loop(student_results, mean))
+(mn_mat <- apply_mat(student_results, mean))
+(mn_row <- apply_row(student_results, mean))
 
 # More than one function can be provided. It's a good idea in this case to
 # name them
-(mn_col <- column_loop(student_results, avr=mean, med=median))
+(mn_col <- apply_column(student_results, avr=mean, med=median))
 
 # the dfl/dfw versions returns nice tibbles - if the functions return values
 # of the same length.
-(mn_l <- column_loop_dfl(student_results, avr=mean, med=median))
-(mn_w <- column_loop_dfw(student_results, avr=mean, med=median))
+(mn_l <- apply_column_dfl(student_results, avr=mean, med=median))
+(mn_w <- apply_column_dfw(student_results, avr=mean, med=median))
 
 # There is no difference between the two versions for length-1 vector results.
 # hese will differ, however
-(rg_l <- column_loop_dfl(student_results, rg=range))
-(rg_w <- column_loop_dfw(student_results, rg=range))
+(rg_l <- apply_column_dfl(student_results, rg=range))
+(rg_w <- apply_column_dfw(student_results, rg=range))
 
 # More complex examples can be used, by using pronouns and data annotation
-(vals <- column_loop(student_results, avr=mean, avr_trim=mean(.j, trim=.05),
+(vals <- apply_column(student_results, avr=mean, avr_trim=mean(.j, trim=.05),
                                       reg=lm(.j ~ teacher)))
 
 # You can wrap complex function results, such as for lm, into a list, to use
 # the dfl/dfr version
-(vals_tidy <- column_loop_dfw(student_results, avr=mean, avr_trim=mean(.j, trim=.05),
+(vals_tidy <- apply_column_dfw(student_results, avr=mean, avr_trim=mean(.j, trim=.05),
                                                reg=list(lm(.j ~ teacher))))
 
 # You can provide complex expressions by using formulas
-(r <- column_loop(student_results,
+(r <- apply_column(student_results,
                                   res= ~ {
                                     log_score <- log(.j)
                                     p <- predict(lm(log_score ~ teacher + class))
@@ -258,7 +288,7 @@ See the examples.
 # the .data pronoun can be useful to use names stored in variables
 fn <- function(nm) {
   if (!is.character(nm) && length(nm) != 1) stop("this example won't work")
-  column_loop(student_results, lm(.j ~ .data[[nm]]))
+  apply_column(student_results, lm(.j ~ .data[[nm]]))
 }
 fn("teacher")
 
@@ -266,28 +296,28 @@ fn("teacher")
 # You don't need to do anything special if that variable is not named as an
 # annotation
 pass_grade <- 0.5
-(passed <- row_loop_dfw(student_results, pass = ~ .i >= pass_grade))
+(passed <- apply_row_dfw(student_results, pass = ~ .i >= pass_grade))
 
 # use .env if shares an annotation name
 previous_year_score <- 0.5
-(passed <- row_loop_dfw(student_results, pass = ~ .i >= .env$previous_year_score))
+(passed <- apply_row_dfw(student_results, pass = ~ .i >= .env$previous_year_score))
 
 # Grouping structure makes looping easy. Look at the output format
 cl_prof_gr <- row_group_by(student_results, class, teacher)
-(gr_summ <- column_loop(cl_prof_gr, avr=mean, med=median))
-(gr_summ_tidy <- column_loop_dfw(cl_prof_gr, avr=mean, med=median))
+(gr_summ <- apply_column(cl_prof_gr, avr=mean, med=median))
+(gr_summ_tidy <- apply_column_dfw(cl_prof_gr, avr=mean, med=median))
 # to showcase how we can play with format
-(gr_summ_tidy_long <- column_loop_dfl(cl_prof_gr, summ = ~ c(avr=mean(.j), med=median(.j))))
+(gr_summ_tidy_long <- apply_column_dfl(cl_prof_gr, summ = ~ c(avr=mean(.j), med=median(.j))))
 
 # It is even possible to combine groupings
 cl_prof_program_gr <- column_group_by(cl_prof_gr, program)
-(mat_summ <- matrix_loop(cl_prof_program_gr, avr = mean, med = median, rg = range))
+(mat_summ <- apply_mat(cl_prof_program_gr, avr = mean, med = median, rg = range))
 # it doesn' make much sense, but this is to showcase format
-(summ_gr <- matrix_loop(cl_prof_program_gr, avr = mean, med = median, rg = range))
-(summ_gr_long <- column_loop_dfl(cl_prof_program_gr,
+(summ_gr <- apply_mat(cl_prof_program_gr, avr = mean, med = median, rg = range))
+(summ_gr_long <- apply_column_dfl(cl_prof_program_gr,
                                  ct = ~ c(avr = mean(.j), med = median(.j)),
                                  rg = range))
-(summ_gr_wide <- column_loop_dfw(cl_prof_program_gr,
+(summ_gr_wide <- apply_column_dfw(cl_prof_program_gr,
                                  ct = c(avr = mean(.j), med = median(.j)),
                                  rg = range))
 

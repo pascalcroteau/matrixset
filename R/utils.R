@@ -39,7 +39,7 @@ make_unique <- function(names)
   dplyr::mutate(nm_df,
                 n = dplyr::n(),
                 new_nm = ifelse(.data$n > 1,
-                                paste(.data$value, .data$idx, sep = ".."),
+                                paste(.data$value, .data$idx, sep = dots_for_names),
                                 .data$value))[["new_nm"]]
 }
 
@@ -47,7 +47,7 @@ make_unique <- function(names)
 
 rep_unique <- function(name, n)
 {
-  if (n > 1) paste0(name, "..", seq_len(n)) else sub("", "..1", name)
+  if (n > 1) paste0(name, dots_for_names, seq_len(n)) else sub("", paste0(dots_for_names, "1"), name)
 }
 
 

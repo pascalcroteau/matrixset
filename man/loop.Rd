@@ -3,141 +3,75 @@
 \name{loop}
 \alias{loop}
 \alias{apply_row}
-\alias{apply_row.matrixset}
-\alias{apply_row.row_grouped_ms}
-\alias{apply_row.col_grouped_ms}
-\alias{apply_row.dual_grouped_ms}
-\alias{apply_column}
-\alias{apply_column.matrixset}
-\alias{apply_column.col_grouped_ms}
-\alias{apply_column.row_grouped_ms}
-\alias{apply_column.dual_grouped_ms}
 \alias{apply_row_dfl}
-\alias{apply_row_dfl.matrixset}
-\alias{apply_row_dfl.row_grouped_ms}
-\alias{apply_row_dfl.col_grouped_ms}
-\alias{apply_row_dfl.dual_grouped_ms}
-\alias{apply_column_dfl}
-\alias{apply_column_dfl.matrixset}
-\alias{apply_column_dfl.col_grouped_ms}
-\alias{apply_column_dfl.row_grouped_ms}
-\alias{apply_column_dfl.dual_grouped_ms}
 \alias{apply_row_dfw}
-\alias{apply_row_dfw.matrixset}
-\alias{apply_row_dfw.row_grouped_ms}
-\alias{apply_row_dfw.col_grouped_ms}
-\alias{apply_row_dfw.dual_grouped_ms}
+\alias{apply_column}
+\alias{apply_column_dfl}
 \alias{apply_column_dfw}
-\alias{apply_column_dfw.matrixset}
-\alias{apply_column_dfw.col_grouped_ms}
-\alias{apply_column_dfw.row_grouped_ms}
-\alias{apply_column_dfw.dual_grouped_ms}
 \alias{apply_mat}
-\alias{apply_mat.matrixset}
-\alias{apply_mat.row_grouped_ms}
-\alias{apply_mat.col_grouped_ms}
-\alias{apply_mat.dual_grouped_ms}
 \alias{apply_mat_dfl}
-\alias{apply_mat_dfl.matrixset}
-\alias{apply_mat_dfl.row_grouped_ms}
-\alias{apply_mat_dfl.col_grouped_ms}
-\alias{apply_mat_dfl.dual_grouped_ms}
 \alias{apply_mat_dfw}
-\alias{apply_mat_dfw.matrixset}
-\alias{apply_mat_dfw.row_grouped_ms}
-\alias{apply_mat_dfw.col_grouped_ms}
-\alias{apply_mat_dfw.dual_grouped_ms}
 \title{Apply functions to each matrix of a matrixset}
 \usage{
-apply_row(.ms, ..., .matrix = NULL)
+apply_row(.ms, ..., .matrix = NULL, .matrix_wise = TRUE, .input_list = FALSE)
 
-\method{apply_row}{matrixset}(.ms, ..., .matrix = NULL)
+apply_row_dfl(
+  .ms,
+  ...,
+  .matrix = NULL,
+  .matrix_wise = TRUE,
+  .input_list = FALSE
+)
 
-\method{apply_row}{row_grouped_ms}(.ms, ..., .matrix = NULL)
+apply_row_dfw(
+  .ms,
+  ...,
+  .matrix = NULL,
+  .matrix_wise = TRUE,
+  .input_list = FALSE
+)
 
-\method{apply_row}{col_grouped_ms}(.ms, ..., .matrix = NULL)
+apply_column(
+  .ms,
+  ...,
+  .matrix = NULL,
+  .matrix_wise = TRUE,
+  .input_list = FALSE
+)
 
-\method{apply_row}{dual_grouped_ms}(.ms, ..., .matrix = NULL)
+apply_column_dfl(
+  .ms,
+  ...,
+  .matrix = NULL,
+  .matrix_wise = TRUE,
+  .input_list = FALSE
+)
 
-apply_column(.ms, ..., .matrix = NULL)
+apply_column_dfw(
+  .ms,
+  ...,
+  .matrix = NULL,
+  .matrix_wise = TRUE,
+  .input_list = FALSE
+)
 
-\method{apply_column}{matrixset}(.ms, ..., .matrix = NULL)
+apply_mat(.ms, ..., .matrix = NULL, .matrix_wise = TRUE, .input_list = FALSE)
 
-\method{apply_column}{col_grouped_ms}(.ms, ..., .matrix = NULL)
+apply_mat_dfl(
+  .ms,
+  ...,
+  .matrix = NULL,
+  .matrix_wise = TRUE,
+  .input_list = FALSE
+)
 
-\method{apply_column}{row_grouped_ms}(.ms, ..., .matrix = NULL)
-
-\method{apply_column}{dual_grouped_ms}(.ms, ..., .matrix = NULL)
-
-apply_row_dfl(.ms, ..., .matrix = NULL)
-
-\method{apply_row_dfl}{matrixset}(.ms, ..., .matrix = NULL)
-
-\method{apply_row_dfl}{row_grouped_ms}(.ms, ..., .matrix = NULL)
-
-\method{apply_row_dfl}{col_grouped_ms}(.ms, ..., .matrix = NULL)
-
-\method{apply_row_dfl}{dual_grouped_ms}(.ms, ..., .matrix = NULL)
-
-apply_column_dfl(.ms, ..., .matrix = NULL)
-
-\method{apply_column_dfl}{matrixset}(.ms, ..., .matrix = NULL)
-
-\method{apply_column_dfl}{col_grouped_ms}(.ms, ..., .matrix = NULL)
-
-\method{apply_column_dfl}{row_grouped_ms}(.ms, ..., .matrix = NULL)
-
-\method{apply_column_dfl}{dual_grouped_ms}(.ms, ..., .matrix = NULL)
-
-apply_row_dfw(.ms, ..., .matrix = NULL)
-
-\method{apply_row_dfw}{matrixset}(.ms, ..., .matrix = NULL)
-
-\method{apply_row_dfw}{row_grouped_ms}(.ms, ..., .matrix = NULL)
-
-\method{apply_row_dfw}{col_grouped_ms}(.ms, ..., .matrix = NULL)
-
-\method{apply_row_dfw}{dual_grouped_ms}(.ms, ..., .matrix = NULL)
-
-apply_column_dfw(.ms, ..., .matrix = NULL)
-
-\method{apply_column_dfw}{matrixset}(.ms, ..., .matrix = NULL)
-
-\method{apply_column_dfw}{col_grouped_ms}(.ms, ..., .matrix = NULL)
-
-\method{apply_column_dfw}{row_grouped_ms}(.ms, ..., .matrix = NULL)
-
-\method{apply_column_dfw}{dual_grouped_ms}(.ms, ..., .matrix = NULL)
-
-apply_mat(.ms, ..., .matrix = NULL)
-
-\method{apply_mat}{matrixset}(.ms, ..., .matrix = NULL)
-
-\method{apply_mat}{row_grouped_ms}(.ms, ..., .matrix = NULL)
-
-\method{apply_mat}{col_grouped_ms}(.ms, ..., .matrix = NULL)
-
-\method{apply_mat}{dual_grouped_ms}(.ms, ..., .matrix = NULL)
-
-apply_mat_dfl(.ms, ..., .matrix = NULL)
-
-\method{apply_mat_dfl}{matrixset}(.ms, ..., .matrix = NULL)
-
-\method{apply_mat_dfl}{row_grouped_ms}(.ms, ..., .matrix = NULL)
-
-\method{apply_mat_dfl}{col_grouped_ms}(.ms, ..., .matrix = NULL)
-
-\method{apply_mat_dfl}{dual_grouped_ms}(.ms, ..., .matrix = NULL)
-
-apply_mat_dfw(.ms, ..., .matrix = NULL)
-
-\method{apply_mat_dfw}{matrixset}(.ms, ..., .matrix = NULL)
-
-\method{apply_mat_dfw}{row_grouped_ms}(.ms, ..., .matrix = NULL)
-
-\method{apply_mat_dfw}{col_grouped_ms}(.ms, ..., .matrix = NULL)
-
-\method{apply_mat_dfw}{dual_grouped_ms}(.ms, ..., .matrix = NULL)
+apply_mat_dfw(
+  .ms,
+  ...,
+  .matrix = NULL,
+  .matrix_wise = TRUE,
+  .input_list = FALSE
+)
 }
 \arguments{
 \item{.ms}{\code{matrixset} object}
@@ -150,6 +84,10 @@ the following way:
 (for \code{apply_mat}), \code{.i} to represent the current row (for \code{apply_row})
 and \code{.j} for the current column (\code{apply_column}). Bare names of object
 traits can be used as well. For instance, \code{lm(.i ~ program)}.
+
+The pronouns are also available for the multivariate version, under
+certain circumstances, but they have a different meaning. See the
+"Multivariate" section for more details.
 \item a formula expression. The pronouns \code{.m}, \code{.i} and \code{.j} can be used as
 well. See examples to see the usefulness of this.
 }
@@ -174,6 +112,15 @@ number of matrices in length.
 
 Can also be negative integers, indicating elements/slices to leave out of
 the replacement.}
+
+\item{.matrix_wise}{\code{logical}. By default (\code{TRUE}), matrices are provided
+one by one, in turn, to the functions/expressions. But if \code{.matrix_wise} is
+\code{FALSE}, the functions/expressions have access to all matrices. See
+"Multivariate" for details, including how to reference the matrices.}
+
+\item{.input_list}{\code{logical}. If multivariate (\code{.matrix_wise ==  FALSE}),
+the matrices are provided as a single list, where each element is a matrix
+(or matrix row or column). The list elements are the matrix names.}
 }
 \value{
 A list for every matrix in the matrixset object. Each list is itself a list.
@@ -199,7 +146,14 @@ The \code{apply_mat} function applies functions to each matrix of a \code{matrix
 The \code{apply_row}/\code{apply_column} functions do the same but separately for the
 row/column. The functions can be applied to all matrices or only a subset.
 
-The \code{dfl}/\code{dfw} versions differ in their output format.
+The \code{dfl}/\code{dfw} versions differ in their output format and when possibe,
+always return a \code{\link[=tibble]{tibble()}}.
+
+If \code{.matrix_wise} is \code{FALSE}, the function (or expression) is multivariate in
+the sense that all matrices are accessible at once, as opposed to each of them
+in turn.
+
+See section "Multivariate".
 }
 \section{Pronouns}{
 
@@ -223,6 +177,38 @@ case of \code{.data} and \code{.env}) in a interactive session.
 It is useful however when writing a package to avoid the \verb{R CMD check} notes.
 As needed, you can import \code{.data} and \code{.env} (from \code{rlang}) or any of \code{.i},
 \code{.j} or \code{.m} from \code{matrixset}.
+}
+
+\section{Multivariate}{
+
+The default behavior is to apply a function or expression to a single
+matrix and each matrices of the \code{matrixset} object are provided sequentially
+to the function/expression.
+
+If \code{.matrix_wise} is \code{FALSE}, all matrices are provided at once to the
+functions/expressions. They can be provided in two fashions:
+\itemize{
+\item separately (default behavior). Each matrix can be referred by \code{.m1}, ...,
+\code{.mn}, where \code{n} is the number of matrices. Note that this is the number
+as determined by \code{.matrix}.
+
+For \code{apply_row} (and dfl/dfw variants), use \code{.i1}, \code{.i2} and so on
+instead. What the functions/expressions have access to in this case is
+the first row of the first matrix, the first row of the second matrix
+and so on. Then, continuing the loop, the second row of each matrix
+will be accessible, and so on
+
+Similarly, use \code{.j1} and so on for the \code{apply_column} family.
+
+Anonymous functions will be understood as a function with multiple
+arguments. In the example \code{apply_row(ms, mean, .matrix_wise = FALSE)},
+if there are 3 matrices in the \code{ms} object, \code{mean} is understood as
+\code{mean(.i1, .i2, .i3)}. Note that this would fail because of the \code{mean}
+function.
+\item In a list (\code{.list_input = TRUE}). The list will have an element per matrix.
+The list can be referred using the same pronouns (\code{.m}, \code{.i}, \code{.j}), and
+the matrix, by the matrix names or position.
+}
 }
 
 \section{Grouped matrixsets}{

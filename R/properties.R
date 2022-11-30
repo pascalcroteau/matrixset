@@ -116,6 +116,96 @@ dim.matrixset <- function(x) c(attr(x, "n_row"), attr(x, "n_col"))
 dimnames.matrixset <- function(x) list(attr(x, "row_names"), attr(x, "col_names"))
 
 
+
+#' @export
+`dimnames<-.matrixset` <- function (x, value)
+{
+  d <- dim(x)
+  if (!is.list(value) || length(value) != 2L)
+    stop("invalid 'dimnames' given for data frame")
+
+  value[[1L]] <- as.character(value[[1L]])
+  value[[2L]] <- as.character(value[[2L]])
+
+  if (d[[1L]] != length(value[[1L]]))
+    stop("incompatible row names length.")
+
+  if (d[[2L]] != length(value[[2L]]))
+    stop("incompatible column names length.")
+
+  .row_names_ms(x) <- value[[1L]]
+  .col_names_ms(x) <- value[[2L]]
+  x
+}
+
+
+
+#' @export
+.row_names_ms <- function(x) rownames(x)
+#' @export
+.col_names_ms <- function(x) colnames(x)
+
+
+
+# @export
+`.row_names_ms<-` <- function(x, value)
+{
+  cl <- sys.call()
+  cash_status$set(cl)
+  on.exit(cash_status$clear(cl))
+
+  if (.is_row_grouped(x) && .rowtag(x) %in% row_group_vars(x))
+    stop("can't modify row names as they are used for grouping")
+
+  if (is.null(value)) stop("unsetting row values is not currently supported")
+
+  if (!is.character(value)) value <- as.character(value)
+  if (anyNA(value) || any(value == "")) stop("missing values in row names are not allowed.")
+
+  x_matrix_set <- x$matrix_set
+  x_matrix_set <- lapply(x_matrix_set, function(X) {
+    if (!is.null(X)) rownames(X) <- value
+    X
+  })
+
+  x$matrix_set <- x_matrix_set
+  x$row_info[[.rowtag(x)]] <- value
+  attr(x, "row_names") <- value
+
+  x
+}
+
+# @export
+`.col_names_ms<-` <- function(x, value)
+{
+  cl <- sys.call()
+  cash_status$set(cl)
+  on.exit(cash_status$clear(cl))
+
+  if (.is_col_grouped(x) && .coltag(x) %in% column_group_vars(x))
+    stop("can't modify column names as they are used for grouping")
+
+  if (is.null(value)) stop("unsetting column values is not currently supported")
+
+  if (!is.character(value)) value <- as.character(value)
+  if (anyNA(value) || any(value == "")) stop("missing values in column names are not allowed.")
+
+  x_matrix_set <- x$matrix_set
+  x_matrix_set <- lapply(x_matrix_set, function(X) {
+    if (!is.null(X)) colnames(X) <- value
+    X
+  })
+
+  x$matrix_set <- x_matrix_set
+  x$column_info[[.coltag(x)]] <- value
+  attr(x, "col_names") <- value
+
+  x
+}
+
+
+
+
 #' @rdname properties
 #' @export
 matrixnames <- function(x) UseMethod("matrixnames")
@@ -248,6 +338,9 @@ column_traits.matrixset <- function(x) .coltraits(x)
   rt <- attr(x, "row_traits")
   not_tag <- rt != .rowtag(x)
 
+  if (!any(not_tag))
+    stop("There aren't any row traits to modify (aside from the row names). To modify row names, use rownames()")
+
   rt[not_tag] <- value
   colnames(x$row_info) <- rt
   attr(x, "row_traits") <- rt
@@ -313,6 +406,10 @@ column_traits.matrixset <- function(x) .coltraits(x)
 
   ct <- attr(x, "col_traits")
   not_tag <- ct != .coltag(x)
+
+  if (!any(not_tag))
+    stop("There aren't any column traits to modify (aside from the column names). To modify column names, use colnames()")
+
 
   ct[not_tag] <- value
   colnames(x$column_info) <- ct

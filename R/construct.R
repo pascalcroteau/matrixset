@@ -459,8 +459,10 @@ matrixset <- function(..., expand = NULL, row_info = NULL, column_info = NULL,
 
   row_names <-  matrix_info[["row_names"]]
   if (is.null(row_names)) row_names <- character(0)
+  # if (is.null(row_names)) row_names <- make_names(seq_len(matrix_info[["n_row"]]), "")
   col_names <-  matrix_info[["col_names"]]
   if (is.null(col_names)) col_names <- character(0)
+  # if (is.null(row_names)) col_names <- make_names(seq_len(matrix_info[["n_col"]]), "")
 
   structure(matset,
             class = "matrixset",

@@ -309,5 +309,12 @@ column_filter.col_grouped_ms <- function(.ms, ..., .preserve = FALSE)
 }
 
 
+#' @export
+column_filter.dual_grouped_ms <- function(.ms, ..., .preserve = FALSE)
+{
+  column_filter.col_grouped_ms(.ms, ..., .preserve)
+}
+
+
 
 

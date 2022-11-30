@@ -12,7 +12,9 @@
 \item{i, j}{Indices specifying elements to replace. Indices are numeric or
 character vectors or empty (\code{NULL}). Note that treating \code{NULL} as empty
 differs from the usual replacement, where it is treated as \code{integer(0)}.
-Here a \code{NULL} (empty) results in selecting all rows or columns.\preformatted{Numeric values are coerced to integer as by [as.integer()] (and hence
+Here a \code{NULL} (empty) results in selecting all rows or columns.
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{Numeric values are coerced to integer as by [as.integer()] (and hence
 truncated towards zero).
 
 Character vectors will be matched to the dimnames of the object.
@@ -28,7 +30,7 @@ the replacement.
 When indexing, a single argument `i` can be a matrix with two columns.
 This is treated as if the first column was the `i` index and the second
 column the `j` index.
-}}
+}\if{html}{\out{</div>}}}
 
 \item{matrix}{index specifying matrix or matrices to replace. Index is
 numeric or character vectors or empty (\code{NULL}). Note

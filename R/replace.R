@@ -388,8 +388,10 @@ replace_matrix_set <- function(old, new, nr, nc, i, j)
 
   row_names <-  x_matrix_info[["row_names"]]
   if (is.null(row_names)) row_names <- character(0)
+  # if (is.null(row_names)) row_names <- make_names(seq_len(n_row), "")
   col_names <-  x_matrix_info[["col_names"]]
   if (is.null(col_names)) col_names <- character(0)
+  # if (is.null(row_names)) col_names <- make_names(seq_len(n_col), "")
 
   attr(x, "n_row") <- x_matrix_info[["n_row"]]
   attr(x, "n_col") <- x_matrix_info[["n_col"]]

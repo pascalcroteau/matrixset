@@ -124,15 +124,17 @@ the matrices are provided as a single list, where each element is a matrix
 }
 \value{
 A list for every matrix in the matrixset object. Each list is itself a list.
-For \code{apply_mat}, it is a list of the function values. Otherwise, it is a
-list with one element for each row/column. And finally, for
-\code{apply_row}/\code{apply_column}, each of these sub-list is a list, the results of
-each function.
+For \code{apply_mat}, it is a list of the function values - \code{NULL} if the matrix
+was empty. Otherwise, it is a list with one element for each row/column -
+these elements will be \code{NULL} if the corresponding matrix was empty. And
+finally, for \code{apply_row}/\code{apply_column}, each of these sub-list is a list,
+the results of each function.
 
 If each function returns a \code{vector} of the same dimension, you can use either
 the \verb{_dfl} or the \verb{_dfw} version. What they do is to return a list of
 \code{tibble}s. The \code{dfl} version will stack the function results in a long format
-while the \code{dfw} version will put them side-by-side, in a wide format.
+while the \code{dfw} version will put them side-by-side, in a wide format. An
+empty matrix will be returned for empty input matrices.
 
 If the functions returned vectors of more than one element, there will be a
 column to store the values and one for the function ID (dfl), or one column
@@ -148,6 +150,10 @@ row/column. The functions can be applied to all matrices or only a subset.
 
 The \code{dfl}/\code{dfw} versions differ in their output format and when possibe,
 always return a \code{\link[=tibble]{tibble()}}.
+
+Empty matrices are simply left unevaluated. How that impacts the returned
+result depends on which flavor of apply_* has been used. See \sQuote{Value}
+for more details.
 
 If \code{.matrix_wise} is \code{FALSE}, the function (or expression) is multivariate in
 the sense that all matrices are accessible at once, as opposed to each of them
@@ -209,6 +215,10 @@ function.
 The list can be referred using the same pronouns (\code{.m}, \code{.i}, \code{.j}), and
 the matrix, by the matrix names or position.
 }
+
+For the multivariate setting, empty matrices are given as is, so it is
+important that provided functions can deal with such a scenario. An
+alternative is to skip the empty matrices with the \code{.matrix} argument.
 }
 
 \section{Grouped matrixsets}{

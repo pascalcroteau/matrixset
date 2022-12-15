@@ -44,10 +44,10 @@ column_groups(.ms)
 \item{.ms}{a \code{matrixset} object}
 }
 \description{
-*\code{\link[=row_group_meta]{row_group_meta()}} and \code{\link[=column_group_meta]{column_group_meta()}} returns the grouping structure,
+\itemize{
+\item \code{\link[=row_group_meta]{row_group_meta()}} and \code{\link[=column_group_meta]{column_group_meta()}} returns the grouping structure,
 in a data frame format. See \code{dplyr}'s \code{\link[dplyr:group_data]{dplyr::group_data()}}, from which the
 functions are based. Returns \code{NULL} for ungrouped \code{matrixset}s.
-\itemize{
 \item \code{\link[=row_group_keys]{row_group_keys()}} and \code{\link[=column_group_keys]{column_group_keys()}} retrieve the grouping data,
 while the locations (row or column indices) are retrieved with
 \code{\link[=row_group_where]{row_group_where()}} and \code{\link[=column_group_where]{column_group_where()}}.

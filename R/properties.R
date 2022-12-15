@@ -16,8 +16,8 @@
   ct[ct != .coltag(x)]
 }
 
-.is_row_grouped <- function(x) is.null(attr(x, "row_group_vars"))
-.is_col_grouped <- function(x) is.null(attr(x, "col_group_vars"))
+.is_row_grouped <- function(x) !is.null(attr(x, "row_group_vars"))
+.is_col_grouped <- function(x) !is.null(attr(x, "col_group_vars"))
 
 
 #' Matrixset properties

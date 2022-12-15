@@ -342,7 +342,7 @@ column_ungroup <- function(.ms, ...)
 #' Matrixset group metadata
 #'
 #' @description
-#' *[row_group_meta()] and [column_group_meta()] returns the grouping structure,
+#' * [row_group_meta()] and [column_group_meta()] returns the grouping structure,
 #'   in a data frame format. See `dplyr`'s [dplyr::group_data()], from which the
 #'   functions are based. Returns `NULL` for ungrouped `matrixset`s.
 #' * [row_group_keys()] and [column_group_keys()] retrieve the grouping data,

@@ -8,8 +8,9 @@ Authors@R:
            email = "croteaupascl@gmail.com",
            comment = c(ORCID = "YOUR-ORCID-ID"))
 Description: A matrixset is an object that stores a matrix ensemble, matrices
-  that share the same traits. This package helps in creating such objects, and
-  to manipulate them in a tidyverse-like fashion.
+  that share the same traits, where rows and columns can be annotated. This 
+  package helps in creating such objects, and to manipulate them in a 
+  tidyverse-like fashion.
 Imports:
     cli,
     crayon,
@@ -21,6 +22,7 @@ Imports:
     rlang,
     stringr,
     tibble,
+    tidyselect,
     vctrs
 License: MIT + file LICENSE
 Encoding: UTF-8
@@ -29,8 +31,7 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.1
 Suggests: 
     testthat (>= 3.0.0),
-    tidyr,
-    tidyselect
+    tidyr
 Config/testthat/edition: 3
 Depends: 
     R (>= 4.0)

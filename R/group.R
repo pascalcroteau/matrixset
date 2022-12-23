@@ -27,6 +27,7 @@ get_group_info <- function(info, class, dim)
     group_rows <- NULL
     group_keys <- NULL
     level_drop <- NULL
+    new_class <- class
 
   }
 

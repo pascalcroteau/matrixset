@@ -35,6 +35,12 @@ ms_mask <- R6::R6Class("ms_mask",
                           frame <- rlang::caller_env(2)
                           context_add(frame)
 
+                          if (length(same <- intersect(names(.rowinf), names(.colinf))) > 0) {
+                            warning(paste0("The following traits are found in both rows and columns:\n  ",
+                                           paste(encodeString(same, quote = "\""), collapse = ", "),
+                                           ".\n  If any of these are needed, you should use context functions to make sure to use the correct ones."))
+                          }
+
                           private$.margin <- MARGIN
                           private$.row_info_names <- names(.rowinf)
                           private$.col_info_names <- names(.colinf)
@@ -306,6 +312,11 @@ ms_mult_mask <- R6::R6Class("ms_mult_mask",
                            context_add(frame)
 
                            private$.margin <- MARGIN
+                           if (length(same <- intersect(names(.rowinf), names(.colinf))) > 0) {
+                             warning(paste0("The following traits are found in both rows and columns:\n  ",
+                                            paste(encodeString(same, quote = "\""), collapse = ", "),
+                                            ".\n  If any of these are needed, you should use context functions to make sure to use the correct ones."))
+                           }
                            private$.row_info_names <- names(.rowinf)
                            private$.col_info_names <- names(.colinf)
 

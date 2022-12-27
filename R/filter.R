@@ -12,9 +12,9 @@ norm_filt_expr <- function(...)
 #' Subset rows using annotation values
 #'
 #' @description
-#' The [row_filter()] function subsets the rows of all matrices of a
+#' The [filter_row()] function subsets the rows of all matrices of a
 #' `matrixset`, retaining all rows that satisfy given condition(s). The function
-#' `row_filter` works like `dplyr`'s [dplyr::filter()].
+#' `filter_row` works like `dplyr`'s [dplyr::filter()].
 #'
 #' @details
 #' The conditions are given as expressions in `...`, which are applied to
@@ -35,13 +35,13 @@ norm_filt_expr <- function(...)
 #' For instance, the two following are not equivalent (except by pure
 #' coincidence).
 #'
-#' `student_results %>% row_filter(previous_year_score > mean(previous_year_score))`
+#' `student_results %>% filter_row(previous_year_score > mean(previous_year_score))`
 #'
 #' And it's grouped equivalent:
-#' `student_results %>% row_group_by(class) %>% row_filter(previous_year_score > mean(previous_year_score))`
+#' `student_results %>% row_group_by(class) %>% filter_row(previous_year_score > mean(previous_year_score))`
 #'
 #' In the ungrouped version, the mean of `previous_year_score` is taken globally
-#' and `row_filter` keeps rows with `previous_year_score` greater than this
+#' and `filter_row` keeps rows with `previous_year_score` greater than this
 #' global average. In the grouped version, the average is calculated within each
 #' `class` and the kept rows are the ones with `previous_year_score` greater
 #' than the within-class average.
@@ -67,25 +67,25 @@ norm_filt_expr <- function(...)
 #'
 #' @examples
 #' # Filtering using one condition
-#' row_filter(student_results, class == "classA")
+#' filter_row(student_results, class == "classA")
 #'
 #' # Filetring using multiple conditions. These are equivalent
-#' row_filter(student_results, class == "classA" & previous_year_score > 0.75)
-#' row_filter(student_results, class == "classA", previous_year_score > 0.75)
+#' filter_row(student_results, class == "classA" & previous_year_score > 0.75)
+#' filter_row(student_results, class == "classA", previous_year_score > 0.75)
 #'
 #' # The potential difference between grouped and non-grouped.
-#' row_filter(student_results, previous_year_score > mean(previous_year_score))
+#' filter_row(student_results, previous_year_score > mean(previous_year_score))
 #' student_results |>
 #'   row_group_by(teacher) |>
-#'   row_filter(previous_year_score > mean(previous_year_score))
+#'   filter_row(previous_year_score > mean(previous_year_score))
 #'
 #
 #' @export
-row_filter <- function(.ms, ..., .preserve = FALSE) UseMethod("row_filter")
+filter_row <- function(.ms, ..., .preserve = FALSE) UseMethod("filter_row")
 
 
 #' @export
-row_filter.matrixset <- function(.ms, ..., .preserve = FALSE)
+filter_row.matrixset <- function(.ms, ..., .preserve = FALSE)
 {
   cl <- sys.call()
   cash_status$set(cl)
@@ -109,7 +109,7 @@ row_filter.matrixset <- function(.ms, ..., .preserve = FALSE)
 
 
 #' @export
-row_filter.row_grouped_ms <- function(.ms, ..., .preserve = FALSE)
+filter_row.row_grouped_ms <- function(.ms, ..., .preserve = FALSE)
 {
   cl <- sys.call()
   cash_status$set(cl)
@@ -157,9 +157,9 @@ row_filter.row_grouped_ms <- function(.ms, ..., .preserve = FALSE)
 
 
 #' @export
-row_filter.dual_grouped_ms <- function(.ms, ..., .preserve = FALSE)
+filter_row.dual_grouped_ms <- function(.ms, ..., .preserve = FALSE)
 {
-  row_filter.row_grouped_ms(.ms, ..., .preserve)
+  filter_row.row_grouped_ms(.ms, ..., .preserve)
 }
 
 
@@ -167,9 +167,9 @@ row_filter.dual_grouped_ms <- function(.ms, ..., .preserve = FALSE)
 #' Subset columns using annotation values
 #'
 #' @description
-#' The [column_filter()] function subsets the columns of all matrices of a
+#' The [filter_column()] function subsets the columns of all matrices of a
 #' `matrixset`, retaining all columns that satisfy given condition(s). The
-#' function `column_filter` works like `dplyr`'s [dplyr::filter()].
+#' function `filter_column` works like `dplyr`'s [dplyr::filter()].
 #'
 #' @details
 #' The conditions are given as expressions in `...`, which are applied to
@@ -190,13 +190,13 @@ row_filter.dual_grouped_ms <- function(.ms, ..., .preserve = FALSE)
 #' For instance, the two following are not equivalent (except by pure
 #' coincidence).
 #'
-#' `student_results %>% column_filter(school_average > mean(school_average))`
+#' `student_results %>% filter_column(school_average > mean(school_average))`
 #'
 #' And it's grouped equivalent:
-#' `student_results %>% column_group_by(program) %>% row_filter(school_average > mean(school_average))`
+#' `student_results %>% column_group_by(program) %>% filter_column(school_average > mean(school_average))`
 #'
 #' In the ungrouped version, the mean of `school_average` is taken globally
-#' and `column_filter` keeps columns with `school_average` greater than this
+#' and `filter_column` keeps columns with `school_average` greater than this
 #' global average. In the grouped version, the average is calculated within each
 #' `class` and the kept columns are the ones with `school_average` greater
 #' than the within-class average.
@@ -223,24 +223,24 @@ row_filter.dual_grouped_ms <- function(.ms, ..., .preserve = FALSE)
 #'
 #' @examples
 #' # Filtering using one condition
-#' column_filter(student_results, program == "Applied Science")
+#' filter_column(student_results, program == "Applied Science")
 #'
 #' # Filetring using multiple conditions. These are equivalent
-#' column_filter(student_results, program == "Applied Science" & school_average > 0.8)
-#' column_filter(student_results, program == "Applied Science", school_average > 0.8)
+#' filter_column(student_results, program == "Applied Science" & school_average > 0.8)
+#' filter_column(student_results, program == "Applied Science", school_average > 0.8)
 #'
 #' # The potential difference between grouped and non-grouped.
-#' column_filter(student_results, school_average > mean(school_average))
+#' filter_column(student_results, school_average > mean(school_average))
 #' student_results |>
 #'   column_group_by(program) |>
-#'   column_filter(school_average > mean(school_average))
+#'   filter_column(school_average > mean(school_average))
 #'
 #' @export
-column_filter <- function(.ms, ..., .preserve = FALSE) UseMethod("column_filter")
+filter_column <- function(.ms, ..., .preserve = FALSE) UseMethod("filter_column")
 
 
 #' @export
-column_filter.matrixset <- function(.ms, ..., .preserve = FALSE)
+filter_column.matrixset <- function(.ms, ..., .preserve = FALSE)
 {
   cl <- sys.call()
   cash_status$set(cl)
@@ -261,7 +261,7 @@ column_filter.matrixset <- function(.ms, ..., .preserve = FALSE)
 
 
 #' @export
-column_filter.col_grouped_ms <- function(.ms, ..., .preserve = FALSE)
+filter_column.col_grouped_ms <- function(.ms, ..., .preserve = FALSE)
 {
   cl <- sys.call()
   cash_status$set(cl)
@@ -310,9 +310,9 @@ column_filter.col_grouped_ms <- function(.ms, ..., .preserve = FALSE)
 
 
 #' @export
-column_filter.dual_grouped_ms <- function(.ms, ..., .preserve = FALSE)
+filter_column.dual_grouped_ms <- function(.ms, ..., .preserve = FALSE)
 {
-  column_filter.col_grouped_ms(.ms, ..., .preserve)
+  filter_column.col_grouped_ms(.ms, ..., .preserve)
 }
 
 

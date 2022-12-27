@@ -91,7 +91,7 @@ set_group_attrs <- function(old_attrs, new_attrs, dim)
 #' by_class
 #'
 #' # Grouping changes how some functions operates
-#' row_filter(by_class, previous_year_score > mean(previous_year_score))
+#' filter_row(by_class, previous_year_score > mean(previous_year_score))
 #'
 #' # You can group by expressions: you end-up grouping by the new annotation:
 #' row_group_by(student_results, sqrt_score = sqrt(previous_year_score))

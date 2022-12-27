@@ -17,7 +17,7 @@ context_env <- function(fun) {
 #' have access to current group/matrix/row/column. Because of that, they will
 #' not work in a general context.
 #'
-#' The functions within which the context functions will work are [apply_mat()],
+#' The functions within which the context functions will work are [apply_matrix()],
 #' [apply_row()] and [apply_column()] - as well as their *_dfl/*dfw variant.
 #'
 #' Note that "current" refers to the current matrix/group/row/column, as

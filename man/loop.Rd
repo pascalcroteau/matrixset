@@ -8,9 +8,9 @@
 \alias{apply_column}
 \alias{apply_column_dfl}
 \alias{apply_column_dfw}
-\alias{apply_mat}
-\alias{apply_mat_dfl}
-\alias{apply_mat_dfw}
+\alias{apply_matrix}
+\alias{apply_matrix_dfl}
+\alias{apply_matrix_dfw}
 \title{Apply functions to each matrix of a matrixset}
 \usage{
 apply_row(.ms, ..., .matrix = NULL, .matrix_wise = TRUE, .input_list = FALSE)
@@ -55,9 +55,7 @@ apply_column_dfw(
   .input_list = FALSE
 )
 
-apply_mat(.ms, ..., .matrix = NULL, .matrix_wise = TRUE, .input_list = FALSE)
-
-apply_mat_dfl(
+apply_matrix(
   .ms,
   ...,
   .matrix = NULL,
@@ -65,7 +63,15 @@ apply_mat_dfl(
   .input_list = FALSE
 )
 
-apply_mat_dfw(
+apply_matrix_dfl(
+  .ms,
+  ...,
+  .matrix = NULL,
+  .matrix_wise = TRUE,
+  .input_list = FALSE
+)
+
+apply_matrix_dfw(
   .ms,
   ...,
   .matrix = NULL,
@@ -81,7 +87,7 @@ the following way:
 \itemize{
 \item a function name, e.g., \code{mean}.
 \item a function call, where you can use \code{.m} to represent the current matrix
-(for \code{apply_mat}), \code{.i} to represent the current row (for \code{apply_row})
+(for \code{apply_matrix}), \code{.i} to represent the current row (for \code{apply_row})
 and \code{.j} for the current column (\code{apply_column}). Bare names of object
 traits can be used as well. For instance, \code{lm(.i ~ program)}.
 
@@ -124,7 +130,7 @@ the matrices are provided as a single list, where each element is a matrix
 }
 \value{
 A list for every matrix in the matrixset object. Each list is itself a list.
-For \code{apply_mat}, it is a list of the function values - \code{NULL} if the matrix
+For \code{apply_matrix}, it is a list of the function values - \code{NULL} if the matrix
 was empty. Otherwise, it is a list with one element for each row/column -
 these elements will be \code{NULL} if the corresponding matrix was empty. And
 finally, for \code{apply_row}/\code{apply_column}, each of these sub-list is a list,
@@ -144,7 +150,7 @@ See the grouping section to learn about the result format in the grouping
 context.
 }
 \description{
-The \code{apply_mat} function applies functions to each matrix of a \code{matrixset}.
+The \code{apply_matrix} function applies functions to each matrix of a \code{matrixset}.
 The \code{apply_row}/\code{apply_column} functions do the same but separately for the
 row/column. The functions can be applied to all matrices or only a subset.
 
@@ -247,7 +253,7 @@ See the examples.
 \examples{
 # The firs example takes the whole matrix average, while the second takes
 # every row average
-(mn_mat <- apply_mat(student_results, mean))
+(mn_mat <- apply_matrix(student_results, mean))
 (mn_row <- apply_row(student_results, mean))
 
 # More than one function can be provided. It's a good idea in this case to
@@ -307,9 +313,9 @@ cl_prof_gr <- row_group_by(student_results, class, teacher)
 
 # It is even possible to combine groupings
 cl_prof_program_gr <- column_group_by(cl_prof_gr, program)
-(mat_summ <- apply_mat(cl_prof_program_gr, avr = mean, med = median, rg = range))
+(mat_summ <- apply_matrix(cl_prof_program_gr, avr = mean, med = median, rg = range))
 # it doesn' make much sense, but this is to showcase format
-(summ_gr <- apply_mat(cl_prof_program_gr, avr = mean, med = median, rg = range))
+(summ_gr <- apply_matrix(cl_prof_program_gr, avr = mean, med = median, rg = range))
 (summ_gr_long <- apply_column_dfl(cl_prof_program_gr,
                                  ct = ~ c(avr = mean(.j), med = median(.j)),
                                  rg = range))

@@ -81,7 +81,7 @@ If provided, each matrices must have the same dimnames as well.
 
 If dimnames are missing, note that most of the operations for matrixsets
 won't be available. For instance, operations that use traits will not work,
-e.g., \code{\link[=row_filter]{row_filter()}}.
+e.g., \code{\link[=filter_row]{filter_row()}}.
 
 It is allowed for matrix elements of a \code{matrixset} to be \code{NULL} - see
 examples.

@@ -294,7 +294,7 @@ set_meta <- function(side, meta, info, key, tag, adjust)
 #'
 #' If dimnames are missing, note that most of the operations for matrixsets
 #' won't be available. For instance, operations that use traits will not work,
-#' e.g., [row_filter()].
+#' e.g., [filter_row()].
 #'
 #' It is allowed for matrix elements of a `matrixset` to be `NULL` - see
 #' examples.

@@ -886,7 +886,7 @@ eval_fun_mult <- function(margin, ms, ..., matidx, row_first, list_input,
 #' Apply functions to each matrix of a matrixset
 #'
 #' @description
-#' The `apply_mat` function applies functions to each matrix of a `matrixset`.
+#' The `apply_matrix` function applies functions to each matrix of a `matrixset`.
 #' The `apply_row`/`apply_column` functions do the same but separately for the
 #' row/column. The functions can be applied to all matrices or only a subset.
 #'
@@ -984,7 +984,7 @@ eval_fun_mult <- function(margin, ms, ..., matidx, row_first, list_input,
 #'
 #'    * a function name, e.g., `mean`.
 #'    * a function call, where you can use `.m` to represent the current matrix
-#'       (for `apply_mat`), `.i` to represent the current row (for `apply_row`)
+#'       (for `apply_matrix`), `.i` to represent the current row (for `apply_row`)
 #'       and `.j` for the current column (`apply_column`). Bare names of object
 #'       traits can be used as well. For instance, `lm(.i ~ program)`.
 #'
@@ -1026,7 +1026,7 @@ eval_fun_mult <- function(margin, ms, ..., matidx, row_first, list_input,
 #'
 #' @returns
 #' A list for every matrix in the matrixset object. Each list is itself a list.
-#' For `apply_mat`, it is a list of the function values - `NULL` if the matrix
+#' For `apply_matrix`, it is a list of the function values - `NULL` if the matrix
 #' was empty. Otherwise, it is a list with one element for each row/column -
 #' these elements will be `NULL` if the corresponding matrix was empty. And
 #' finally, for `apply_row`/`apply_column`, each of these sub-list is a list,
@@ -1048,7 +1048,7 @@ eval_fun_mult <- function(margin, ms, ..., matidx, row_first, list_input,
 #' @examples
 #' # The firs example takes the whole matrix average, while the second takes
 #' # every row average
-#' (mn_mat <- apply_mat(student_results, mean))
+#' (mn_mat <- apply_matrix(student_results, mean))
 #' (mn_row <- apply_row(student_results, mean))
 #'
 #' # More than one function can be provided. It's a good idea in this case to
@@ -1108,9 +1108,9 @@ eval_fun_mult <- function(margin, ms, ..., matidx, row_first, list_input,
 #'
 #' # It is even possible to combine groupings
 #' cl_prof_program_gr <- column_group_by(cl_prof_gr, program)
-#' (mat_summ <- apply_mat(cl_prof_program_gr, avr = mean, med = median, rg = range))
+#' (mat_summ <- apply_matrix(cl_prof_program_gr, avr = mean, med = median, rg = range))
 #' # it doesn' make much sense, but this is to showcase format
-#' (summ_gr <- apply_mat(cl_prof_program_gr, avr = mean, med = median, rg = range))
+#' (summ_gr <- apply_matrix(cl_prof_program_gr, avr = mean, med = median, rg = range))
 #' (summ_gr_long <- apply_column_dfl(cl_prof_program_gr,
 #'                                  ct = ~ c(avr = mean(.j), med = median(.j)),
 #'                                  rg = range))
@@ -1188,7 +1188,7 @@ apply_column_dfw <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
 
 #' @rdname loop
 #' @export
-apply_mat <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
+apply_matrix <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
                       .input_list = FALSE)
   if (.matrix_wise) {
     .apply_mat(.ms, ..., .matrix = .matrix)
@@ -1199,7 +1199,7 @@ apply_mat <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
 
 #' @rdname loop
 #' @export
-apply_mat_dfl <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
+apply_matrix_dfl <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
                           .input_list = FALSE)
   if (.matrix_wise) {
     .apply_mat_dfl(.ms, ..., .matrix = .matrix)
@@ -1210,7 +1210,7 @@ apply_mat_dfl <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
 
 #' @rdname loop
 #' @export
-apply_mat_dfw <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
+apply_matrix_dfw <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
                           .input_list = FALSE)
   if (.matrix_wise) {
     .apply_mat_dfw(.ms, ..., .matrix = .matrix)

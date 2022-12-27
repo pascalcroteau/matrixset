@@ -1,5 +1,6 @@
 # ONCE `BY` IS KNOWN, MUST CHECK THAT UNIQUELY DEFINES EACH ROW/COL
 
+#' @importFrom stats setNames
 set_by_null <- function (by, x_nms, y_nms, x_tag, y_tag)
 {
   if (is.null(by)) {
@@ -280,8 +281,8 @@ sub_matrix <- function(m, margin, old_names, all_names, compl_names)
 #'
 #' @description
 #' The operation is done through a join operation between the row meta info
-#' data.frame ([row_info_join()]) of `.ms` and `y` (or its row meta info
-#' data.frame if it is a `matrixset` object). The function [column_info_join()]
+#' data.frame ([join_row_info()]) of `.ms` and `y` (or its row meta info
+#' data.frame if it is a `matrixset` object). The function [join_column_info()]
 #' does the equivalent operation for column meta info.
 #'
 #' The default join operation is a left join (type == `"left"`), but all dplyr's
@@ -333,16 +334,17 @@ sub_matrix <- function(m, margin, old_names, all_names, compl_names)
 #'
 #' @examples
 #' ms1 <- remove_row_annotation(student_results, class, teacher)
-#' ms <- row_info_join(ms1, student_results)
+#' ms <- join_row_info(ms1, student_results)
 #'
-#' ms <- row_info_join(ms1, student_results, by = c(".rowname", "previous_year_score"))
+#' ms <- join_row_info(ms1, student_results, by = c(".rowname", "previous_year_score"))
 #'
-#' # This will throw an error
-#' ms2 <- remove_row_annotation(row_filter(student_results, class %in% c("classA", "classC")), class, teacher, previous_year_score)
-#' ms <- row_info_join(ms2, student_results, type = "full")
+#' # This would throw an error
+#' ms2 <- remove_row_annotation(filter_row(student_results, class %in% c("classA", "classC")),
+#'                              class, teacher, previous_year_score)
+#' # ms <- join_row_info(ms2, student_results, type = "full")
 #'
-#' Now it works.
-#' ms <- row_info_join(ms2, student_results, type = "full", adjust = TRUE)
+#' # Now it works.
+#' ms <- join_row_info(ms2, student_results, type = "full", adjust = TRUE)
 #' dim(ms2)
 #' dim(ms)
 #' matrix_elm(ms, 1)
@@ -353,12 +355,12 @@ sub_matrix <- function(m, margin, old_names, all_names, compl_names)
 
 #' @rdname join
 #' @export
-row_info_join <- function(.ms, y, type = "left", by = NULL, adjust = FALSE,
+join_row_info <- function(.ms, y, type = "left", by = NULL, adjust = FALSE,
                           suffix = c(".x", ".y"), na_matches = c("na", "never"))
-  UseMethod("row_info_join")
+  UseMethod("join_row_info")
 
 #' @export
-row_info_join.matrixset <- function(.ms, y, type = "left", by = NULL,
+join_row_info.matrixset <- function(.ms, y, type = "left", by = NULL,
                                     adjust = FALSE, suffix = c(".x", ".y"),
                                     na_matches = c("na", "never"))
 {
@@ -371,12 +373,12 @@ row_info_join.matrixset <- function(.ms, y, type = "left", by = NULL,
 
 #' @rdname join
 #' @export
-column_info_join <- function(.ms, y, type = "left", by = NULL, adjust = FALSE,
+join_column_info <- function(.ms, y, type = "left", by = NULL, adjust = FALSE,
                              suffix = c(".x", ".y"), na_matches = c("na", "never"))
-  UseMethod("column_info_join")
+  UseMethod("join_column_info")
 
 #' @export
-column_info_join.matrixset <- function(.ms, y, type = "left", by = NULL,
+join_column_info.matrixset <- function(.ms, y, type = "left", by = NULL,
                                        adjust = FALSE, suffix = c(".x", ".y"),
                                        na_matches = c("na", "never"))
 {

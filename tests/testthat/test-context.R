@@ -680,14 +680,14 @@ test_that("context functions work", {
 
 
 
-  rowinf <- apply_mat(student_results, ~ current_row_info())
+  rowinf <- apply_matrix(student_results, ~ current_row_info())
   rowmeta <- row_info(student_results)
   rml <- lapply(setNames(seq(nmatrix(student_results)), matrixnames(student_results)),
                 function(i) list(`~current_row_info()` = rowmeta))
   expect_identical(rowinf, rml)
 
 
-  rowinf <- apply_mat(row_group_by(student_results, teacher, class), ~ current_row_info())
+  rowinf <- apply_matrix(row_group_by(student_results, teacher, class), ~ current_row_info())
   rowmeta <- row_info(student_results)
   rml <- lapply(list(seq.int(5),
                      seq.int(6,10),
@@ -706,7 +706,7 @@ test_that("context functions work", {
   expect_identical(rowinf$remedial$.vals[[4]], rml[[4]], ignore_attr = TRUE)
 
 
-  rowinf <- apply_mat(column_group_by(student_results,program), ~ current_row_info())
+  rowinf <- apply_matrix(column_group_by(student_results,program), ~ current_row_info())
   rowmeta <- row_info(student_results)
   rml <- lapply(1:2,
                 function(i) {
@@ -718,7 +718,7 @@ test_that("context functions work", {
   expect_identical(rowinf$remedial$.vals[[2]], rml[[2]], ignore_attr = TRUE)
 
 
-  rowinf <- apply_mat(column_group_by(row_group_by(student_results, teacher, class), program),
+  rowinf <- apply_matrix(column_group_by(row_group_by(student_results, teacher, class), program),
                          ~ current_row_info())
   rowmeta <- row_info(student_results)
   rml <- lapply(list(seq.int(5),
@@ -755,14 +755,14 @@ test_that("context functions work", {
 
 
 
-  colinf <- apply_mat(student_results, ~ current_column_info())
+  colinf <- apply_matrix(student_results, ~ current_column_info())
   colmeta <- column_info(student_results)
   cml <- lapply(setNames(seq(nmatrix(student_results)), matrixnames(student_results)),
                 function(i) list(`~current_column_info()` = colmeta))
   expect_identical(colinf, cml)
 
 
-  colinf <- apply_mat(row_group_by(student_results, teacher, class), ~ current_column_info())
+  colinf <- apply_matrix(row_group_by(student_results, teacher, class), ~ current_column_info())
   colmeta <- column_info(student_results)
   cml <- lapply(list(seq.int(5),
                      seq.int(6,10),
@@ -776,7 +776,7 @@ test_that("context functions work", {
   expect_identical(colinf$remedial$.vals, cml, ignore_attr = TRUE)
 
 
-  colinf <- apply_mat(column_group_by(student_results,program), ~ current_column_info())
+  colinf <- apply_matrix(column_group_by(student_results,program), ~ current_column_info())
   colmeta <- column_info(student_results)
   cml <- lapply(list(c(1, 3), 2),
                 function(i) list(`~current_column_info()` = colmeta[i, ]))
@@ -784,7 +784,7 @@ test_that("context functions work", {
   expect_identical(colinf$remedial$.vals, cml, ignore_attr = TRUE)
 
 
-  colinf <- apply_mat(column_group_by(row_group_by(student_results, teacher, class), program),
+  colinf <- apply_matrix(column_group_by(row_group_by(student_results, teacher, class), program),
                          ~ current_column_info())
   colmeta <- column_info(student_results)
   cml <- lapply(rep(list(c(1,3),2), 4),
@@ -800,13 +800,13 @@ test_that("context functions work", {
 
 
 
-  rowinf <- apply_mat(student_results, ~ current_n_row())
+  rowinf <- apply_matrix(student_results, ~ current_n_row())
   rml <- lapply(setNames(seq(nmatrix(student_results)), matrixnames(student_results)),
                 function(i) list(`~current_n_row()` = 20L))
   expect_identical(rowinf, rml)
 
 
-  rowinf <- apply_mat(row_group_by(student_results, teacher, class), ~ current_n_row())
+  rowinf <- apply_matrix(row_group_by(student_results, teacher, class), ~ current_n_row())
   rml <- lapply(1:4,
                 function(i) {
                   list(`~current_n_row()` = 5L)
@@ -816,14 +816,14 @@ test_that("context functions work", {
   expect_identical(rowinf$remedial$.vals, rml)
 
 
-  rowinf <- apply_mat(column_group_by(student_results,program), ~ current_n_row())
+  rowinf <- apply_matrix(column_group_by(student_results,program), ~ current_n_row())
   rml <- lapply(1:2,
                 function(i) list(`~current_n_row()` = 20L))
   expect_identical(rowinf$failure$.vals, rml)
   expect_identical(rowinf$remedial$.vals, rml)
 
 
-  rowinf <- apply_mat(column_group_by(row_group_by(student_results, teacher, class), program),
+  rowinf <- apply_matrix(column_group_by(row_group_by(student_results, teacher, class), program),
                          ~ current_n_row())
   rml <- lapply(1:8,
                 function(i) {
@@ -838,13 +838,13 @@ test_that("context functions work", {
 
 
 
-  colinf <- apply_mat(student_results, ~ current_n_column())
+  colinf <- apply_matrix(student_results, ~ current_n_column())
   cml <- lapply(setNames(seq(nmatrix(student_results)), matrixnames(student_results)),
                 function(i) list(`~current_n_column()` = 3L))
   expect_identical(colinf, cml)
 
 
-  colinf <- apply_mat(row_group_by(student_results, teacher, class), ~ current_n_column())
+  colinf <- apply_matrix(row_group_by(student_results, teacher, class), ~ current_n_column())
   cml <- lapply(1:4, function(i) {
     list(`~current_n_column()` = 3L)
   })
@@ -852,14 +852,14 @@ test_that("context functions work", {
   expect_identical(colinf$remedial$.vals, cml, ignore_attr = TRUE)
 
 
-  colinf <- apply_mat(column_group_by(student_results,program), ~ current_n_column())
+  colinf <- apply_matrix(column_group_by(student_results,program), ~ current_n_column())
   cml <- lapply(list(c(1,3), 2),
                 function(i) list(`~current_n_column()` = length(i)))
   expect_identical(colinf$failure$.vals, cml, ignore_attr = TRUE)
   expect_identical(colinf$remedial$.vals, cml, ignore_attr = TRUE)
 
 
-  colinf <- apply_mat(column_group_by(row_group_by(student_results, teacher, class), program),
+  colinf <- apply_matrix(column_group_by(row_group_by(student_results, teacher, class), program),
                          ~ current_n_column())
   cml <- lapply(rep(list(c(1,3),2), 4), function(i) {
     list(`~current_n_column()` = length(i))
@@ -871,13 +871,13 @@ test_that("context functions work", {
 
 
 
-  rowinf <- apply_mat(student_results, ~ row_pos())
+  rowinf <- apply_matrix(student_results, ~ row_pos())
   rml <- lapply(setNames(seq(nmatrix(student_results)), matrixnames(student_results)),
                 function(i) list(`~row_pos()` = seq.int(20)))
   expect_identical(rowinf, rml)
 
 
-  rowinf <- apply_mat(row_group_by(student_results, teacher, class), ~ row_pos())
+  rowinf <- apply_matrix(row_group_by(student_results, teacher, class), ~ row_pos())
   rml <- lapply(list(seq.int(5),
                      seq.int(6,10),
                      seq.int(11,15),
@@ -888,14 +888,14 @@ test_that("context functions work", {
   expect_identical(rowinf$remedial$.vals, rml)
 
 
-  rowinf <- apply_mat(column_group_by(student_results,program), ~ row_pos())
+  rowinf <- apply_matrix(column_group_by(student_results,program), ~ row_pos())
   rml <- lapply(1:2,
                 function(i) list(`~row_pos()` = seq.int(20)))
   expect_identical(rowinf$failure$.vals, rml)
   expect_identical(rowinf$remedial$.vals, rml)
 
 
-  rowinf <- apply_mat(column_group_by(row_group_by(student_results, teacher, class), program),
+  rowinf <- apply_matrix(column_group_by(row_group_by(student_results, teacher, class), program),
                          ~ row_pos())
   rml <- lapply(list(seq.int(5),
                      seq.int(5),
@@ -915,13 +915,13 @@ test_that("context functions work", {
 
 
 
-  colinf <- apply_mat(student_results, ~ column_pos())
+  colinf <- apply_matrix(student_results, ~ column_pos())
   cml <- lapply(setNames(seq(nmatrix(student_results)), matrixnames(student_results)),
                 function(i) list(`~column_pos()` = seq.int(3)))
   expect_identical(colinf, cml)
 
 
-  colinf <- apply_mat(row_group_by(student_results, teacher, class), ~ column_pos())
+  colinf <- apply_matrix(row_group_by(student_results, teacher, class), ~ column_pos())
   cml <- lapply(1:4, function(i) {
     list(`~column_pos()` = seq.int(3))
   })
@@ -929,14 +929,14 @@ test_that("context functions work", {
   expect_identical(colinf$remedial$.vals, cml)
 
 
-  colinf <- apply_mat(column_group_by(student_results,program), ~ column_pos())
+  colinf <- apply_matrix(column_group_by(student_results,program), ~ column_pos())
   cml <- lapply(list(c(1L, 3L), 2L),
                 function(i) list(`~column_pos()` = i))
   expect_identical(colinf$failure$.vals, cml)
   expect_identical(colinf$remedial$.vals, cml)
 
 
-  colinf <- apply_mat(column_group_by(row_group_by(student_results, teacher, class), program),
+  colinf <- apply_matrix(column_group_by(row_group_by(student_results, teacher, class), program),
                          ~ column_pos())
   cml <- lapply(rep(list(c(1L, 3L), 2L), 4), function(i) {
     list(`~column_pos()` = i)
@@ -949,13 +949,13 @@ test_that("context functions work", {
 
 
 
-  rowinf <- apply_mat(student_results, ~ row_rel_pos())
+  rowinf <- apply_matrix(student_results, ~ row_rel_pos())
   rml <- lapply(setNames(seq(nmatrix(student_results)), matrixnames(student_results)),
                 function(i) list(`~row_rel_pos()` = seq.int(20)))
   expect_identical(rowinf, rml)
 
 
-  rowinf <- apply_mat(row_group_by(student_results, teacher, class), ~ row_rel_pos())
+  rowinf <- apply_matrix(row_group_by(student_results, teacher, class), ~ row_rel_pos())
   rml <- lapply(1:4, function(i) {
     list(`~row_rel_pos()` = seq.int(5))
   })
@@ -963,14 +963,14 @@ test_that("context functions work", {
   expect_identical(rowinf$remedial$.vals, rml)
 
 
-  rowinf <- apply_mat(column_group_by(student_results,program), ~ row_rel_pos())
+  rowinf <- apply_matrix(column_group_by(student_results,program), ~ row_rel_pos())
   rml <- lapply(1:2,
                 function(i) list(`~row_rel_pos()` = seq.int(20)))
   expect_identical(rowinf$failure$.vals, rml)
   expect_identical(rowinf$remedial$.vals, rml)
 
 
-  rowinf <- apply_mat(column_group_by(row_group_by(student_results, teacher, class), program),
+  rowinf <- apply_matrix(column_group_by(row_group_by(student_results, teacher, class), program),
                          ~ row_rel_pos())
   rml <- lapply(1:8, function(i) {
     list(`~row_rel_pos()` = seq.int(5))
@@ -983,13 +983,13 @@ test_that("context functions work", {
 
 
 
-  colinf <- apply_mat(student_results, ~ column_rel_pos())
+  colinf <- apply_matrix(student_results, ~ column_rel_pos())
   cml <- lapply(setNames(seq(nmatrix(student_results)), matrixnames(student_results)),
                 function(i) list(`~column_rel_pos()` = 1L:3L))
   expect_identical(colinf, cml)
 
 
-  colinf <- apply_mat(row_group_by(student_results, teacher, class), ~ column_rel_pos())
+  colinf <- apply_matrix(row_group_by(student_results, teacher, class), ~ column_rel_pos())
   cml <- lapply(1:4, function(i) {
     list(`~column_rel_pos()` = 1L:3L)
   })
@@ -997,14 +997,14 @@ test_that("context functions work", {
   expect_identical(colinf$remedial$.vals, cml)
 
 
-  colinf <- apply_mat(column_group_by(student_results,program), ~ column_rel_pos())
+  colinf <- apply_matrix(column_group_by(student_results,program), ~ column_rel_pos())
   cml <- lapply(list(1L:2L, 1L),
                 function(i) list(`~column_rel_pos()` = i))
   expect_identical(colinf$failure$.vals, cml)
   expect_identical(colinf$remedial$.vals, cml)
 
 
-  colinf <- apply_mat(column_group_by(row_group_by(student_results, teacher, class), program),
+  colinf <- apply_matrix(column_group_by(row_group_by(student_results, teacher, class), program),
                          ~ column_rel_pos())
   cml <- lapply(rep(list(1L:2L, 1L), 4), function(i) {
     list(`~column_rel_pos()` = i)

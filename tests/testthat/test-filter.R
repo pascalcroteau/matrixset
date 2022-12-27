@@ -25,17 +25,17 @@ test_that("matrixset filtering works", {
                           row_tag = "ROW", column_tag = "COL")
   mat_filtgr <- column_group_by(mat_filtgr, foo)
 
-  expect_identical(row_filter(matset, g > 2), mat_filt2)
-  expect_identical(row_filter(matset, g == max(g)), mat_filtmax)
+  expect_identical(filter_row(matset, g > 2), mat_filt2)
+  expect_identical(filter_row(matset, g == max(g)), mat_filtmax)
 
 
 
   matset2 <- matset
   matset2[,,2] <- NULL
-  expect_identical(row_filter(matset2, g > 2), mat_filt2_null)
+  expect_identical(filter_row(matset2, g > 2), mat_filt2_null)
 
 
-  expect_identical(column_filter(column_group_by(matset, foo), gg >= mean(gg)),
+  expect_identical(filter_column(column_group_by(matset, foo), gg >= mean(gg)),
                    mat_filtgr)
 
 
@@ -44,7 +44,7 @@ test_that("matrixset filtering works", {
   mns <- tapply(srri$previous_year_score, srri$class, mean)
   idx <- srri$previous_year_score >= mns[srri$class]
   stud_res_filt <- row_group_by(student_results[idx,,], class)
-  expect_identical(row_filter(row_group_by(student_results, class), previous_year_score >= mean(previous_year_score)),
+  expect_identical(filter_row(row_group_by(student_results, class), previous_year_score >= mean(previous_year_score)),
                    stud_res_filt)
 
 
@@ -55,8 +55,8 @@ test_that("matrixset filtering works", {
 
 test_that("matrixset filter fails properly", {
 
-  expect_error(row_filter(matrixset(NULL), g > 2), "could not find: 'g'")
-  expect_error(row_filter(matrixset(NULL), g > 2, h > 2), "could not find: 'g', 'h")
+  expect_error(filter_row(matrixset(NULL), g > 2), "could not find: 'g'")
+  expect_error(filter_row(matrixset(NULL), g > 2, h > 2), "could not find: 'g', 'h")
 
 })
 

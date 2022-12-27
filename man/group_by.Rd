@@ -66,7 +66,7 @@ by_class <- row_group_by(student_results, class)
 by_class
 
 # Grouping changes how some functions operates
-row_filter(by_class, previous_year_score > mean(previous_year_score))
+filter_row(by_class, previous_year_score > mean(previous_year_score))
 
 # You can group by expressions: you end-up grouping by the new annotation:
 row_group_by(student_results, sqrt_score = sqrt(previous_year_score))

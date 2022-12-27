@@ -2,11 +2,11 @@
 % Please edit documentation in R/join.R
 \name{join}
 \alias{join}
-\alias{row_info_join}
-\alias{column_info_join}
+\alias{join_row_info}
+\alias{join_column_info}
 \title{Add meta info from another \code{matrixset} or a \code{data.frame}}
 \usage{
-row_info_join(
+join_row_info(
   .ms,
   y,
   type = "left",
@@ -16,7 +16,7 @@ row_info_join(
   na_matches = c("na", "never")
 )
 
-column_info_join(
+join_column_info(
   .ms,
   y,
   type = "left",
@@ -71,8 +71,8 @@ from the original one.
 }
 \description{
 The operation is done through a join operation between the row meta info
-data.frame (\code{\link[=row_info_join]{row_info_join()}}) of \code{.ms} and \code{y} (or its row meta info
-data.frame if it is a \code{matrixset} object). The function \code{\link[=column_info_join]{column_info_join()}}
+data.frame (\code{\link[=join_row_info]{join_row_info()}}) of \code{.ms} and \code{y} (or its row meta info
+data.frame if it is a \code{matrixset} object). The function \code{\link[=join_column_info]{join_column_info()}}
 does the equivalent operation for column meta info.
 
 The default join operation is a left join (type == \code{"left"}), but all dplyr's
@@ -90,16 +90,17 @@ update is the same as in \code{dplyr}.
 
 \examples{
 ms1 <- remove_row_annotation(student_results, class, teacher)
-ms <- row_info_join(ms1, student_results)
+ms <- join_row_info(ms1, student_results)
 
-ms <- row_info_join(ms1, student_results, by = c(".rowname", "previous_year_score"))
+ms <- join_row_info(ms1, student_results, by = c(".rowname", "previous_year_score"))
 
-# This will throw an error
-ms2 <- remove_row_annotation(row_filter(student_results, class \%in\% c("classA", "classC")), class, teacher, previous_year_score)
-ms <- row_info_join(ms2, student_results, type = "full")
+# This would throw an error
+ms2 <- remove_row_annotation(filter_row(student_results, class \%in\% c("classA", "classC")),
+                             class, teacher, previous_year_score)
+# ms <- join_row_info(ms2, student_results, type = "full")
 
-Now it works.
-ms <- row_info_join(ms2, student_results, type = "full", adjust = TRUE)
+# Now it works.
+ms <- join_row_info(ms2, student_results, type = "full", adjust = TRUE)
 dim(ms2)
 dim(ms)
 matrix_elm(ms, 1)

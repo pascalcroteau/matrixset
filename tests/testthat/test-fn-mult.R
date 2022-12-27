@@ -957,23 +957,23 @@ test_that("matrixset 'wide' loop works", {
 
 test_that("matrixset matrix loop works", {
 
-  expect_identical(apply_mat(matrixset(NULL), mean, .matrix_wise = FALSE), NULL)
+  expect_identical(apply_matrix(matrixset(NULL), mean, .matrix_wise = FALSE), NULL)
 
 
-  rb <- apply_mat(student_results, rbind, .matrix_wise = FALSE)
+  rb <- apply_matrix(student_results, rbind, .matrix_wise = FALSE)
   rb_ref <- do.call(rbind, student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE])
   rb_ref <- list(rbind = rb_ref)
   expect_equal(rb, rb_ref)
 
 
-  fc <- apply_mat(student_results, FC = .m2/.m1, .matrix_wise = FALSE)
+  fc <- apply_matrix(student_results, FC = .m2/.m1, .matrix_wise = FALSE)
   m <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
   fc_ref <- list(FC = m[[2]]/m[[1]])
   expect_equal(fc, fc_ref)
 
 
 
-  fc <- apply_mat_dfl(student_results, FC = rowMeans(.m2/.m1),
+  fc <- apply_matrix_dfl(student_results, FC = rowMeans(.m2/.m1),
                       logFC = rowMeans(log2(.m2/.m1)), .matrix_wise = FALSE)
   m <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
   fc_ref = list(FC = rowMeans(m[[2]]/m[[1]]), logFC = rowMeans(log2(m[[2]]/m[[1]])))
@@ -985,7 +985,7 @@ test_that("matrixset matrix loop works", {
 
 
 
-  fc <- apply_mat_dfw(student_results, FC = rowMeans(.m2/.m1),
+  fc <- apply_matrix_dfw(student_results, FC = rowMeans(.m2/.m1),
                      logFC = rowMeans(log2(.m2/.m1)), .matrix_wise = FALSE)
   m <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
   fc_ref = c(rowMeans(m[[2]]/m[[1]]), rowMeans(log2(m[[2]]/m[[1]])))
@@ -998,7 +998,7 @@ test_that("matrixset matrix loop works", {
   # grouped
 
 
-  rb <- apply_mat(row_group_by(student_results, teacher), rbind,
+  rb <- apply_matrix(row_group_by(student_results, teacher), rbind,
                   .matrix_wise = FALSE)
   m <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
   rb_ref <- row_group_meta(row_group_by(student_results, teacher))
@@ -1009,7 +1009,7 @@ test_that("matrixset matrix loop works", {
 
 
 
-  fc <- apply_mat(row_group_by(student_results, teacher), FC = .m2/.m1,
+  fc <- apply_matrix(row_group_by(student_results, teacher), FC = .m2/.m1,
                   .matrix_wise = FALSE)
   m <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
   fc_ref <- row_group_meta(row_group_by(student_results, teacher))
@@ -1020,7 +1020,7 @@ test_that("matrixset matrix loop works", {
 
 
 
-  fc <- apply_mat_dfl(row_group_by(student_results, teacher), FC = colMeans(.m2/.m1),
+  fc <- apply_matrix_dfl(row_group_by(student_results, teacher), FC = colMeans(.m2/.m1),
                       .matrix_wise = FALSE)
   m <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
   fc_ref <- row_group_meta(row_group_by(student_results, teacher))
@@ -1034,7 +1034,7 @@ test_that("matrixset matrix loop works", {
 
 
 
-  fc <- apply_mat_dfw(row_group_by(student_results, teacher), FC = colMeans(.m2/.m1),
+  fc <- apply_matrix_dfw(row_group_by(student_results, teacher), FC = colMeans(.m2/.m1),
                       .matrix_wise = FALSE)
   m <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
   fc_ref <- row_group_meta(row_group_by(student_results, teacher))
@@ -1049,7 +1049,7 @@ test_that("matrixset matrix loop works", {
 
 
 
-  rb <- apply_mat(column_group_by(student_results, program), rbind,
+  rb <- apply_matrix(column_group_by(student_results, program), rbind,
                   .matrix_wise = FALSE)
   m <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
   rb_ref <- column_group_meta(column_group_by(student_results, program))
@@ -1060,7 +1060,7 @@ test_that("matrixset matrix loop works", {
 
 
 
-  fc <- apply_mat(column_group_by(student_results, program), FC = .m2/.m1,
+  fc <- apply_matrix(column_group_by(student_results, program), FC = .m2/.m1,
                   .matrix_wise = FALSE)
   m <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
   fc_ref <- column_group_meta(column_group_by(student_results, program))
@@ -1071,7 +1071,7 @@ test_that("matrixset matrix loop works", {
 
 
 
-  fc <- apply_mat_dfl(column_group_by(student_results, program), FC = rowMeans(.m2/.m1),
+  fc <- apply_matrix_dfl(column_group_by(student_results, program), FC = rowMeans(.m2/.m1),
                       .matrix_wise = FALSE)
   m <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
   fc_ref <- column_group_meta(column_group_by(student_results, program))
@@ -1085,7 +1085,7 @@ test_that("matrixset matrix loop works", {
 
 
 
-  fc <- apply_mat_dfw(column_group_by(student_results, program), FC = rowMeans(.m2/.m1),
+  fc <- apply_matrix_dfw(column_group_by(student_results, program), FC = rowMeans(.m2/.m1),
                       .matrix_wise = FALSE)
   m <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
   fc_ref <- column_group_meta(column_group_by(student_results, program))

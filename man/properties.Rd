@@ -13,6 +13,8 @@
 \alias{column_traits}
 \alias{row_traits<-}
 \alias{column_traits<-}
+\alias{row_tag}
+\alias{column_tag}
 \alias{row_info}
 \alias{row_info<-}
 \alias{column_info}
@@ -43,6 +45,10 @@ row_traits(x) <- value
 column_traits(x)
 
 column_traits(x) <- value
+
+row_tag(x)
+
+column_tag(x)
 
 row_info(x)
 
@@ -81,6 +87,8 @@ names.
 
 \code{row_traits} and \code{column_traits} returns a \code{character} vector.
 
+\code{row_tag} and \code{column_tag} returns a \code{character} vector.
+
 \code{row_info} extracts the row annotation data frame. \code{column_info} does
 the same thing for column annotation.
 }
@@ -104,13 +112,17 @@ named.
 \code{nmatrix} returns the number of matrices of a \code{matrixset}.
 
 \code{row_traits} returns the object's row traits; these are the column names of
-the row annotation data frame
+the row annotation data frame.
 
 \code{column_traits} returns the object's column traits; these are the column
-names of the column annotation data frame
+names of the column annotation data frame.
 
 \code{row_info} extracts the row annotation data frame. \code{column_info} does
 the same thing for column annotation.
+
+\code{row_tag} returns the column name of \code{row_info} that stores the \code{matrixset}'s
+row names. \code{column_tag} returns the column name of \code{column_info} that stores
+the \code{matrixset}'s column names.
 
 The replacement methods for \code{row_traits}/\code{row_info} and \code{column_traits}/\code{column_info}
 can potentially change meta variables that were used for grouping. There is

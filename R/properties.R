@@ -42,13 +42,17 @@
 #' `nmatrix` returns the number of matrices of a `matrixset`.
 #'
 #' `row_traits` returns the object's row traits; these are the column names of
-#' the row annotation data frame
+#' the row annotation data frame.
 #'
 #' `column_traits` returns the object's column traits; these are the column
-#' names of the column annotation data frame
+#' names of the column annotation data frame.
 #'
 #' `row_info` extracts the row annotation data frame. `column_info` does
 #' the same thing for column annotation.
+#'
+#' `row_tag` returns the column name of `row_info` that stores the `matrixset`'s
+#' row names. `column_tag` returns the column name of `column_info` that stores
+#' the `matrixset`'s column names.
 #'
 #' The replacement methods for `row_traits`/`row_info` and `column_traits`/`column_info`
 #' can potentially change meta variables that were used for grouping. There is
@@ -84,6 +88,8 @@
 #' `nmatrix` returns an `ìnteger`.
 #'
 #' `row_traits` and `column_traits` returns a `character` vector.
+#'
+#' `row_tag` and `column_tag` returns a `character` vector.
 #'
 #' `row_info` extracts the row annotation data frame. `column_info` does
 #' the same thing for column annotation.
@@ -446,6 +452,27 @@ column_traits.matrixset <- function(x) .coltraits(x)
 }
 
 
+
+
+
+#' @rdname properties
+#' @export
+row_tag <- function(x) UseMethod("row_tag")
+#' @export
+row_tag.default <- function(x)
+  stop(paste("'row_tag' is not defined for objects of class", class(x)))
+#' @export
+row_tag.matrixset <- function(x) .rowtag(x)
+
+
+#' @rdname properties
+#' @export
+column_tag <- function(x) UseMethod("column_tag")
+#' @export
+column_tag.default <- function(x)
+  stop(paste("'column_tag' is not defined for objects of class", class(x)))
+#' @export
+column_tag.matrixset <- function(x) .coltag(x)
 
 
 

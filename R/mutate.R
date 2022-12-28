@@ -170,7 +170,7 @@ remove_matrix.matrixset <- function(.ms, matrix)
 #' @description
 #' Applies functions that takes matrices as input and return similar matrices.
 #' The difinition of similar is that the new matrix has the same dimension and
-#' dimnames.
+#' dimnames as `.ms`.
 #'
 #' If the returned matrix is assigned to a new matrix, this matrix is added to the
 #' `matrixset` object. If it is assigned to an already existing matrix, it
@@ -214,6 +214,8 @@ mutate_matrix <- function(.ms, ...)
   cl <- sys.call()
   cash_status$set(cl)
   on.exit(cash_status$clear(cl))
+
+  assess_tidyable(.ms)
 
   quosures <- rlang::enquos(..., .named = FALSE, .ignore_empty = "all")
 

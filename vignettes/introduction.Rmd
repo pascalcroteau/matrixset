@@ -1,0 +1,246 @@
+---
+title: "A Gentle Introduction to matrixset"
+output: rmarkdown::html_vignette
+description: >
+  This is the place to start if you are new to matrixset, or if you just need
+  a high level refresher.
+vignette: >
+  %\VignetteIndexEntry{A Gentle Introduction to matrixset}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE, echo = FALSE, message = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+library(matrixset)
+```
+
+
+
+## What is a matrixset?
+
+It's a container of matrices, each having the same number of rows and columns
+and the same dimnames. Moreover, each dimname must uniquely identify elements.
+
+While there is minimal support for `NULL` dimnames (and that is bound to change 
+at some point in the future), it is strongly recommended to provide meaningful
+dimnames. One of the main reason for this is that annotation is impossible with
+`NULL` dimnames.
+
+In addition, as alluded above, a `matrixset` can store independent row and 
+column annotations. This meta information is stored, and available, in the form 
+of data frames - one for row information and one for column. The annotation 
+names are referred to as traits.
+
+This latter feature makes `matrixset` especially attractive even if it stores
+only a single matrix, because several methods have been developped to manipulate
+`matrixset`s, accounting for annotations.
+
+## How to create a matrixset?
+
+To illustrate how to build a `matrixset`, we will use the animal dataset from
+the MASS package.
+
+```{r}
+animals <- as.matrix(MASS::Animals)
+head(animals)
+```
+
+This is a matrix with `r nrow(animals)` rows and `r ncol(animals)` columns.
+
+There is two ways to create a `matrixset` object: `matrixset()` or 
+`as_matrixset()`.
+
+Let's first take a look at `matrixset()`.
+
+
+```{r, error=TRUE}
+animals_ms <- matrixset(animals)
+```
+
+Oops! Looks like something didn't work. That's because matrices must be named
+when building a `matrixset`.
+
+
+```{r}
+animals_ms <- matrixset(msr = animals)
+animals_ms
+```
+
+The `as_matrixset()` function will provide a generic name.
+
+```{r}
+as_matrixset(animals)
+```
+
+It is recommended to use the `matrixset()` function and provide a meaningful
+matrix name, as some functionalities will make use of matrix names. It will also
+be easier to refer to the matrices when there is more than one.
+
+We saw in the `animals_ms` printout that default row annotation (`row_info`) and
+column annotation (`column_info`) were created at the time of object building.
+
+Meta info always contains the row names and column names. We will see later how
+to add more annotation.
+
+Let's see an example on how to include more than one matrix.
+
+```{r}
+log_animals <- log(animals)
+ms <- matrixset(msr = animals, log_msr = log_animals)
+ms
+```
+
+It may happen that the matrices are stored in a list. No problem, the list can 
+be used as input for `matrixset`.
+
+```{r}
+ms2 <- matrixset(list(msr = animals, log_msr = log_animals))
+identical(ms, ms2)
+```
+
+It is also possible to add a matrix to an already existing object.
+```{r}
+animals_ms <- add_matrix(animals_ms, log_msr = log_animals)
+identical(ms, animals_ms)
+```
+
+## How to annotate
+
+One way is to do it at the object creation step. Suppose we have the following 
+animal information (which are rows in our object).
+
+```{r, message = FALSE}
+library(tidyverse)
+animal_info <- MASS::Animals %>% 
+  rownames_to_column("Animal") %>% 
+  mutate(is_extinct = case_when(Animal %in% c("Dipliodocus", "Triceratops", "Brachiosaurus") ~ TRUE,
+                                TRUE ~ FALSE),
+         class = case_when(Animal %in% c("Mountain beaver", "Guinea pig", "Golden hamster", "Mouse", "Rabbit", "Rat") ~ "Rodent",
+                           Animal %in% c("Potar monkey", "Gorilla", "Human", "Rhesus monkey", "Chimpanzee") ~ "Primate",
+                           Animal %in% c("Cow", "Goat", "Giraffe", "Sheep") ~ "Ruminant",
+                           Animal %in% c("Asian elephant", "African elephant") ~ "Elephantidae",
+                           Animal %in% c("Grey wolf") ~ "Canine",
+                           Animal %in% c("Cat", "Jaguar") ~ "Feline",
+                           Animal %in% c("Donkey", "Horse") ~ "Equidae",
+                           Animal == "Pig" ~ "Sus",
+                           Animal == "Mole" ~ "Talpidae",
+                           Animal == "Kangaroo" ~ "Macropodidae",
+                           TRUE ~ "Dinosaurs")) %>% 
+  select(-body, -brain)
+animal_info
+```
+
+We can then use the `matrixset()` function (it works with `as_matrixset()` too).
+
+```{r}
+ms <- matrixset(msr = animals, log_msr = log_animals, row_info = animal_info,
+                row_key = "Animal")
+ms
+```
+
+Notice how we used the `row_key` argument to specify how to link the two objects
+together.
+
+Another option is the `row_info<-()` function. Note that here you need a column
+with the same tag as in the `matrixset` object.
+```{r}
+row_info(ms2) <- animal_info %>% rename(.rowname = Animal)
+identical(ms, ms2)
+```
+
+We'll finish the annotation section by introducing the `join` and the `annotate`
+methods.
+
+```{r}
+animals_ms <- animals_ms %>% 
+  join_row_info(animal_info, by = c(".rowname" = "Animal"))
+identical(ms, animals_ms)
+animals_ms <- animals_ms %>% 
+  annotate_column(unit = case_when(.colname == "body" ~ "kg",
+                                   TRUE ~ "g")) 
+animals_ms
+```
+
+The join operation joins the second meta info (`animal_info` in our example) to
+the relevant `matrixset` meta info.
+
+The `annotate` operation works like dplyr's `mutate()` does: you can modify
+existing annotation, create new ones or even remove them. It can use already
+existing annotation as well.
+
+```{r}
+animals_ms %>% 
+  annotate_column(us_unit = case_when(unit == "kg" ~ "lb",
+                                   TRUE ~ "oz")) %>% 
+  column_info()
+```
+
+The only annotation that can't be modify or deleted via `annotate` is the the
+tag (typically, `.rowname` and `.colname`).
+
+```{r, error = TRUE}
+animals_ms %>% annotate_column(.colname = NULL)
+```
+
+## What to do with a matrixset
+
+Many of the `array` operations are available for `matrixset`:
+
+ * Subseting operations
+   `[` and `[[`. The subset `[` works like that of an array. The first argument
+   is for rows, the second for columns and the third for matrices. It will
+   return a `matrixset`, even if there is a single matrix returned as part of
+   the subset. The `keep_annotation` argument (that always should be used 
+   after the 3 row/col/matrix arguments) will return only the matrix list.
+     
+   The operation `x[[m]]` is a wrapper to `x[,,m]`.
+ * Replacement method `[<-`
+   Replaces matrix or matrices, in full or in part, by new values.
+ * `dimnames()` and the related `rownames()` and `colnames()`.
+ * The replacement versions: `dimnames<-()` and the related `rownames<-()` and 
+   `colnames<-()`. Note that `rownames<-()` and `colnames<-()` are what should
+   be used for names replacement. The special annotation tag is modified this
+   way.
+ * `dim()` and the related `nrow()` and `ncol()`
+   
+Other property methods specific to the `matrixset` object are available:
+ 
+ * `matrixnames()` (and the replacement version, `matrixnames<-()`) and 
+   `nmatrix()`
+ * Component extraction functions:
+   * `matrix_elm()`: extracts a single matrix of the object, and returns it as a
+     matrix
+   * `row_info()` and `column_info()`: extracts the data frames that stores the
+     annotation
+   * `row_traits()` and `column_traits()`: returns the annotation names. The tag
+     (column that stores the row/column names) is *not* returned.
+ * Component replacement functions
+   * `matrix_elm<-()`: replaces a single matrix of the object
+   * `row_info()<-` and `column_info()<-`: relaces whole annotation data frame
+   * row_traits and `column_traits()`: replace annotation names. Tags *cannot*
+     be replaced
+ * expansion/reduction functions `add_matrix()` and `remove_matrix()`.
+ 
+
+Finally, many functions to manipulate or use the `matrixset` object, often taking
+inspiration from the `tidyverse`, have been made available
+
+ * `mutate_matrix()`: create, modify or delete matrices. Supports tidy 
+   evaluation and tidy selection (for matrix names **and** annotations)
+ * `apply_matrix()`, `apply_row()` and `apply_column()` (and all of their 
+   declinations): apply functions/expressions to matrices, their rows or their
+   columns. They have intuitive and direct access to annotations.
+ * `arrange_row()` and `arrange_column()`: reorder rows and columns. Supports
+   tidy selection for annotation
+ * `filter_row()` and `filter_column()`: subset rows or columns of matrices 
+   based on conditions that may use annotations.
+
+ 
+All of these functions (except for `mutate_matrix()`) can be performed within
+groups - groups that could be defined using annotation. This is done by a prior
+call to `row_group_by()` and/or `column_group_by()`.
+

@@ -218,7 +218,7 @@ annotate_column.matrixset <- function(.ms, ...)
 
   tr <- colnames(col_info)
 
-  n <- nrow(.ms)
+  n <- ncol(.ms)
   if ((ni <- nrow(col_info)) != n) {
     stop(paste("the number of columns is modified by the annotation,",
                "which is against the 'matrixset' paradigm."))

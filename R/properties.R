@@ -524,7 +524,7 @@ row_info.matrixset <- function(x)
   row_info <- set_meta("row", value, matrix_info, row_key, row_tag, FALSE)
   rwtr <- colnames(row_info)
 
-  x$row_info <- row_info
+  x$row_info <- tibble::as_tibble(row_info)
   attr(x, "row_traits") <- rwtr
 
   x
@@ -609,7 +609,7 @@ column_info.matrixset <- function(x)
   col_info <- set_meta("col", value, matrix_info, col_key, col_tag, FALSE)
   cltr <- colnames(col_info)
 
-  x$column_info <- col_info
+  x$column_info <- tibble::as_tibble( col_info)
   attr(x, "col_traits") <- cltr
 
   x

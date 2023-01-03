@@ -225,7 +225,7 @@ annotate_column.matrixset <- function(.ms, ...)
   }
 
   .ms$column_info <- col_info
-  attr(.ms, "row_traits") <- tr
+  attr(.ms, "col_traits") <- tr
 
   meta <- get_group_info(col_info, class(.ms), "col")
   attrs <- set_group_attrs(attributes(.ms), meta$attrs, "col")

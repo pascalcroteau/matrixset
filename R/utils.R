@@ -32,15 +32,24 @@ enclose <- function(str, pre = "<", end = ">") paste0(pre, str, end)
 
 
 #' @importFrom rlang .data
+# make_unique <- function(names)
+# {
+#   nm_df <- tibble::enframe(names, name = NULL)
+#   nm_df <- dplyr::mutate(dplyr::group_by(nm_df, .data$value), idx=dplyr::row_number())
+#   dplyr::mutate(nm_df,
+#                 n = dplyr::n(),
+#                 new_nm = ifelse(.data$n > 1,
+#                                 paste(.data$value, .data$idx, sep = dots_for_names),
+#                                 .data$value))[["new_nm"]]
+# }
+
+
 make_unique <- function(names)
 {
-  nm_df <- tibble::enframe(names, name = NULL)
-  nm_df <- dplyr::mutate(dplyr::group_by(nm_df, .data$value), idx=dplyr::row_number())
-  dplyr::mutate(nm_df,
-                n = dplyr::n(),
-                new_nm = ifelse(.data$n > 1,
-                                paste(.data$value, .data$idx, sep = dots_for_names),
-                                .data$value))[["new_nm"]]
+  id <- unique_id(names, length(names))
+  nms <- paste(names, id, sep = dots_for_names)
+  if (any(no_chg <- id == 0L)) nms[no_chg] <- names[no_chg]
+  nms
 }
 
 
@@ -52,12 +61,14 @@ rep_unique <- function(name, n)
 
 
 
-make_names <- function(obj, .name)
+make_names <- function(obj, .name, null_is_null = FALSE)
 {
   nms <- names(obj)
   n <- length(obj)
 
-  if (is.null(nms)) return (rep_unique(.name, n))
+  if (is.null(nms)) {
+    if (null_is_null) return (NULL) else return (rep_unique(.name, n))
+  }
 
   nms_empty <- nms == ""
   if (any(nms_empty))
@@ -84,5 +95,22 @@ concat <- function(x, y, sep = " ")
   pst <- paste(x, y, sep = sep)
   gsub(" $", "", pst)
 }
+
+
+
+is_vec <- function(x) {
+  is.vector(x) && !is.list(x)
+}
+
+
+
+list_row <- function(v)
+{
+  l <- lapply(v, function(x) if (is_vec(x)) x else list(x))
+  names(l) <- names(v)
+  l
+}
+
+
 
 

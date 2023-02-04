@@ -1,14 +1,4 @@
 
-context_frame <- new.env(parent = emptyenv())
-context_add <- function(env) context_frame[["mask"]] <- env
-context_del <- function() rm(list="mask", pos = context_frame)
-context_env <- function(fun) {
-  e <- context_frame[["mask"]]
-  if (is.null(e)) stop(paste(encodeString(fun, quote = "`"), "can only be used within"))
-  e
-}
-
-
 
 #' Contexts dependent functions
 #'
@@ -45,11 +35,22 @@ context_env <- function(fun) {
 NULL
 
 
+
+
+context_enclos <- function(fn, env)
+{
+  FN <- env[[fn]]
+  if (is.null(FN)) stop(paste(encodeString(fn, quote = "`"), "can only be used within matrixset"),
+                        call. = FALSE)
+  FN
+}
+
+
 #' @rdname context
 #' @export
 current_row_info <- function()
 {
-  context_env("current_row_info()")$enclos$current_row_info()
+  context_enclos("current_row_info()", emptyenv())
 }
 
 
@@ -57,7 +58,7 @@ current_row_info <- function()
 #' @export
 current_column_info <- function()
 {
-  context_env("current_column_info()")$enclos$current_column_info()
+  context_enclos("current_column_info()", emptyenv())
 }
 
 
@@ -65,7 +66,7 @@ current_column_info <- function()
 #' @export
 current_n_row <- function()
 {
-  context_env("current_n_row()")$enclos$current_n_row()
+  context_enclos("current_n_row()", emptyenv())
 }
 
 
@@ -73,7 +74,7 @@ current_n_row <- function()
 #' @export
 current_n_column <- function()
 {
-  context_env("current_n_column()")$enclos$current_n_col()
+  context_enclos("current_n_column()", emptyenv())
 }
 
 
@@ -81,7 +82,7 @@ current_n_column <- function()
 #' @export
 row_pos <- function()
 {
-  context_env("row_pos()")$enclos$row_pos()
+  context_enclos("row_pos()", emptyenv())
 }
 
 
@@ -89,7 +90,7 @@ row_pos <- function()
 #' @export
 row_rel_pos <- function()
 {
-  context_env("row_rel_pos()")$enclos$row_rel_pos()
+  context_enclos("row_rel_pos()", emptyenv())
 }
 
 
@@ -97,7 +98,7 @@ row_rel_pos <- function()
 #' @export
 column_pos <- function()
 {
-  context_env("column_pos()")$enclos$col_pos()
+  context_enclos("column_pos()", emptyenv())
 }
 
 
@@ -105,6 +106,5 @@ column_pos <- function()
 #' @export
 column_rel_pos <- function()
 {
-  context_env("column_rel_pos()")$enclos$col_rel_pos()
+  context_enclos("column_rel_pos()", emptyenv())
 }
-

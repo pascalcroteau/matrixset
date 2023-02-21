@@ -39,6 +39,17 @@ This latter feature makes `matrixset` especially attractive even if it stores
 only a single matrix, because several methods have been developped to manipulate
 `matrixset`s, accounting for annotations.
 
+## Why a matrixset?
+
+Many problems that `matrixset` can tackle could be solved via a `data.frame` and
+more specifically using the `tidyverse` suite.
+
+Two reasons for which you may want to use a `matrixset` instead are:
+
+ * object size. The `data.frame` needed to store the same information as a
+   `matrixset` can be significantly bigger
+ * You actually need a matrix format, for example for running a PCA.
+
 ## How to create a matrixset?
 
 To illustrate how to build a `matrixset`, we will use the animal dataset from

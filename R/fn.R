@@ -558,7 +558,7 @@ eval_fun_mult <- function(margin, ms, ..., matidx, row_first, list_input,
 #' The `apply_row`/`apply_column` functions do the same but separately for the
 #' row/column. The functions can be applied to all matrices or only a subset.
 #'
-#' The `dfl`/`dfw` versions differ in their output format and when possibe,
+#' The `dfl`/`dfw` versions differ in their output format and when possible,
 #' always return a [tibble()].
 #'
 #' Empty matrices are simply left unevaluated. How that impacts the returned

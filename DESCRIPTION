@@ -23,6 +23,7 @@ Imports:
     rlang,
     stringr,
     tibble,
+    tidyr,
     tidyselect,
     vctrs
 License: MIT + file LICENSE
@@ -33,9 +34,9 @@ RoxygenNote: 7.2.1
 Suggests: 
     MASS,
     knitr,
+    magrittr,
     rmarkdown,
     testthat (>= 3.0.0),
-    tidyr,
     tidyverse
 Config/testthat/edition: 3
 Depends: 

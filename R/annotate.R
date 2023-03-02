@@ -136,14 +136,18 @@ remove_column_annotation.matrixset <- function(.ms, ...)
 #' @returns
 #' A `matrixset` with updated meta info.
 #'
+#' @seealso
+#' [annotate_row_from_matrix()]/[annotate_column_from_matrix()], a version that
+#' allows access to the `matrixset` matrices.
+#'
 #' @examples
 #' # You can create annotation from scrath or using already existing annotation
 #' ms <- annotate_row(student_results,
 #'                    dummy = 1,
 #'                    passed = ifelse(previous_year_score >= 0.6, TRUE, FALSE))
 #'
-#' # There is no direct access to matrix content, but here is an example on how
-#' # it can be done
+#' # There is a direct access to matrix content with annotate_row_from_matrix(),
+#' # but here is an example on how it can be done with annotate_row()
 #' ms <- annotate_row(student_results,
 #'                    mn_fail = apply_matrix_dfl(student_results, mn=~ rowMeans(.m1),
 #'                                               .matrix_wise = FALSE)$mn)
@@ -239,4 +243,198 @@ annotate_column.matrixset <- function(.ms, ...)
 
 
 
+
+
+#' Apply functions to a single matrix of a matrixset and store results as annotation
+#'
+#' @description
+#' This is in essence [apply_row_dfw()]/[apply_column_dfw()], but with the
+#' results saved as new annotations. As such, the usage is almost identical to
+#' these functions, except that only a single matrix can be used, and must be
+#' specified (matrix specification differs also slightly).
+#'
+#' @details
+#' A conscious choice was made to provide this functionality only for
+#' `apply_*_dfw()`, as this is the only version for which the output dimension
+#' is guaranteed to respect the `matrixset` paradigm.
+#'
+#' On that note, see the section 'Grouped `matrixset`'.
+#'
+#' @section Grouped `matrixset`:
+#' In the context of grouping, the `apply_*_dfw()` functions stack the results
+#' for each group value.
+#'
+#' In the case of `annotate_*_from_matrix()`, a [tidyr::pivot_wider()] is
+#' further applied to ensure compatibility of the dimension.
+#'
+#' The `pivot_wider()` arguments `names_prefix`, `names_sep`, `names_glue`,
+#' `names_sort`, `names_vary ` and `names_expand` can help you control the final
+#' annotation trait names.
+#'
+#' @param .ms    `matrixset` object
+#' @param .matrix   a tidyselect matrix name: matrix name as a bare name or a
+#'                  character.
+#' @param ...    expressions, separated by commas. They can be specified in one of
+#'     the following way:
+#'
+#'    * a function name, e.g., `mean`.
+#'    * a function call, where you can use `.m` to represent the current matrix
+#'       (for `apply_matrix`), `.i` to represent the current row (for `apply_row`)
+#'       and `.j` for the current column (`apply_column`). Bare names of object
+#'       traits can be used as well. For instance, `lm(.i ~ program)`.
+#'
+#'       The pronouns are also available for the multivariate version, under
+#'       certain circumstances, but they have a different meaning. See the
+#'       "Multivariate" section for more details.
+#'    * a formula expression. The pronouns `.m`, `.i` and `.j` can be used as
+#'       well. See examples to see the usefulness of this.
+#'
+#'    The expressions can be named; these names will be used to provide names to
+#'    the results.
+#' @param names_prefix,names_sep,names_glue,names_sort,names_vary,names_expand    See
+#'   the same arguments of [tidyr::pivot_wider()]
+#'
+#' @returns
+#' A `matrixset` with updated meta info.
+#'
+#' @seealso
+#' [annotate_row()]/[annotate_column()].
+#'
+#' @examples
+#' # This is the same example as in annotate_row(), but with the "proper" way
+#' # of doing it
+#' ms <- annotate_row_from_matrix(student_results, "failure", mn = mean)
+#'
+#' @name annotate_from_matrix
+
+
+
+
+
+#' @rdname annotate_from_matrix
+#' @export
+annotate_row_from_matrix <- function(.ms, .matrix, ...,  names_prefix = "",
+                                     names_sep = "_", names_glue = NULL,
+                                     names_sort = FALSE, names_vary = "fastest",
+                                     names_expand = FALSE)
+{
+  cl <- sys.call()
+  cash_status$set(cl)
+  on.exit(cash_status$clear(cl))
+
+  assess_tidyable(.ms)
+
+  matnms <- matrixnames(.ms)
+  .matrix <- names(tidyselect::eval_select(rlang::enquo(.matrix),
+                                           setNames(matnms, matnms)))
+
+  anns <- apply_row_dfw(.ms = .ms, ..., .matrix = .matrix, .matrix_wise = TRUE,
+                        .input_list = FALSE)[[.matrix]]
+
+  row_tag <- .rowtag(.ms)
+  row_info <- .ms$row_info
+
+  gr_vars <- column_group_vars(.ms)
+  if (!is.null(gr_vars)) {
+    nms <- colnames(anns)
+    drop_cols <- c(row_tag, gr_vars)
+    nms <- nms[-which(nms %in% drop_cols)]
+    anns <- tidyr::pivot_wider(anns,
+                               names_from = tidyselect::all_of(gr_vars),
+                               values_from = tidyselect::all_of(nms),
+                               names_prefix = names_prefix,
+                               names_sep = names_sep,
+                               names_glue = names_glue,
+                               names_sort = names_sort,
+                               names_vary = names_vary,
+                               names_expand = names_expand)
+  }
+
+
+  row_info <- dplyr::left_join(row_info, anns, by = row_tag)
+  tr <- colnames(row_info)
+
+  n <- nrow(.ms)
+  if ((ni <- nrow(row_info)) != n) {
+    stop(paste("the number of rows is modified by the annotation,",
+               "which is against the 'matrixset' paradigm."))
+  }
+
+  .ms$row_info <- row_info
+  attr(.ms, "row_traits") <- tr
+
+  meta <- get_group_info(row_info, class(.ms), "row")
+  attrs <- set_group_attrs(attributes(.ms), meta$attrs, "row")
+  attributes(.ms) <- attrs
+  class(.ms) <- meta$class
+  if (is.null(meta$attrs$group_vars)) class(.ms) <- "matrixset"
+
+
+  .ms
+}
+
+
+
+
+#' @rdname annotate_from_matrix
+#' @export
+annotate_column_from_matrix <- function(.ms, .matrix, ..., names_prefix = "",
+                                        names_sep = "_", names_glue = NULL,
+                                        names_sort = FALSE,
+                                        names_vary = "fastest",
+                                        names_expand = FALSE)
+{
+  cl <- sys.call()
+  cash_status$set(cl)
+  on.exit(cash_status$clear(cl))
+
+  assess_tidyable(.ms)
+
+  matnms <- matrixnames(.ms)
+  .matrix <- names(tidyselect::eval_select(rlang::enquo(.matrix),
+                                           setNames(matnms, matnms)))
+
+  anns <- apply_column_dfw(.ms = .ms, ..., .matrix = .matrix, .matrix_wise = TRUE,
+                        .input_list = FALSE)[[.matrix]]
+
+  col_tag <- .coltag(.ms)
+  col_info <- .ms$column_info
+
+  gr_vars <- row_group_vars(.ms)
+  if (!is.null(gr_vars)) {
+    nms <- colnames(anns)
+    drop_cols <- c(col_tag, gr_vars)
+    nms <- nms[-which(nms %in% drop_cols)]
+    anns <- tidyr::pivot_wider(anns,
+                               names_from = tidyselect::all_of(gr_vars),
+                               values_from = tidyselect::all_of(nms),
+                               names_prefix = names_prefix,
+                               names_sep = names_sep,
+                               names_glue = names_glue,
+                               names_sort = names_sort,
+                               names_vary = names_vary,
+                               names_expand = names_expand)
+  }
+
+  col_info <- dplyr::left_join(col_info, anns, by = col_tag)
+  tr <- colnames(col_info)
+
+  n <- ncol(.ms)
+  if ((ni <- nrow(col_info)) != n) {
+    stop(paste("the number of columns is modified by the annotation,",
+               "which is against the 'matrixset' paradigm."))
+  }
+
+  .ms$column_info <- col_info
+  attr(.ms, "col_traits") <- tr
+
+  meta <- get_group_info(col_info, class(.ms), "col")
+  attrs <- set_group_attrs(attributes(.ms), meta$attrs, "col")
+  attributes(.ms) <- attrs
+  class(.ms) <- meta$class
+  if (is.null(meta$attrs$group_vars)) class(.ms) <- "matrixset"
+
+
+  .ms
+}
 

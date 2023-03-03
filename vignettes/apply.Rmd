@@ -304,6 +304,20 @@ a trait of a `matrixset` object.
 You can make it explicit which version of the variable you are using the pronouns
 `.data` (the trait annotation version) and `.env`.
 
+## Quasi quotation
+
+```{r}
+reg_expr <- expr({
+    is_alive <- !is_extinct
+    list(lm(.j ~ is_alive + class))
+})
+
+animals_ms %>% 
+    apply_column_dfl(mean(.j, trim=.1),
+                     MAD=mad,
+                     reg = ~ !!reg_expr)
+```
+
 ## Multivariate
 
 # mutate_matrix

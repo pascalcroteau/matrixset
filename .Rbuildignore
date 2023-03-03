@@ -3,4 +3,7 @@
 ^LICENSE\.md$
 ^README\.md$
 ^data-raw$
+^vignettes/case-study.Rmd$
 
+^README\.Rmd$
+^\.github$

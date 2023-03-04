@@ -17,6 +17,7 @@ knitr::opts_chunk$set(
 
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/pascalcroteau/matrixset/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/pascalcroteau/matrixset/actions/workflows/R-CMD-check.yaml)
+[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 <!-- badges: end -->
 
 A `matrixset` a container of matrices, each having the same number of rows and
@@ -59,25 +60,46 @@ devtools::install_github("pascalcroteau/matrixset")
 
 ## Example
 
-This is a basic example which shows you how to solve a common problem:
+In addition to store multiple matrices that share the same attributes, a 
+`matrixset` object's strength is it's annotation feature. You create an object
+from existing matrices and annotation `data.frame`.
 
-```{r example}
+```{r, message=FALSE}
+library(MASS)
+library(tidyverse)
+animals <- as.matrix(Animals)
+head(animals)
+
+
+animal_info <- MASS::Animals %>% 
+  rownames_to_column("Animal") %>% 
+  mutate(is_extinct = case_when(Animal %in% c("Dipliodocus", "Triceratops", "Brachiosaurus") ~ TRUE,
+                                TRUE ~ FALSE),
+         class = case_when(Animal %in% c("Mountain beaver", "Guinea pig", "Golden hamster", "Mouse", "Rabbit", "Rat") ~ "Rodent",
+                           Animal %in% c("Potar monkey", "Gorilla", "Human", "Rhesus monkey", "Chimpanzee") ~ "Primate",
+                           Animal %in% c("Cow", "Goat", "Giraffe", "Sheep") ~ "Ruminant",
+                           Animal %in% c("Asian elephant", "African elephant") ~ "Elephantidae",
+                           Animal %in% c("Grey wolf") ~ "Canine",
+                           Animal %in% c("Cat", "Jaguar") ~ "Feline",
+                           Animal %in% c("Donkey", "Horse") ~ "Equidae",
+                           Animal == "Pig" ~ "Sus",
+                           Animal == "Mole" ~ "Talpidae",
+                           Animal == "Kangaroo" ~ "Macropodidae",
+                           TRUE ~ "Dinosaurs")) %>% 
+  select(-body, -brain)
+animal_info
+```
+
+You can create the object and then do some operations.
+```{r}
 library(matrixset)
-## basic example code
+animals_ms <- matrixset(msr = animals, row_info = animal_info, row_key = "Animal")
+animals_ms %>% 
+    apply_row_dfl(rg = range(.i),
+                  qt = quantile(.i, probs = c(.25, .75)))   
+
+
+animals_ms %>% 
+    row_group_by(class) %>% 
+    apply_column_dfl(avr = mean)
 ```
-
-What is special about using `README.Rmd` instead of just `README.md`? You can include R chunks like so:
-
-```{r cars}
-summary(cars)
-```
-
-You'll still need to render `README.Rmd` regularly, to keep `README.md` up-to-date. `devtools::build_readme()` is handy for this. You could also use GitHub Actions to re-render `README.Rmd` every time you push. An example workflow can be found here: <https://github.com/r-lib/actions/tree/v1/examples>.
-
-You can also embed plots, for example:
-
-```{r pressure, echo = FALSE}
-plot(pressure)
-```
-
-In that case, don't forget to commit and push the resulting figure files, so they display on GitHub and CRAN.

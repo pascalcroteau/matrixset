@@ -27,6 +27,8 @@ Imports:
     tidyselect,
     vctrs
 License: MIT + file LICENSE
+URL: https://github.com/pascalcroteau/matrixset
+BugReports: https://github.com/pascalcroteau/matrixset/issues
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)

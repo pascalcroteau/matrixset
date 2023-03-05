@@ -137,7 +137,7 @@ remove_column_annotation.matrixset <- function(.ms, ...)
 #' A `matrixset` with updated meta info.
 #'
 #' @seealso
-#' [annotate_row_from_matrix()]/[annotate_column_from_matrix()], a version that
+#' [annotate_row_from_apply()]/[annotate_column_from_apply()], a version that
 #' allows access to the `matrixset` matrices.
 #'
 #' @examples
@@ -146,7 +146,7 @@ remove_column_annotation.matrixset <- function(.ms, ...)
 #'                    dummy = 1,
 #'                    passed = ifelse(previous_year_score >= 0.6, TRUE, FALSE))
 #'
-#' # There is a direct access to matrix content with annotate_row_from_matrix(),
+#' # There is a direct access to matrix content with annotate_row_from_apply(),
 #' # but here is an example on how it can be done with annotate_row()
 #' ms <- annotate_row(student_results,
 #'                    mn_fail = apply_matrix_dfl(student_results, mn=~ rowMeans(.m1),
@@ -303,7 +303,7 @@ annotate_column.matrixset <- function(.ms, ...)
 #' @examples
 #' # This is the same example as in annotate_row(), but with the "proper" way
 #' # of doing it
-#' ms <- annotate_row_from_matrix(student_results, "failure", mn = mean)
+#' ms <- annotate_row_from_apply(student_results, "failure", mn = mean)
 #'
 #' @name annotate_from_matrix
 
@@ -313,7 +313,7 @@ annotate_column.matrixset <- function(.ms, ...)
 
 #' @rdname annotate_from_matrix
 #' @export
-annotate_row_from_matrix <- function(.ms, .matrix, ...,  names_prefix = "",
+annotate_row_from_apply <- function(.ms, .matrix, ...,  names_prefix = "",
                                      names_sep = "_", names_glue = NULL,
                                      names_sort = FALSE, names_vary = "fastest",
                                      names_expand = FALSE)
@@ -378,7 +378,7 @@ annotate_row_from_matrix <- function(.ms, .matrix, ...,  names_prefix = "",
 
 #' @rdname annotate_from_matrix
 #' @export
-annotate_column_from_matrix <- function(.ms, .matrix, ..., names_prefix = "",
+annotate_column_from_apply <- function(.ms, .matrix, ..., names_prefix = "",
                                         names_sep = "_", names_glue = NULL,
                                         names_sort = FALSE,
                                         names_vary = "fastest",

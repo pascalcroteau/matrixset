@@ -40,7 +40,7 @@ ms <- annotate_row(student_results,
                    dummy = 1,
                    passed = ifelse(previous_year_score >= 0.6, TRUE, FALSE))
 
-# There is a direct access to matrix content with annotate_row_from_matrix(),
+# There is a direct access to matrix content with annotate_row_from_apply(),
 # but here is an example on how it can be done with annotate_row()
 ms <- annotate_row(student_results,
                    mn_fail = apply_matrix_dfl(student_results, mn=~ rowMeans(.m1),
@@ -48,6 +48,6 @@ ms <- annotate_row(student_results,
 
 }
 \seealso{
-\code{\link[=annotate_row_from_matrix]{annotate_row_from_matrix()}}/\code{\link[=annotate_column_from_matrix]{annotate_column_from_matrix()}}, a version that
+\code{\link[=annotate_row_from_apply]{annotate_row_from_apply()}}/\code{\link[=annotate_column_from_apply]{annotate_column_from_apply()}}, a version that
 allows access to the \code{matrixset} matrices.
 }

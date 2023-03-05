@@ -197,8 +197,8 @@ tag (typically, `.rowname` and `.colname`).
 animals_ms %>% annotate_column(.colname = NULL)
 ```
 
-There is one last method to provide annotation: `annotate_row_from_matrix()`/
-`annotate_column_from_matrix()`. With this method, a matrix operation (for 
+There is one last method to provide annotation: `annotate_row_from_apply()`/
+`annotate_column_from_apply()`. With this method, a matrix operation (for 
 instance, the row average) can be stored as an annotation.
 
 We strongly encourage you to have a look at the functions, and also 

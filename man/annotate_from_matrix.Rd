@@ -2,11 +2,11 @@
 % Please edit documentation in R/annotate.R
 \name{annotate_from_matrix}
 \alias{annotate_from_matrix}
-\alias{annotate_row_from_matrix}
-\alias{annotate_column_from_matrix}
+\alias{annotate_row_from_apply}
+\alias{annotate_column_from_apply}
 \title{Apply functions to a single matrix of a matrixset and store results as annotation}
 \usage{
-annotate_row_from_matrix(
+annotate_row_from_apply(
   .ms,
   .matrix,
   ...,
@@ -18,7 +18,7 @@ annotate_row_from_matrix(
   names_expand = FALSE
 )
 
-annotate_column_from_matrix(
+annotate_column_from_apply(
   .ms,
   .matrix,
   ...,
@@ -90,7 +90,7 @@ annotation trait names.
 \examples{
 # This is the same example as in annotate_row(), but with the "proper" way
 # of doing it
-ms <- annotate_row_from_matrix(student_results, "failure", mn = mean)
+ms <- annotate_row_from_apply(student_results, "failure", mn = mean)
 
 }
 \seealso{

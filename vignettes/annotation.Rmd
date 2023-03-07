@@ -1,0 +1,179 @@
+---
+title: "How to annotate a matrixset"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{How to annotate a matrixset}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup, echo=FALSE, message=FALSE}
+library(matrixset)
+```
+
+## Annotate at object creation
+
+We will use the same example as in the [introduction vignette ](introduction.html),
+the `Animals` object.
+
+```{r, message=FALSE}
+library(tidyverse)
+animals <- as.matrix(MASS::Animals)
+log_animals <- log(animals)
+animal_info <- MASS::Animals %>% 
+  rownames_to_column("Animal") %>% 
+  mutate(is_extinct = case_when(Animal %in% c("Dipliodocus", "Triceratops", "Brachiosaurus") ~ TRUE,
+                                TRUE ~ FALSE),
+         class = case_when(Animal %in% c("Mountain beaver", "Guinea pig", "Golden hamster", "Mouse", "Rabbit", "Rat") ~ "Rodent",
+                           Animal %in% c("Potar monkey", "Gorilla", "Human", "Rhesus monkey", "Chimpanzee") ~ "Primate",
+                           Animal %in% c("Cow", "Goat", "Giraffe", "Sheep") ~ "Ruminant",
+                           Animal %in% c("Asian elephant", "African elephant") ~ "Elephantidae",
+                           Animal %in% c("Grey wolf") ~ "Canine",
+                           Animal %in% c("Cat", "Jaguar") ~ "Feline",
+                           Animal %in% c("Donkey", "Horse") ~ "Equidae",
+                           Animal == "Pig" ~ "Sus",
+                           Animal == "Mole" ~ "Talpidae",
+                           Animal == "Kangaroo" ~ "Macropodidae",
+                           TRUE ~ "Dinosaurs")) %>% 
+  select(-body, -brain)
+```
+
+
+Annotations are internally stored as [tibble::tibble()] objects and can be 
+viewed as simple data bases. As such, a key is needed to uniquely identify
+the rows or the columns. This key is the rownames for row annotation and
+colnames for column annotation.
+
+This key is called the tag and, unless specified otherwise at the `matrixset`
+creation, is stored as `.rowname`/`.colname`. This special tag can almost be 
+used as any other annotation traits - see [Applying Functions](apply.html).
+
+When using an external `data.frame` to create new annotations, the data frame
+must contain this key - it doesn't have to be called `.rowname`/`.colname` - in
+a **single column**. 
+
+Moreover, the key values must correspond to rownames/colnames. Values that do
+not match will simply left out.
+
+To use the annotation at creation, simply use a command like this
+```{r}
+ms <- matrixset(msr = animals, log_msr = log_animals, row_info = animal_info,
+                row_key = "Animal")
+ms
+```
+
+Notice how we used the `row_key` argument to specify how to link the two objects
+together.
+
+## Replacing an annotation tibble
+
+The internal `tibble` can be replaced by a new one. This could be an interesting
+possibility to add annotations to an existing `matrixset` object where none were 
+registered.
+
+To do so, you can simply do
+```{r}
+row_info(ms) <- animal_info %>% rename(.rowname = Animal)
+```
+
+For the operation to work, a column called `.rowname` (or more generally, what
+is returned by `row_tag()`) must be part of the data frame.
+
+The column equivalents are `column_info` and `column_tag`.
+
+Annotation tibble replacement works even if annotations were registered. Be
+aware of two things:
+
+ * Old annotations will be lost, unless an exact copy is also in the new data
+   frame
+ * In the case of grouping, the grouping structure will potentially change. When
+   possible, it will be kept/updated, but it will be otherwise removed.
+
+
+## Appending data frame values to the annotation tibble
+
+This is equivalent to performing a mutating join (default: [dplyr::left_join()], 
+though all mutating joins - except cross-joins - are available via the `type`
+argument) between the `matrixset` (`.ms`) object's annotation `tibble` and a 
+`data.frame` (`.y`).
+
+The `by` argument will determine how to join the two `data.frame`s together, so
+it is not necessary for `y` to have a `.rowname`/`.colname` column. But when the
+`by` argument is not provided, a natural join is performed.
+
+One behavior that differs with a true mutating join, is that when a row from
+`.ms` matches more than one row in `.y`, no row duplication will be performed.
+Instead, a condition error will be issued. This is to preserve the `matrixset`
+property that all row names (and column names) must be unique.
+
+```{r, results='hide'}
+matrixset(msr = animals, log_msr = log_animals) %>% 
+    join_row_info(animal_info, by = c(".rowname" = "Animal"))
+```
+
+
+### The data frame can be taken from a second matrixset object
+
+Indeed! In using `join_row_info()`/`join_column_info()`, `.y` can be a 
+`matrixset` object, in which case the appropriate annotation `tibble` will be
+used.
+
+The only difference is when using the default `by = NULL` argument. In that case
+the row/column tag of each object is used.
+
+
+
+## Creating new annotations from existing ones (and modify/delete)
+
+If you are familiar with `dplyr::mutate()`, then you know almost everything you 
+need to know about using `annotate_row()` and `annotate_column()`.
+
+```{r}
+ms <- matrixset(msr = animals, log_msr = log_animals) %>% 
+    join_row_info(animal_info, by = c(".rowname" = "Animal")) %>% 
+    annotate_column(unit = case_when(.colname == "body" ~ "kg",
+                                     TRUE ~ "g")) %>% 
+    annotate_column(us_unit = case_when(unit == "kg" ~ "lb",
+                                        TRUE ~ "oz"))
+column_info(ms)
+```
+
+You can decide that you don't need two unit systems and keep only one
+```{r}
+ms <- ms %>% annotate_column(us_unit = NULL)
+column_info(ms)
+```
+
+## Creating new annotations from applying function(s) to an object's matrix
+
+
+Applying functions to a `matrixset`'s matrices is covered in the 
+[Applying Functions](apply.html) vignette.
+
+The idea here is the same, but with the added benefit that the function result
+is stored directly as annotation for the `matrixset` object.
+
+
+```{r}
+ms %>% 
+    annotate_row_from_apply(msr, ratio_brain_body = ~ .i[2]/(10*.i[1])) %>% 
+    row_info()
+```
+
+When groups are registered, results are spread using `tidyr::pivot_wider()`.
+
+```{r}
+ms %>% 
+    row_group_by(class) %>% 
+    annotate_column_from_apply(msr, mean) %>% 
+    column_info()
+```
+
+

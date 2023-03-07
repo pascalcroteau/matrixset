@@ -164,7 +164,7 @@ sub_matrix <- function(m, margin, old_names, all_names, compl_names)
   if ((d[1] == 0L && margin == "row") || (d[2] == 0L && margin == "col")) return(m)
 
   pos <- match(all_names, old_names, 0)
-  if (margin == "row") m[pos, ] else m[, pos]
+  if (margin == "row") m[pos, , drop = FALSE] else m[, pos, drop = FALSE]
 
 }
 

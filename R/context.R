@@ -20,8 +20,12 @@
 #'
 #'     They are the context equivalent of [nrow()] and [ncol()].
 #'
+#' * `current_row_name()` and `current_column_name()`. They provide the current
+#'     row/column name. They are the context equivalent of [rownames()] and
+#'     [colnames()].
+#'
 #' * `current_row_info()` and `current_column_info()`. They give access to the
-#'     current row/column annotation data frame. The are the context equivlent
+#'     current row/column annotation data frame. The are the context equivalent
 #'     of [row_info()] and [column_info()].
 #'
 #' * `row_pos()` and `column_pos()`. They give the current row/column indices.
@@ -80,6 +84,14 @@ current_n_column <- function()
 
 #' @rdname context
 #' @export
+current_row_name <- function()
+{
+  context_enclos("current_row_name()", emptyenv())
+}
+
+
+#' @rdname context
+#' @export
 row_pos <- function()
 {
   context_enclos("row_pos()", emptyenv())
@@ -91,6 +103,14 @@ row_pos <- function()
 row_rel_pos <- function()
 {
   context_enclos("row_rel_pos()", emptyenv())
+}
+
+
+#' @rdname context
+#' @export
+current_column_name <- function()
+{
+  context_enclos("current_column_name()", emptyenv())
 }
 
 

@@ -61,6 +61,10 @@ eval_fun_workhorse <- function(margin, ms, ..., matidx, row_first, list_input,
   } else NULL
 
 
+  rnms <- rownames(ms)
+  cnms <- colnames(ms)
+
+
   if (margin == "row") {
     gr_idx_row <- as.list(seq_len(nrow(ms)))
     gr_idx_col <- column_group_where(ms)
@@ -136,18 +140,20 @@ eval_fun_workhorse <- function(margin, ms, ..., matidx, row_first, list_input,
   seq2 <- if (row_first) seq(ngroup_col) else seq(ngroup_row)
   n1 <- length(seq1)
   n2 <- length(seq2)
+  asgr1 <- if (row_first) grouped_row || margin == "row" else grouped_col || margin == "col"
+  asgr2 <- if (row_first) grouped_col || margin == "col" else grouped_row || margin == "row"
   gr_lbl1 <- if (row_first) gr_lbl_row else gr_lbl_col
   gr_lbl2 <- if (row_first) gr_lbl_col else gr_lbl_row
 
 
-  if (n1 > 1) {
+  if (n1 > 1 || asgr1) {
     tmp <- vector("list", n1)
     names(tmp) <- gr_lbl1
   }
-  if (n2 > 1) tmp2 <- vector("list", n2)
+  if (n2 > 1 || asgr2) tmp2 <- vector("list", n2)
 
-  if (n1 > 1) {
-    if (n2 > 1) {
+  if (n1 > 1 || asgr1) {
+    if (n2 > 1 || asgr2) {
       for (i in seq_len(n1)) {
         tmp[[i]] <- tmp2
         names(tmp[[i]]) <- gr_lbl2
@@ -156,7 +162,7 @@ eval_fun_workhorse <- function(margin, ms, ..., matidx, row_first, list_input,
 
   } else {
 
-    if (n2 > 1) {
+    if (n2 > 1 || asgr2) {
       tmp <- tmp2
       names(tmp) <- gr_lbl2
     }
@@ -165,13 +171,13 @@ eval_fun_workhorse <- function(margin, ms, ..., matidx, row_first, list_input,
 
 
   if (is.logical(list_input)) {
-    if (n1 > 1 || n2 > 1) v <- tmp
+    if (n1 > 1 || n2 > 1 || asgr1 || asgr2) v <- tmp
   } else {
 
     v <- vector("list", nmat)
     names(v) <- matnms
 
-    if (n1 > 1 || n2 > 1) {
+    if (n1 > 1 || n2 > 1 || asgr1 || asgr2) {
       for (k in 1:nmat) v[[k]] <- tmp
     }
   }
@@ -203,12 +209,20 @@ eval_fun_workhorse <- function(margin, ms, ..., matidx, row_first, list_input,
     nrow(funs$.__column_info)
   }
 
+  funs[["current_row_name"]] <- function() {
+    funs$.__row_name
+  }
+
   funs[["row_pos"]] <- function() {
     funs$.__row_idx
   }
 
   funs[["row_rel_pos"]] <- function() {
     seq_len(nrow(funs$.__row_info))
+  }
+
+  funs[["current_column_name"]] <- function() {
+    funs$.__column_name
   }
 
   funs[["column_pos"]] <- function() {
@@ -224,6 +238,8 @@ eval_fun_workhorse <- function(margin, ms, ..., matidx, row_first, list_input,
   context_enclos("current_column_info", funs)
   context_enclos("current_n_row", funs)
   context_enclos("current_n_column", funs)
+  context_enclos("current_row_name", funs)
+  context_enclos("current_column_name", funs)
   context_enclos("row_pos", funs)
   context_enclos("row_rel_pos", funs)
   context_enclos("column_pos", funs)
@@ -237,26 +253,30 @@ eval_fun_workhorse <- function(margin, ms, ..., matidx, row_first, list_input,
     if (row_first) {
       idx1 <- gr_idx_row[[gr1]]
 
-      if (n1 > 1) {
+      if (n1 > 1 || asgr1) {
         top <- list2env(ms$row_info[idx1, , drop = FALSE], top)
         funs[[".__row_info"]] <- ms$row_info[idx1, , drop = FALSE]
         funs[[".__row_idx"]] <- idx1
+        funs[[".__row_name"]] <- rnms[idx1]
       } else {
         top <- list2env(ms$row_info, top)
         funs[[".__row_info"]] <- ms$row_info
         funs[[".__row_idx"]] <- seq_len(nrow(funs[[".__row_info"]]))
+        funs[[".__row_name"]] <- rnms
       }
     } else {
       idx1 <- gr_idx_col[[gr1]]
 
-      if (n1 > 1) {
+      if (n1 > 1 || asgr1) {
         top <- list2env(ms$column_info[idx1, , drop = FALSE], top)
         funs[[".__column_info"]] <- ms$column_info[idx1, , drop = FALSE]
         funs[[".__col_idx"]] <- idx1
+        funs[[".__column_name"]] <- cnms[idx1]
       } else {
         top <- list2env(ms$column_info, top)
         funs[[".__column_info"]] <- ms$column_info
         funs[[".__col_idx"]] <- seq_len(nrow(funs[[".__column_info"]]))
+        funs[[".__column_name"]] <- cnms
       }
     }
 
@@ -265,26 +285,30 @@ eval_fun_workhorse <- function(margin, ms, ..., matidx, row_first, list_input,
       if (row_first) {
         idx2 <- gr_idx_col[[gr2]]
 
-        if (n2 > 1) {
+        if (n2 > 1 || asgr2) {
           top <- list2env(ms$column_info[idx2, , drop = FALSE], top)
           funs[[".__column_info"]] <- ms$column_info[idx2, , drop = FALSE]
           funs[[".__col_idx"]] <- idx2
+          funs[[".__column_name"]] <- cnms[idx2]
         } else {
           top <- list2env(ms$column_info, top)
           funs[[".__column_info"]] <- ms$column_info
           funs[[".__col_idx"]] <- seq_len(nrow(funs[[".__column_info"]]))
+          funs[[".__column_name"]] <- cnms
         }
       } else {
         idx2 <- gr_idx_row[[gr2]]
 
-        if (n2 > 1) {
+        if (n2 > 1 || asgr2) {
           top <- list2env(ms$row_info[idx2, , drop = FALSE], top)
           funs[[".__row_info"]] <- ms$row_info[idx2, , drop = FALSE]
           funs[[".__row_idx"]] <- idx2
+          funs[[".__row_name"]] <- rnms[idx2]
         } else {
           top <- list2env(ms$row_info, top)
           funs[[".__row_info"]] <- ms$row_info
           funs[[".__row_idx"]] <- seq_len(nrow(funs[[".__row_info"]]))
+          funs[[".__row_name"]] <- rnms
         }
       }
 
@@ -311,28 +335,28 @@ eval_fun_workhorse <- function(margin, ms, ..., matidx, row_first, list_input,
         } else {
 
           mat <- if (row_first) {
-            if (n1 > 1) {
-              if (n2 > 1) {
+            if (n1 > 1 || asgr1) {
+              if (n2 > 1 || asgr2) {
                 subset_ij(ms$matrix_set[[matidx[k]]], gr_idx_row[[gr1]], gr_idx_col[[gr2]])
               } else {
                 ms$matrix_set[[matidx[k]]][gr_idx_row[[gr1]], , drop = dropit]
               }
             } else {
-              if (n2 > 1) {
+              if (n2 > 1 || asgr2) {
                 ms$matrix_set[[matidx[k]]][, gr_idx_col[[gr2]], drop = dropit]
               } else {
                 ms$matrix_set[[matidx[k]]]
               }
             }
           } else {
-            if (n1 > 1) {
-              if (n2 > 1) {
+            if (n1 > 1 || asgr1) {
+              if (n2 > 1 || asgr2) {
                 subset_ij(ms$matrix_set[[matidx[k]]], gr_idx_row[[gr2]], gr_idx_col[[gr1]])
               } else {
                 ms$matrix_set[[matidx[k]]][gr_idx_row[[gr1]], , drop = dropit]
               }
             } else {
-              if (n2 > 1) {
+              if (n2 > 1 || asgr2) {
                 ms$matrix_set[[matidx[k]]][, gr_idx_col[[gr2]], drop = dropit]
               } else {
                 ms$matrix_set[[matidx[k]]]
@@ -401,28 +425,28 @@ eval_fun_workhorse <- function(margin, ms, ..., matidx, row_first, list_input,
           }
 
           if (row_first) {
-            if (n1 > 1) {
-              if (n2 > 1) {
+            if (n1 > 1 || asgr1) {
+              if (n2 > 1 || asgr2) {
                 v[[k]][[gr1]][[gr2]] <- val
               } else {
                 v[[k]][[gr1]] <- val
               }
             } else {
-              if (n2 > 1) {
+              if (n2 > 1 || asgr2) {
                 v[[k]][[gr2]] <- val
               } else {
                 v[[k]] <- val
               }
             }
           } else {
-            if (n1 > 1) {
-              if (n2 > 1) {
+            if (n1 > 1 || asgr1) {
+              if (n2 > 1 || asgr2) {
                 v[[k]][[gr1]][[gr2]] <- val
               } else {
                 v[[k]][[gr1]] <- val
               }
             } else {
-              if (n2 > 1) {
+              if (n2 > 1 || asgr2) {
                 v[[k]][[gr2]] <- val
               } else {
                 v[[k]]<- val
@@ -488,28 +512,28 @@ eval_fun_workhorse <- function(margin, ms, ..., matidx, row_first, list_input,
 
 
         if (row_first) {
-          if (n1 > 1) {
-            if (n2 > 1) {
+          if (n1 > 1 || asgr1) {
+            if (n2 > 1 || asgr2) {
               v[[gr1]][[gr2]] <- val
             } else {
               v[[gr1]] <- val
             }
           } else {
-            if (n2 > 1) {
+            if (n2 > 1 || asgr2) {
               v[[gr2]] <- val
             } else {
               v <- val
             }
           }
         } else {
-          if (n1 > 1) {
-            if (n2 > 1) {
+          if (n1 > 1 || asgr1) {
+            if (n2 > 1 || asgr2) {
               v[[gr1]][[gr2]] <- val
             } else {
               v[[gr1]] <- val
             }
           } else {
-            if (n2 > 1) {
+            if (n2 > 1 || asgr2) {
               v[[gr2]] <- val
             } else {
               v <- val

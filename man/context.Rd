@@ -6,8 +6,10 @@
 \alias{current_column_info}
 \alias{current_n_row}
 \alias{current_n_column}
+\alias{current_row_name}
 \alias{row_pos}
 \alias{row_rel_pos}
+\alias{current_column_name}
 \alias{column_pos}
 \alias{column_rel_pos}
 \title{Contexts dependent functions}
@@ -20,9 +22,13 @@ current_n_row()
 
 current_n_column()
 
+current_row_name()
+
 row_pos()
 
 row_rel_pos()
+
+current_column_name()
 
 column_pos()
 
@@ -45,8 +51,11 @@ The context functions are:
 and columns, respectively, of the current matrix.
 
 They are the context equivalent of \code{\link[=nrow]{nrow()}} and \code{\link[=ncol]{ncol()}}.
+\item \code{current_row_name()} and \code{current_column_name()}. They provide the current
+row/column name. They are the context equivalent of \code{\link[=rownames]{rownames()}} and
+\code{\link[=colnames]{colnames()}}.
 \item \code{current_row_info()} and \code{current_column_info()}. They give access to the
-current row/column annotation data frame. The are the context equivlent
+current row/column annotation data frame. The are the context equivalent
 of \code{\link[=row_info]{row_info()}} and \code{\link[=column_info]{column_info()}}.
 \item \code{row_pos()} and \code{column_pos()}. They give the current row/column indices.
 The indices are the the ones before matrix subsetting.

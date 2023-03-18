@@ -341,10 +341,62 @@ test_that("matrixset general loop works", {
 
 
 
+  # 1-row/1 column
+  avr <- apply_column(student_results[,1,], avr = mean(.j))
+  avr_ref <- lapply(seq(nmatrix(student_results)),
+                   function(m) {
+                     M <- matrix_elm(student_results,m)
+                     apply(M[,1,drop=FALSE], 2, function(u) list(avr=mean(u)),simplify = FALSE)
+                   })
+  names(avr_ref) <- matrixnames(student_results)
+
+  expect_equal(avr, avr_ref)
 
 
 
 
+  avr <- apply_column(student_results[1,1,], avr = mean(.j))
+  avr_ref <- lapply(seq(nmatrix(student_results)),
+                    function(m) {
+                      M <- matrix_elm(student_results,m)
+                      apply(M[1,1,drop=FALSE], 2, function(u) list(avr=mean(u)),simplify = FALSE)
+                    })
+  names(avr_ref) <- matrixnames(student_results)
+
+  expect_equal(avr, avr_ref)
+
+
+
+
+  avr <- apply_row(student_results[1,,], avr = mean(.i))
+  avr_ref <- lapply(seq(nmatrix(student_results)),
+                    function(m) {
+                      M <- matrix_elm(student_results,m)
+                      apply(M[1,,drop=FALSE], 1, function(u) list(avr=mean(u)),simplify = FALSE)
+                    })
+  names(avr_ref) <- matrixnames(student_results)
+
+  expect_equal(avr, avr_ref)
+
+
+
+  avr <- apply_row(student_results[1,1,], avr = mean(.i))
+  avr_ref <- lapply(seq(nmatrix(student_results)),
+                    function(m) {
+                      M <- matrix_elm(student_results,m)
+                      apply(M[1,1,drop=FALSE], 1, function(u) list(avr=mean(u)),simplify = FALSE)
+                    })
+  names(avr_ref) <- matrixnames(student_results)
+
+  expect_equal(avr, avr_ref)
+
+
+
+
+
+
+  # grouuped
+  #
   grmn <- apply_row(column_group_by(student_results, program), mean)
   grs <- column_group_meta(column_group_by(student_results, program))
   mn_ref <- lapply(seq(nmatrix(student_results)),

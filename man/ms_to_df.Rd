@@ -59,6 +59,6 @@ annotation is included if requested.
 ms_to_df(student_results)
 
 # includes only row annotation
-ms_to_df(student_results, add_column_annotation = FALSE)
+ms_to_df(student_results, add_column_info = FALSE)
 
 }

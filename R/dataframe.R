@@ -44,7 +44,7 @@
 #' ms_to_df(student_results)
 #'
 #' # includes only row annotation
-#' ms_to_df(student_results, add_column_annotation = FALSE)
+#' ms_to_df(student_results, add_column_info = FALSE)
 #'
 #' @export
 ms_to_df <- function(.ms, add_row_info = TRUE, add_column_info = TRUE,

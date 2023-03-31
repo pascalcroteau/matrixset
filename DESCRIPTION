@@ -32,11 +32,14 @@ BugReports: https://github.com/pascalcroteau/matrixset/issues
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.1
+RoxygenNote: 7.2.3
 Suggests: 
     MASS,
     knitr,
+    lme4,
     magrittr,
+    patchwork,
+    PCAtools,
     rmarkdown,
     testthat (>= 3.0.0),
     tidyverse

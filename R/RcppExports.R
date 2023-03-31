@@ -2,6 +2,6 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 unique_id <- function(x, n) {
-    .Call('_matrixset_unique_id', PACKAGE = 'matrixset', x, n)
+    .Call(`_matrixset_unique_id`, x, n)
 }
 

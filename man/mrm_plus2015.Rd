@@ -18,9 +18,9 @@ The column names, analytes, are a combination of peptide sequence and
 fragment ion. Rownames are the replicate names.
 }
 \source{
-Aiyetan, P., Thomas, S.N., Zhang, Z. et al. MRMPlus: an open source
-quality control and assessment tool for SRM/MRM assay development.
-BMC Bioinformatics 16, 411 (2015).
+Aiyetan P, Thomas SN, Zhang Z, Zhang H. MRMPlus: an open source quality
+control and assessment tool for SRM/MRM assay development. BMC Bioinformatics.
+2015 Dec 12;16:411. doi: 10.1186/s12859-015-0838-z. PMID: 26652794; PMCID: PMC4676880.
 }
 \usage{
 mrm_plus2015

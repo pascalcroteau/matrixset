@@ -739,20 +739,21 @@ print_matrix.matrix <- function(m)
   cn <- colnames(mout)
 
   len <- apply(nchar(mout), 2, max)
-  len <- pmax(len, nchar(cn))
-  len <- c(max(nchar(rn)), len)
-  fmt <- sprintf("%s %ds", "%", len)
+  len <- pmax(len, stringr::str_width(cn))
+  len <- c(max(stringr::str_width(rn)), len)
+
 
   lout <- vector('list', NR+1)
-  lout[[1]] <- paste(purrr::map2_chr(fmt,
-                                     c(style_dim("", row_dimmed), cn),
-                                     ~ style_dim(sprintf(.x, .y), col_dimmed)),
+  lout[[1]] <- paste(purrr::map2_chr(len,
+                                     c("", cn),
+                                     ~ stringr::str_pad(style_dim(.y, col_dimmed), .x)),
                      collapse = " ")
+
   for (i in 2:(NR+1))
   {
-    l <-  purrr::map2_chr(fmt, c(rn[i-1], mout[i-1, ]),
-                          ~ sprintf(.x, .y))
-    lout[[i]] <- paste(l, collapse = " ")
+    l <-  purrr::map2_chr(len[-1], mout[i-1, ],
+                          ~ stringr::str_pad(.y, .x))
+    lout[[i]] <- paste(c(stringr::str_pad(rn[i-1], len[1]), l), collapse = " ")
   }
 
 
@@ -798,14 +799,28 @@ print.matrixset <- function(x, ..., n_matrices = 2)
 
   cat("\n")
 
-  if (length(out)) {
-    lapply(1:length(out), function(i) {
-      cat(paste("matrix_set:", names(out)[i], "\n"))
-      print_matrix(out[[i]])
-    })
+  no <- length(out)
+  if (no) {
+    if (no > 1) {
+      lapply(seq_len(no-1), function(i) {
+        cat(paste("matrix_set:", names(out)[i], "\n"))
+        print_matrix(out[[i]])
+        cat("\n")
+      })
+
+      cat(paste("matrix_set:", names(out)[no], "\n"))
+      print_matrix(out[[no]])
+    }
+
+    # lapply(1:no, function(i) {
+    #   cat(paste("matrix_set:", names(out)[i], "\n"))
+    #   print_matrix(out[[i]])
+    #   cat("\n")
+    # })
   } else {
     cat(paste("matrix_set:\n"))
     print(NULL)
+    cat("\n")
   }
 
 

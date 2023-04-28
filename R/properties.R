@@ -810,6 +810,11 @@ print.matrixset <- function(x, ..., n_matrices = 2)
 
       cat(paste("matrix_set:", names(out)[no], "\n"))
       print_matrix(out[[no]])
+    } else {
+
+      cat(paste("matrix_set:", names(out)[1], "\n"))
+      print_matrix(out[[1]])
+
     }
 
     # lapply(1:no, function(i) {

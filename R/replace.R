@@ -207,6 +207,9 @@ replace_matrix_set <- function(old, new, nr, nc, i, j)
 #'
 #' @param value    object to use as replacement value
 #'
+#' @returns
+#' A `matrixset`, with proper elements replaced.
+#'
 #' @examples
 #' # an hypothetical example of students that failed 3 courses and their results
 #' # after remedial class

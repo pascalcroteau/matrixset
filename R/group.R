@@ -210,6 +210,12 @@ column_group_by <- function(.ms, ..., .add = FALSE, .drop = column_group_by_drop
 #' default is also `TRUE` unless `.ms` has been previously grouped with
 #' `.drop = FALSE`.
 #'
+#' @examples
+#' student_results |>
+#'     row_group_by(class, .drop = FALSE) |>
+#'     row_group_by_drop_default()
+#'
+#'
 #' @export
 row_group_by_drop_default <- function(.ms)
 {
@@ -230,6 +236,11 @@ row_group_by_drop_default <- function(.ms)
 #' Returns `TRUE` for column-ungrouped `matrixset`s. For column-grouped objects,
 #' the default is also `TRUE` unless `.ms` has been previously grouped with
 #' `.drop = FALSE`.
+#'
+#' @examples
+#' student_results |>
+#'     row_group_by(class, .drop = FALSE) |>
+#'     row_group_by_drop_default()
 #'
 #' @export
 column_group_by_drop_default <- function(.ms)

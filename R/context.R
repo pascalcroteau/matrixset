@@ -35,6 +35,19 @@
 #'     relative to the current matrix. They are equivalent to
 #'     `seq_len(current_n_row())`/`seq_len(current_n_column())`.
 #'
+#' @returns
+#' See each individual functions for returned value when used in proper context.
+#' If used out of context, an error condition is issued.
+#'
+#' @examples
+#' # this will fail (as it should), because it is used out of context
+#' is(try(current_n_row(), silent = TRUE), "try-error")
+#'
+#' # this is one way to know the number of students per class in 'student_results'
+#' student_results |>
+#,     row_group_by(class) |>
+#'     apply_matrix_dfl(n = ~ current_n_row(), .matrix = 1)
+#'
 #' @name context
 NULL
 

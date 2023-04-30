@@ -34,6 +34,10 @@ column_pos()
 
 column_rel_pos()
 }
+\value{
+See each individual functions for returned value when used in proper context.
+If used out of context, an error condition is issued.
+}
 \description{
 These functions are designed to work inside certain \code{matrixset} functions, to
 have access to current group/matrix/row/column. Because of that, they will
@@ -63,4 +67,13 @@ The indices are the the ones before matrix subsetting.
 relative to the current matrix. They are equivalent to
 \code{seq_len(current_n_row())}/\code{seq_len(current_n_column())}.
 }
+}
+\examples{
+# this will fail (as it should), because it is used out of context
+is(try(current_n_row(), silent = TRUE), "try-error")
+
+# this is one way to know the number of students per class in 'student_results'
+student_results |>
+    apply_matrix_dfl(n = ~ current_n_row(), .matrix = 1)
+
 }

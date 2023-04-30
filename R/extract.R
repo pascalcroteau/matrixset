@@ -214,6 +214,8 @@ matset_subset <- function(x, i, j, matrix, drop, keep_annotation,
 #'
 #' The subsetting operator `[[` is a convenient wrapper for `[(,,matrix)`.
 #'
+#' There is no `$` subsetting operator for the `matrixset` object.
+#'
 #' @param x                    `matrixset` object from which to extract
 #'                             element(s)
 #' @param i,j                  rows (`i`) and columns (`j`) to extract from
@@ -425,13 +427,15 @@ NULL
   xsub
 }
 
+
+#' @rdname subsetting
 #' @export
-`$.matrixset` <- function(x, name)
+`$.matrixset` <- function(x, matrix)
 {
   if (!cash_status$allow(sys.call(sys.parent())))
     stop("$ operator is invalid for matrixsets")
 
-  .subset2(x, name)
+  .subset2(x, matrix)
 }
 
 

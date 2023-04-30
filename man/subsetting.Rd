@@ -6,6 +6,7 @@
 \alias{[.row_grouped_ms}
 \alias{[.col_grouped_ms}
 \alias{[.dual_grouped_ms}
+\alias{$.matrixset}
 \alias{[[.matrixset}
 \title{Subsetting  matrixsets}
 \usage{
@@ -48,6 +49,8 @@
   keep_annotation = TRUE,
   warn_class_change = getOption("matrixset.warn_class_change")
 )
+
+\method{$}{matrixset}(x, matrix)
 
 \method{[[}{matrixset}(x, matrix)
 }
@@ -155,6 +158,8 @@ depending on the provided indices (the same way matrix may result to a vector
 when \code{drop} is \code{TRUE}).
 
 The subsetting operator \code{[[} is a convenient wrapper for \verb{[(,,matrix)}.
+
+There is no \code{$} subsetting operator for the \code{matrixset} object.
 }
 \section{Grouped matrixset}{
 

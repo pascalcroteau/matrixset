@@ -122,7 +122,7 @@ dim.matrixset <- function(x) c(attr(x, "n_row"), attr(x, "n_col"))
 dimnames.matrixset <- function(x) list(attr(x, "row_names"), attr(x, "col_names"))
 
 
-
+#' @rdname properties
 #' @export
 `dimnames<-.matrixset` <- function (x, value)
 {
@@ -146,9 +146,9 @@ dimnames.matrixset <- function(x) list(attr(x, "row_names"), attr(x, "col_names"
 
 
 
-#' @export
+# @export
 .row_names_ms <- function(x) rownames(x)
-#' @export
+# @export
 .col_names_ms <- function(x) colnames(x)
 
 
@@ -767,7 +767,32 @@ print_matrix.matrix <- function(m)
 
 
 
-
+#' Print a matrixset
+#'
+#' @description
+#' When printing a `matrixset`:
+#'
+#' * The number of matrices and their dimension is shown
+#' * Prints each matrix of the object, showing its type and dimension. Full
+#'   matrices are shown only for those with 3 rows or less. Otherwise, only
+#'   the first and last row is shown. The same also applies for the columns.
+#' * An exception to the point above: if the number of matrices is greater than
+#'   `n_matrices`, the first `n_matrices` are displayed, while the others will
+#'   be named only.
+#' * The row and column annotations (`row_info`/`column_info`) are displayed as
+#'   `tibble` objects.
+#'
+#' @param x             `matrixset` object to print
+#' @param ...           currently not used
+#' @param n_matrices    Number of matrices to display
+#'
+#' @returns
+#' Invisibly, the `matrixset` object.
+#'
+#' @examples
+#' print(student_results)
+#' print(mrm_plus2015)
+#'
 #' @export
 print.matrixset <- function(x, ..., n_matrices = 2)
 {
@@ -837,5 +862,7 @@ print.matrixset <- function(x, ..., n_matrices = 2)
 
   cat("\n\ncolumn_info:\n")
   print(tibble::as_tibble(x$column_info))
+
+  invisible(x)
 }
 

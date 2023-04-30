@@ -53,6 +53,9 @@ the replacement.}
 
 \item{value}{object to use as replacement value}
 }
+\value{
+A \code{matrixset}, with proper elements replaced.
+}
 \description{
 Replace whole or parts of some - or all - matrices of a \code{matrixset}.
 }

@@ -536,6 +536,24 @@ matrixset <- function(..., expand = NULL, row_info = NULL, column_info = NULL,
 #'                    name that will be used throughout in the `matrixset`
 #'                    object.
 #'
+#' @returns
+#' Returns a `matrixset` - see [matrixset()].
+#'
+#' @examples
+#' # We're showing how 'as_matrixset' can differ. But first, show how they can
+#' # yield the same result. Note that the list is named
+#' lst <- list(a = matrix(1:6, 2, 3), b = matrix(101:106, 2, 3))
+#' identical(matrixset(lst), as_matrixset(lst))
+#'
+#' # Now it will differ: the list is unnamed. In fact, 'matrixset' will fail
+#' lst <- list(matrix(1:6, 2, 3), matrix(101:106, 2, 3))
+#' is(try(matrixset(lst), silent = TRUE), "try-error")
+#' as_matrixset(lst)
+#'
+#' # You need to name the matrix to use 'matrixset'. A name is provided for you
+#' # with 'as_matrixset'. But you can't control what it is.
+#' as_matrixset(matrix(1:6, 2, 3))
+#'
 #' @export
 as_matrixset <- function(x, expand = NULL, row_info = NULL, column_info = NULL,
                          row_key = "rowname", column_key = "colname",

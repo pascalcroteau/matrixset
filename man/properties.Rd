@@ -4,6 +4,7 @@
 \alias{properties}
 \alias{dim.matrixset}
 \alias{dimnames.matrixset}
+\alias{dimnames<-.matrixset}
 \alias{matrixnames}
 \alias{matrixnames<-}
 \alias{matrix_elm}
@@ -25,6 +26,8 @@
 \method{dim}{matrixset}(x)
 
 \method{dimnames}{matrixset}(x)
+
+\method{dimnames}{matrixset}(x) <- value
 
 matrixnames(x)
 

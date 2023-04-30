@@ -17,3 +17,10 @@ default is also \code{TRUE} unless \code{.ms} has been previously grouped with
 \description{
 Default value for \code{.drop} argument of function \code{\link[=row_group_by]{row_group_by()}}
 }
+\examples{
+student_results |>
+    row_group_by(class, .drop = FALSE) |>
+    row_group_by_drop_default()
+
+
+}

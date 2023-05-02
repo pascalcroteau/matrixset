@@ -167,7 +167,6 @@ matset <- matrixset(lst, row_info = ri, column_info = ci)
 
 # This is not allowed, because the row trait data frame has more than one
 # entry for "r1"
-\dontrun{
 lst <- list(a = matrix(0, 2, 3), b = matrix(0, 2, 3), c = NULL)
 rownames(lst$a) <- c("r1", "r2")
 rownames(lst$b) <- c("r1", "r2")
@@ -175,8 +174,9 @@ colnames(lst$a) <- c("c1", "c2", "c3")
 colnames(lst$b) <- c("c1", "c2", "c3")
 ri <- data.frame(rowname = c("r1", "r2", "r1"), g = 1:3)
 ci <- data.frame(colname = c("c1", "c2", "c3"), h = 1:3)
-matset <- matrixset(lst, row_info = ri, column_info = ci)
-}
+ans <- tryCatch(matrixset(lst, row_info = ri, column_info = ci),
+                error = function(e) e)
+is(ans, "error")
 
 }
 \seealso{

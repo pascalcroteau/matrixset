@@ -4,13 +4,12 @@ Version: 0.0.0.9000
 Authors@R: 
     person(given = "Pascal",
            family = "Croteau",
-           role = c("aut", "cre"),
-           email = "croteaupascl@gmail.com",
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: A matrixset is an object that stores a matrix ensemble, matrices
-  that share the same traits, where rows and columns can be annotated. This 
-  package helps in creating such objects, and to manipulate them in a 
-  tidyverse-like fashion.
+           role = c("aut", "cre", "cph"),
+           email = "croteaupascl@gmail.com")
+Description: Creates an object that stores a matrix ensemble, matrices
+  that share the same traits, where rows and columns can be annotated. Operators
+  to manipulate these objects are provided as well as mechanisms to apply 
+  functions to these objects.
 Imports:
     cli,
     crayon,
@@ -35,11 +34,11 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
 Suggests: 
     MASS,
+    ggfortify,
     knitr,
     lme4,
     magrittr,
     patchwork,
-    PCAtools,
     rmarkdown,
     testthat (>= 3.0.0),
     tidyverse

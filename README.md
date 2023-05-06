@@ -10,7 +10,7 @@
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 <!-- badges: end -->
 
-A `matrixset` a container of matrices, each having the same number of
+A `matrixset` is a container of matrices, each having the same number of
 rows and columns and the same dimnames. Moreover, each dimname must
 uniquely identify elements.
 
@@ -139,7 +139,7 @@ animals_ms %>%
 #>  8 Goat            ..2     115    75%      93.2 
 #>  9 Guinea pig      ..1       1.04 25%       2.16
 #> 10 Guinea pig      ..2       5.5  75%       4.38
-#> # … with 46 more rows
+#> # ℹ 46 more rows
 
 
 animals_ms %>% 
@@ -159,5 +159,5 @@ animals_ms %>%
 #>  8 Equidae      brain      537  
 #>  9 Feline       body        51.6
 #> 10 Feline       brain       91.3
-#> # … with 12 more rows
+#> # ℹ 12 more rows
 ```

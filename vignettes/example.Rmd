@@ -58,7 +58,8 @@ The first thing we will do is to create a new measure that is the ratio, on the
 log scale, of the light and heavy transitions.
 
 As seen below, this is an easy operation with `matrixset`. Note that we take
-the opportunity to map the calibration points with their dilution values.
+the opportunity to map the calibration points with their dilution values and
+assign point/replicate ID to the blanks.
 
 ```{r, message=FALSE}
 library(tidyverse)
@@ -71,7 +72,11 @@ mrm_plus2015_ratio <- mrm_plus2015 %>%
                                     CalibrationPoint == "Point_5" ~ 36000,
                                     CalibrationPoint == "Point_6" ~ 180000,
                                     CalibrationPoint == "Point_7" ~ 900000,
-                                    TRUE ~ NA_real_))
+                                    TRUE ~ NA_real_)) %>% 
+  annotate_row(point = case_when(is.na(CalibrationPoint) ~ str_match(.rowname, "(.*)_\\d$")[,2],
+                                 TRUE ~ CalibrationPoint),
+               replicate = case_when(is.na(CalibrationPoint) ~ paste("Replicate", str_match(.rowname, ".*_(\\d)$")[,2], sep = "_"),
+                                     TRUE ~ Replicate))
 ```
 
 
@@ -138,22 +143,21 @@ pre-processing may apply and be investigated.
 
 
 ```{r, fig.width=7.2, fig.height=14, message = FALSE}
-library(PCAtools)
 library(patchwork)
 library(magrittr)
+library(ggfortify)
 
 pcas <- mrm_plus2015_ratio %>% 
-     mutate_matrix(light_area = log(light_area+1),
-                   heavy_area = log(heavy_area+1)) %>% 
-     apply_matrix(pca = ~ {
-         meta <- current_row_info() %>% as.data.frame()
-         rownames(meta) <- meta$.rowname
-         pca(t(.m), scale = TRUE, metadata = meta)
-     }, .matrix = c("light_area", "heavy_area", "area_log_ratio"))
+    mutate_matrix(light_area = log(light_area+1),
+                  heavy_area = log(heavy_area+1)) %>% 
+    apply_matrix(pca = ~ {
+        list(meta=current_row_info(), pca=prcomp(.m, scale. = TRUE))
+    }, .matrix = c("light_area", "heavy_area", "area_log_ratio")) 
 
-bps <- imap(pcas, ~ biplot(.x$pca, colby = "CalibrationPoint", 
-                           legendPosition = "right") +
-               ggtitle(.y))
+
+bps <- imap(pcas, ~ autoplot(.x$pca$pca, data = .x$pca$meta, 
+                             colour = "point") +
+                ggtitle(.y))
 
 (bps[[1]] / bps[[2]] / bps[[3]]) + plot_layout(guides = "collect")
 ```
@@ -228,10 +232,6 @@ type (blank or not) and random batch effect for calibration point.
 ```{r, message=FALSE}
 library(lme4)
 diff <- mrm_plus2015_ratio %>% 
-    annotate_row(point = case_when(is.na(CalibrationPoint) ~ str_match(.rowname, "(.*)_\\d$")[,2],
-                                   TRUE ~ CalibrationPoint),
-                 replicate = case_when(is.na(CalibrationPoint) ~ paste("Replicate", str_match(.rowname, ".*_(\\d)$")[,2], sep = "_"),
-                                   TRUE ~ Replicate)) %>% 
     apply_column_dfl(p_cov = predict(lmer(.j ~ 1 + SampleType + (1|point)),
                                      type = "response"),
                      p_null = predict(lm(.j ~ 1)),
@@ -267,19 +267,15 @@ mrm_plus2015_ratio %>%
     geom_boxplot(stat = "identity")
 ```
 
+
 ```{r, fig.width=7, fig.height=6, message = FALSE}
-mrm_plus2015_ratio %>% 
+pca <- mrm_plus2015_ratio %>% 
     apply_matrix(pca = ~ {
-        meta <- current_row_info() %>% as.data.frame()
-        rownames(meta) <- meta$.rowname
-        pca(t(.m), scale = TRUE, metadata = meta)
-    }, .matrix = "norm_log_ratio") %>% 
+        list(meta=current_row_info(), pca=prcomp(.m, scale. = TRUE))}, 
+        .matrix = "norm_log_ratio") %>% 
     .[[1]] %>% 
-    .$pca %>% 
-    biplot(colby = "CalibrationPoint", 
-          legendPosition = "right")
-
-
+    .$pca
+autoplot(pca$pca, data = pca$meta, colour = "point")
 ```
 
 

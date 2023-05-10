@@ -7,9 +7,10 @@ Authors@R:
            role = c("aut", "cre", "cph"),
            email = "croteaupascl@gmail.com")
 Description: Creates an object that stores a matrix ensemble, matrices
-  that share the same traits, where rows and columns can be annotated. Operators
-  to manipulate these objects are provided as well as mechanisms to apply 
-  functions to these objects.
+  that share the same common properties, where rows and columns can be annotated. 
+  Matrices must have the same dimension and dimnames. Operators to manipulate 
+  these objects are provided as well as mechanisms to apply functions to these 
+  objects.
 Imports:
     cli,
     crayon,

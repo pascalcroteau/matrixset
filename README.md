@@ -41,7 +41,13 @@ Two reasons for which you may want to use a `matrixset` instead are:
 
 ## Installation
 
-You can install the development version of matrixset from
+The easiest way to install `matrixset` is from CRAN:
+
+``` r
+install.packages("matrixset")
+```
+
+Or you can install the development version of matrixset from
 [GitHub](https://github.com/) with:
 
 ``` r

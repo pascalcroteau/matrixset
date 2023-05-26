@@ -94,10 +94,13 @@ ms <- join_row_info(ms1, student_results)
 
 ms <- join_row_info(ms1, student_results, by = c(".rowname", "previous_year_score"))
 
-# This would throw an error
+# This will throw an error
 ms2 <- remove_row_annotation(filter_row(student_results, class \%in\% c("classA", "classC")),
                              class, teacher, previous_year_score)
-# ms <- join_row_info(ms2, student_results, type = "full")
+ms <- ms <- tryCatch(join_row_info(ms2, student_results, type = "full"),
+                     error = function(e) e)
+is(ms, "error") # TRUE
+ms$message
 
 # Now it works.
 ms <- join_row_info(ms2, student_results, type = "full", adjust = TRUE)

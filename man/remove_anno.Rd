@@ -33,6 +33,9 @@ Removing a trait that is used for grouping is not allowed and will not work.
 \examples{
 ms1 <- remove_row_annotation(student_results, class, teacher)
 
-# this would not work
-# remove_row_annotation(row_group_by(student_results, class), class)
+# this doesn't work because "class" is used for grouping
+ms2 <- tryCatch(remove_row_annotation(row_group_by(student_results, class), class),
+                error = function(e) e)
+is(ms2, "error") #TRUE
+ms2$message
 }

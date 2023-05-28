@@ -1,6 +1,6 @@
 Package: matrixset
 Title: Creating and Manipulating Matrix Ensemble
-Version: 0.1.0
+Version: 0.1.1
 Authors@R: 
     person(given = "Pascal",
            family = "Croteau",

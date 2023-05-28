@@ -9,6 +9,10 @@ In this resubmission, I have adressed the following comments:
    * Lines of the description field of the DESCRIPTION file no longer go over 80
     characters. Also removed sets of consecutive space/linefeed.
 
+It was also suggested that if there are references describing the methods in 
+the package, to add these in the description field of the DESCRIPTION file.
+There are no references related to this package, so none were added to the 
+DESCRIPTION file.
 
 ## R CMD check results
 

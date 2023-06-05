@@ -33,6 +33,16 @@ test_that("matrixset general loop works", {
   expect_error(apply_column(student_results, list, .matrix_wise = FALSE),
                "object '\\.j' not found")
 
+  expect_error(apply_column_dfl(student_results, .colname = ~ mean, .matrix_wise = FALSE),
+               "the function results can't be named '.colname'")
+  expect_error(apply_column_dfw(student_results, .colname = ~ mean, .matrix_wise = FALSE),
+               "the function results can't be named '.colname'")
+  expect_error(apply_row_dfl(student_results, .rowname = ~ mean, .matrix_wise = FALSE),
+               "the function results can't be named '.rowname'")
+  expect_error(apply_row_dfw(student_results, .rowname = ~ mean, .matrix_wise = FALSE),
+               "the function results can't be named '.rowname'")
+
+
 
   lst <- apply_column(student_results, list, .matrix_wise = FALSE, .input_list = TRUE)
   lst_ref <- lapply(setNames(seq(ncol(student_results)), colnames(student_results)), function(cl) {

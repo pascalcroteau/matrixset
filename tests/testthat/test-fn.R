@@ -732,6 +732,14 @@ test_that("matrixset 'long' loop works", {
                "vectors must be of the same length")
 
 
+  expect_error(apply_column_dfl(student_results, .colname = mean),
+               "the function results can't be named '.colname'")
+  expect_error(apply_column_dfw(student_results, .colname = mean),
+               "the function results can't be named '.colname'")
+  expect_error(apply_row_dfl(student_results, .rowname = mean),
+               "the function results can't be named '.rowname'")
+  expect_error(apply_row_dfw(student_results, .rowname = mean),
+               "the function results can't be named '.rowname'")
 
 
 

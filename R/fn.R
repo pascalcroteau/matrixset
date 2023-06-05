@@ -40,6 +40,16 @@ subset_ij <- function(m, i, j) {
 
 
 
+assess_fun_names <- function(nms, tag, simplify)
+{
+  if (is.na(tag) || !simplify) return(invisible(NULL))
+  if (any(nms == tag))
+    stop(paste("the function results can't be named", shQuote(tag)))
+}
+
+
+
+
 eval_fun_workhorse <- function(margin, ms, ..., matidx, row_first, list_input,
                                .simplify, env)
 {
@@ -102,6 +112,9 @@ eval_fun_workhorse <- function(margin, ms, ..., matidx, row_first, list_input,
   mat_lab <- paste0(var_lab, seq_mats)
 
   nmfn <- names(quosures)
+  tag <- switch(margin, "row" = .rowtag(ms), "col"= .coltag(ms), "mat" = NA_character_)
+  assess_fun_names(nmfn, tag, .simplify)
+
   nfn <- length(quosures)
   for (i in seq_len(nfn)) {
     quosures[[i]] <- norm_call(quosures[[i]], var_lab)

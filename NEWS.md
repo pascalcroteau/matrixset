@@ -1,3 +1,9 @@
+# matrixset (development version)
+
+* There is now a check in apply_row_\*/apply_column_\* family functions to
+  prevent names of function result to be identical to tags (typically, .rowname
+  or .colname). ([#1](https://github.com/pascalcroteau/matrixset/issues/1))
+
 # matrixset 0.1.1
 
 * Changed some examples that were commented out by wrapping them in tryCatch

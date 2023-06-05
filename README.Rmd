@@ -18,6 +18,7 @@ knitr::opts_chunk$set(
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/pascalcroteau/matrixset/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/pascalcroteau/matrixset/actions/workflows/R-CMD-check.yaml)
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+[![CRAN status](https://www.r-pkg.org/badges/version/matrixset)](https://CRAN.R-project.org/package=matrixset)
 <!-- badges: end -->
 
 A `matrixset` is a container of matrices, each having the same number of rows and

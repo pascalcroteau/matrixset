@@ -130,17 +130,25 @@ dimnames.matrixset <- function(x) list(attr(x, "row_names"), attr(x, "col_names"
   if (!is.list(value) || length(value) != 2L)
     stop("invalid 'dimnames' given for data frame")
 
+  orig_val <- dimnames(x)
+
+  lov1 <- length(orig_val[[1L]])
+  lov2 <- length(orig_val[[2L]])
+
   value[[1L]] <- as.character(value[[1L]])
   value[[2L]] <- as.character(value[[2L]])
 
-  if (d[[1L]] != length(value[[1L]]))
+  lv1 <- length(value[[1L]])
+  lv2 <- length(value[[2L]])
+
+  if (lov1 && d[[1L]] != lv1)
     stop("incompatible row names length.")
 
-  if (d[[2L]] != length(value[[2L]]))
+  if (lov2 && d[[2L]] != lv2)
     stop("incompatible column names length.")
 
-  .row_names_ms(x) <- value[[1L]]
-  .col_names_ms(x) <- value[[2L]]
+  if (lv1) .row_names_ms(x) <- value[[1L]]
+  if (lv2) .col_names_ms(x) <- value[[2L]]
   x
 }
 
@@ -175,7 +183,17 @@ dimnames.matrixset <- function(x) list(attr(x, "row_names"), attr(x, "col_names"
   })
 
   x$matrix_set <- x_matrix_set
-  x$row_info[[.rowtag(x)]] <- value
+
+  rt <- .rowtag(x)
+  if (nrow(x$row_info)) {
+    x$row_info[[rt]] <- value
+  } else {
+    ri <- tibble::tibble(foo = value)
+    ri[[rt]]<- ri$foo
+    ri$foo <- NULL
+    x$row_info <- ri
+  }
+
   attr(x, "row_names") <- value
 
   x
@@ -203,7 +221,17 @@ dimnames.matrixset <- function(x) list(attr(x, "row_names"), attr(x, "col_names"
   })
 
   x$matrix_set <- x_matrix_set
-  x$column_info[[.coltag(x)]] <- value
+
+  ct <- .coltag(x)
+  if (nrow(x$column_info)) {
+    x$column_info[[ct]] <- value
+  } else {
+    ci <- tibble::tibble(foo = value)
+    ci[[ct]]<- ci$foo
+    ci$foo <- NULL
+    x$column_info <- ci
+  }
+
   attr(x, "col_names") <- value
 
   x

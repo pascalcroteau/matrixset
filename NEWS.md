@@ -3,6 +3,9 @@
 * There is now a check in apply_row_\*/apply_column_\* family functions to
   prevent names of function result to be identical to tags (typically, .rowname
   or .colname). ([#1](https://github.com/pascalcroteau/matrixset/issues/1))
+* It is now possible to replace row/col/dimnames of `matrixset` objects with
+  partially or completely `NULL` dimnames. This fixes
+  [#2](https://github.com/pascalcroteau/matrixset/issues/2)
 
 # matrixset 0.1.1
 

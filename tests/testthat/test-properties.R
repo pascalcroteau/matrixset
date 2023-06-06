@@ -1,5 +1,53 @@
 test_that("matrixset properties works", {
 
+
+  m <- matrix(1:10, 2, 5)
+  ms <- matrixset(foo = m)
+  try(rownames(ms) <- c("a", "b"), silent = TRUE)
+  expect_identical(rownames(ms), c("a", "b"))
+  ms <- matrixset(foo = m)
+  try(colnames(ms) <- letters[1:5], silent = TRUE)
+  expect_identical(colnames(ms), letters[1:5])
+  ms <- matrixset(foo = m)
+  try(rownames(ms) <- c("a", "b"), silent = TRUE)
+  try(colnames(ms) <- letters[1:5], silent = TRUE)
+  expect_identical(rownames(ms), c("a", "b"))
+  expect_identical(colnames(ms), letters[1:5])
+  ms <- matrixset(foo = m)
+  try(dimnames(ms) <- list(c("a", "b"), letters[1:5]), silent = TRUE)
+  expect_identical(rownames(ms), c("a", "b"))
+  expect_identical(colnames(ms), letters[1:5])
+  expect_identical(dimnames(ms), list(c("a", "b"), letters[1:5]))
+
+  rownames(m) <- c("a", "b")
+  ms <- matrixset(foo = m)
+  try(rownames(ms) <- c("c", "d"), silent = TRUE)
+  expect_identical(rownames(ms), c("c", "d"))
+  ms <- matrixset(foo = m)
+  try(colnames(ms) <- letters[1:5], silent = TRUE)
+  expect_identical(colnames(ms), letters[1:5])
+  ms <- matrixset(foo = m)
+  try(dimnames(ms) <- list(c("c", "d"), letters[1:5]), silent = TRUE)
+  expect_identical(rownames(ms), c("c", "d"))
+  expect_identical(colnames(ms), letters[1:5])
+  expect_identical(dimnames(ms), list(c("c", "d"), letters[1:5]))
+
+
+  rownames(m) <- NULL
+  colnames(m) <- letters[1:5]
+  ms <- matrixset(foo = m)
+  try(colnames(ms) <- letters[1:5], silent = TRUE)
+  expect_identical(colnames(ms), letters[1:5])
+  ms <- matrixset(foo = m)
+  try(rownames(ms) <- c("c", "d"), silent = TRUE)
+  expect_identical(rownames(ms), c("c", "d"))
+  ms <- matrixset(foo = m)
+  try(dimnames(ms) <- list(c("c", "d"), letters[1:5]), silent = TRUE)
+  expect_identical(colnames(ms), letters[1:5])
+  expect_identical(rownames(ms), c("c", "d"))
+  expect_identical(dimnames(ms), list(c("c", "d"), letters[1:5]))
+
+
   student_results2 <- student_results
   student_results3 <- student_results
 

@@ -112,5 +112,24 @@ list_row <- function(v)
 }
 
 
+quoted <- function(x)
+{
+  encodeString(x, quote = "`")
+}
+
+
+warn_if <- function(lgl1, lgl2, env = rlang::caller_env())
+{
+  lgl1_str <- rlang::as_name(rlang::enquo(lgl1))
+  lgl2_str <- rlang::as_name(rlang::enquo(lgl2))
+  if (lgl1 && lgl2)
+    warning(paste0(quoted(lgl2_str), " is TRUE but so is ", quoted(lgl1_str),
+                   ". ", quoted(lgl2_str), " will be ignored."),
+            call. = FALSE, immediate. = TRUE)
+}
+
+
+
+
 
 

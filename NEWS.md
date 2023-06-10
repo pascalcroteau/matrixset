@@ -6,6 +6,9 @@
 * It is now possible to replace row/col/dimnames of `matrixset` objects with
   partially or completely `NULL` dimnames. This fixes
   [#2](https://github.com/pascalcroteau/matrixset/issues/2)
+* In the apply_* family functions, there is now a warning when specifying 
+  `.input_list` while `.matrix_wise` is `FALSE`. This answers
+   [#5](https://github.com/pascalcroteau/matrixset/issues/5)
 
 # matrixset 0.1.1
 

@@ -39,6 +39,27 @@ test_that("matrixset general loop works", {
   expect_error(apply_row_dfw(student_results, .rowname = ~ mean, .matrix_wise = FALSE))
 
 
+  expect_warning(apply_matrix(student_results, mean, .input_list = TRUE),
+                 "`\\.input_list` is TRUE but so is `\\.matrix_wise`\\. `\\.input_list` will be ignored\\.")
+  expect_warning(apply_row(student_results, mean, .input_list = TRUE),
+                 "`\\.input_list` is TRUE but so is `\\.matrix_wise`\\. `\\.input_list` will be ignored\\.")
+  expect_warning(apply_column(student_results, mean, .input_list = TRUE),
+                 "`\\.input_list` is TRUE but so is `\\.matrix_wise`\\. `\\.input_list` will be ignored\\.")
+  expect_warning(apply_matrix_dfl(student_results, mean, .input_list = TRUE),
+                 "`\\.input_list` is TRUE but so is `\\.matrix_wise`\\. `\\.input_list` will be ignored\\.")
+  expect_warning(apply_row_dfl(student_results, mean, .input_list = TRUE),
+                 "`\\.input_list` is TRUE but so is `\\.matrix_wise`\\. `\\.input_list` will be ignored\\.")
+  expect_warning(apply_column_dfl(student_results, mean, .input_list = TRUE),
+                 "`\\.input_list` is TRUE but so is `\\.matrix_wise`\\. `\\.input_list` will be ignored\\.")
+  expect_warning(apply_matrix_dfw(student_results, mean, .input_list = TRUE),
+                 "`\\.input_list` is TRUE but so is `\\.matrix_wise`\\. `\\.input_list` will be ignored\\.")
+  expect_warning(apply_row_dfw(student_results, mean, .input_list = TRUE),
+                 "`\\.input_list` is TRUE but so is `\\.matrix_wise`\\. `\\.input_list` will be ignored\\.")
+  expect_warning(apply_column_dfw(student_results, mean, .input_list = TRUE),
+                 "`\\.input_list` is TRUE but so is `\\.matrix_wise`\\. `\\.input_list` will be ignored\\.")
+
+
+
 
   lst <- apply_column(student_results, list, .matrix_wise = FALSE, .input_list = TRUE)
   lst_ref <- lapply(setNames(seq(ncol(student_results)), colnames(student_results)), function(cl) {

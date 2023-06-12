@@ -707,14 +707,18 @@ coll <- function(s)
 }
 
 
-print_matrix <- function(m) UseMethod("print_matrix")
+print_matrix <- function(m, nrow_print = NULL, ncol_print = NULL)
+  UseMethod("print_matrix")
 
-print_matrix.NULL <- function(m) print(NULL)
+print_matrix.NULL <- function(m, nrow_print = NULL, ncol_print = NULL)
+  print(NULL)
 
-print_matrix.matrix <- function(m)
+print_matrix.matrix <- function(m, nrow_print = NULL, ncol_print = NULL)
 {
   nr <- nrow(m)
   nc <- ncol(m)
+  if (is.null(nrow_print)) nrow_print <- nr
+  if (is.null(ncol_print)) ncol_print <- nc
   row_shrinked <- FALSE
   col_shrinked <- FALSE
 
@@ -739,7 +743,7 @@ print_matrix.matrix <- function(m)
     }
 
     if (nc > 4) {
-      ic <- c(1:3, nr)
+      ic <- c(1:3, nc)
       col_shrinked <- TRUE
     }
   }
@@ -785,12 +789,30 @@ print_matrix.matrix <- function(m)
   }
 
 
-  header <- paste("A", nr, times, nc, enclose(vctrs::vec_ptype_abbr(m[[1]])),
+  header <- paste("A", nrow_print, times, ncol_print, enclose(vctrs::vec_ptype_abbr(m[[1]])),
                   "matrix")
 
   writeLines(pillar::style_subtle(header))
   cli::cat_line(lout)
 
+}
+
+
+
+print_matrix.Matrix <- function(m)
+{
+  M <- m
+
+  nc <- ncol(m)
+  nr <- nrow(m)
+
+  if (is.null(rownames(M))) rownames(M) <- paste0("..", seq(nr))
+  if (is.null(colnames(M))) colnames(M) <- paste0("..", seq(nc))
+
+  if (nc > 4) M <- M[, c(1:4, nc)]
+  if (nr > 3) M <- M[c(1:3, nr), ]
+  M <- as.matrix(M)
+  print_matrix(M, nr, nc)
 }
 
 

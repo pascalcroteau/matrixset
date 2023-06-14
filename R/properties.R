@@ -707,13 +707,17 @@ coll <- function(s)
 }
 
 
-print_matrix <- function(m, nrow_print = NULL, ncol_print = NULL)
+print_matrix <- function(m, nrow_print = NULL, ncol_print = NULL,
+                         class_print = NULL)
   UseMethod("print_matrix")
 
-print_matrix.NULL <- function(m, nrow_print = NULL, ncol_print = NULL)
+print_matrix.NULL <- function(m, nrow_print = NULL, ncol_print = NULL,
+                              class_print = NULL)
   print(NULL)
 
-print_matrix.matrix <- function(m, nrow_print = NULL, ncol_print = NULL)
+
+print_matrix.matrix <- function(m, nrow_print = NULL, ncol_print = NULL,
+                                class_print = NULL)
 {
   nr <- nrow(m)
   nc <- ncol(m)
@@ -789,13 +793,17 @@ print_matrix.matrix <- function(m, nrow_print = NULL, ncol_print = NULL)
   }
 
 
-  header <- paste("A", nrow_print, times, ncol_print, enclose(vctrs::vec_ptype_abbr(m[[1]])),
+  if (is.null(class_print)) class_print <- vctrs::vec_ptype_abbr(m[[1]])
+  header <- paste("A", nrow_print, times, ncol_print, enclose(class_print),
                   "matrix")
 
   writeLines(pillar::style_subtle(header))
   cli::cat_line(lout)
 
 }
+
+
+
 
 
 
@@ -812,7 +820,7 @@ print_matrix.Matrix <- function(m)
   if (nc > 4) M <- M[, c(1:4, nc)]
   if (nr > 3) M <- M[c(1:3, nr), ]
   M <- as.matrix(M)
-  print_matrix(M, nr, nc)
+  print_matrix(M, nr, nc, class(m))
 }
 
 

@@ -183,6 +183,17 @@ matrices_from_dots <- function(...)
 
 
 
+MATRIX <- function(dat, nrow, ncol, is_Matrix = FALSE)
+{
+  if (is_Matrix) {
+    Matrix::Matrix(0, nrow=nrow, ncol=ncol)
+  } else {
+    matrix(dat, nrow=nrow, ncol=ncol)
+  }
+}
+
+
+
 expand_matrices <- function(matrix_list, matrix_info, expand)
 {
   need_expand <- matrix_info$need_expand
@@ -199,9 +210,14 @@ expand_matrices <- function(matrix_list, matrix_info, expand)
   cnms <- matrix_info$col_names
   for (l in 1:nmatrix) {
     if (!is.null(matrix_list[[l]])) {
-      expand_list[[l]] <- matrix(expand[[l]], nrow = nr, ncol = nc)
+      is_Matrix <- is(matrix_list[[l]], "Matrix")
+      expand_list[[l]] <- MATRIX(expand[[l]], nrow = nr, ncol = nc, is_Matrix)
       rownames(expand_list[[l]]) <- rnms
       colnames(expand_list[[l]]) <- cnms
+      if (is_Matrix) {
+        expand_list[[l]][] <- expand[[l]]
+        expand_list[[l]] <- as(expand_list[[l]], class(matrix_list[[l]]))
+      }
       old_rnms <- rownames(matrix_list[[l]])
       old_cnms <- colnames(matrix_list[[l]])
       ridx <- rnms %in% old_rnms

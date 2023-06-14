@@ -15,6 +15,7 @@ Imports:
     cli,
     crayon,
     dplyr,
+    Matrix,
     methods,
     pillar,
     purrr,

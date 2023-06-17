@@ -216,7 +216,7 @@ expand_matrices <- function(matrix_list, matrix_info, expand)
       colnames(expand_list[[l]]) <- cnms
       if (is_Matrix) {
         expand_list[[l]][] <- expand[[l]]
-        expand_list[[l]] <- as(expand_list[[l]], class(matrix_list[[l]]))
+        expand_list[[l]] <- methods::as(expand_list[[l]], class(matrix_list[[l]]))
       }
       old_rnms <- rownames(matrix_list[[l]])
       old_cnms <- colnames(matrix_list[[l]])

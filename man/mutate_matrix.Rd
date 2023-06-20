@@ -22,7 +22,7 @@ A \code{matrixset} with updated matrices.
 }
 \description{
 Applies functions that takes matrices as input and return similar matrices.
-The difinition of similar is that the new matrix has the same dimension and
+The definition of similar is that the new matrix has the same dimension and
 dimnames as \code{.ms}.
 
 If the returned matrix is assigned to a new matrix, this matrix is added to the

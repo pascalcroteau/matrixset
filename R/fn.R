@@ -10,17 +10,19 @@ norm_call <- function(quo, var, .convert_name = TRUE)
   }
 
   colon <- FALSE
+  expr_orig <- expr
   if (rlang::is_call(expr, "::")) {
-    pkg <- expr[[2]]
+    # pkg <- expr[[2]]
     expr <- expr[[3]]
     colon <- TRUE
   }
   if (is.name(expr)) {
     if (!.convert_name)
       stop("function names are not accepted in this context", call. = FALSE)
-    expr <- rlang::call2(expr, !!!rlang::syms(var))
+    # expr <- rlang::call2(expr, !!!rlang::syms(var))
+    expr <- if (colon) rlang::call2(expr_orig, !!!rlang::syms(var)) else rlang::call2(expr, !!!rlang::syms(var))
   }
-  if (colon) expr <- call("::", pkg, expr)
+  # if (colon) expr <- call("::", pkg, expr)
   rlang::quo_set_expr(quo, expr)
 }
 

@@ -123,31 +123,44 @@ margin_names <- function(obj, mrg)
 fill_matrix <- function(m, margin, nr, nc, old_names, all_names, compl_names)
 {
   if (is.null(m)) return(NULL)
+
+  is_Matrix <- is(m, "Matrix")
+
   d <- dim(m)
   if (d[1]*d[2] == 0L) {
     na_val <- rlang::eval_tidy(rlang::call2(storage.mode(m), 1))
     na_val[] <- NA
+  } else {
+    na_val <- m[1,1]
+    na_val[] <- NA
   }
-
-  na_val <- m[1,1]
-  na_val[] <- NA
 
   new_names <- setdiff(all_names, old_names)
   pos <- match(old_names, all_names)
 
   if (margin == "row") {
 
-    newm <- matrix(na_val, length(all_names), nc)
+    newm <- MATRIX(na_val, nrow = length(all_names), ncol = nc, is_Matrix)
     rownames(newm) <- all_names
     colnames(newm) <- compl_names
+    if (is_Matrix) {
+      newm[] <- na_val
+      newm <- methods::as(newm, class(m))
+    }
     newm[pos, ] <- m
+
 
   } else {
 
-    newm <- matrix(na_val, nr, length(all_names))
+    newm <- MATRIX(na_val, nrow = nr, ncol = length(all_names), is_Matrix)
     rownames(newm) <- compl_names
     colnames(newm) <- all_names
+    if (is_Matrix) {
+      newm[] <- na_val
+      newm <- methods::as(newm, class(m))
+    }
     newm[, pos] <- m
+
 
   }
 

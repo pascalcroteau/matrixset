@@ -752,7 +752,7 @@ print_matrix.matrix <- function(m, nrow_print = NULL, ncol_print = NULL,
     }
   }
 
-  mout <- format(round2(mout))
+  mout <- format(round2(mout), trim = TRUE)
 
   if (row_shrinked) {
     if (col_shrinked) {
@@ -781,8 +781,9 @@ print_matrix.matrix <- function(m, nrow_print = NULL, ncol_print = NULL,
 
   lout <- vector('list', NR+1)
   lout[[1]] <- paste(purrr::map2_chr(len,
-                                     c("", cn),
-                                     ~ stringr::str_pad(style_dim(.y, col_dimmed), .x)),
+                                     c(style_dim("", row_dimmed),
+                                       style_dim(cn, col_dimmed)),
+                                     ~ stringr::str_pad(.y, .x)),
                      collapse = " ")
 
   for (i in 2:(NR+1))

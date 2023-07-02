@@ -100,9 +100,13 @@ provided matrices.
 An interesting side-effect is that one can use this option to match the
 dimnames and provide a common row/column order among the matrices.
 
-The padding special value is, by default (\code{expand = TRUE}), \code{NA}. It can be
-changed by providing any value (e.g, \code{-1}) to \code{expand}, in which case the
-same padding value is used for all matrices.
+For base matrices, the padding special value is, by default
+(\code{expand = TRUE}), \code{NA}. For the special matrices (Matrix package), the
+default value is \code{0}. For these special matrices, padding with 0 forces
+conversion to sparse matrix.
+
+The default value can be changed by providing any value (e.g, \code{-1}) to
+\code{expand}, in which case the same padding value is used for all matrices.
 
 If different padding values are needed for each matrices, a list can be
 provided to \code{expand}. If the list is unnamed, it must match the number of

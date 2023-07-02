@@ -9,7 +9,15 @@ normalize_expand <- function(expand, nms_matrix, nmatrix)
       warning("More than one logical value provided to 'expand'. Keeping the first one only")
     expand <- expand[1]
 
-    expand <- if (is.na(expand) || expand) rep(list(NA), nmatrix) else NULL
+    expand <- if (is.na(expand)) {
+      rep(list(NA), nmatrix)
+    } else if (!expand) {
+      NULL
+    } else {
+      expand
+    }
+
+    # expand <- if (is.na(expand) || expand) rep(list(NA), nmatrix) else NULL
   } else if (is.vector(expand)) {
     if (is.list(expand)) {
       expd_nms <- names(expand)
@@ -194,6 +202,17 @@ MATRIX <- function(dat, nrow, ncol, is_Matrix = FALSE)
 
 
 
+set_expand_value <- function(is_Matrix, exp_val)
+{
+  if (is.logical(exp_val) && !is.na(exp_val)) {
+    if (is_Matrix) return(0) else return(NA)
+  }
+  exp_val
+  # if (is_Matrix && (is.logical(exp_val) && !is.na(exp_val))) 0 else exp_val
+}
+
+
+
 expand_matrices <- function(matrix_list, matrix_info, expand)
 {
   need_expand <- matrix_info$need_expand
@@ -209,14 +228,23 @@ expand_matrices <- function(matrix_list, matrix_info, expand)
   rnms <- matrix_info$row_names
   cnms <- matrix_info$col_names
   for (l in 1:nmatrix) {
+    NR <- nrow(matrix_list[[l]])
+    NC <- ncol(matrix_list[[l]])
     if (!is.null(matrix_list[[l]])) {
       is_Matrix <- is(matrix_list[[l]], "Matrix")
-      expand_list[[l]] <- MATRIX(expand[[l]], nrow = nr, ncol = nc, is_Matrix)
+      expand_value <- set_expand_value(is_Matrix, if (is.logical(expand)) expand else expand[[l]])
+      expand_list[[l]] <- MATRIX(expand_value, nrow = nr, ncol = nc, is_Matrix)
+      # expand_list[[l]] <- MATRIX(expand[[l]], nrow = nr, ncol = nc, is_Matrix)
       rownames(expand_list[[l]]) <- rnms
       colnames(expand_list[[l]]) <- cnms
       if (is_Matrix) {
-        expand_list[[l]][] <- expand[[l]]
+        # expand_list[[l]][] <- expand[[l]]
+        expand_list[[l]][] <- expand_value
         expand_list[[l]] <- methods::as(expand_list[[l]], class(matrix_list[[l]]))
+        if ((NR < nr || NC < nc) &&
+            ((is.integer(expand_value) && expand_value == 0L) ||
+             (is.numeric(expand_value) && abs(expand_value) < .Machine$double.eps^.5)))
+          expand_list[[l]] <- methods::as(expand_list[[l]], "sparseMatrix")
       }
       old_rnms <- rownames(matrix_list[[l]])
       old_cnms <- colnames(matrix_list[[l]])
@@ -328,9 +356,13 @@ set_meta <- function(side, meta, info, key, tag, adjust)
 #' An interesting side-effect is that one can use this option to match the
 #' dimnames and provide a common row/column order among the matrices.
 #'
-#' The padding special value is, by default (`expand = TRUE`), `NA`. It can be
-#' changed by providing any value (e.g, `-1`) to `expand`, in which case the
-#' same padding value is used for all matrices.
+#' For base matrices, the padding special value is, by default
+#' (`expand = TRUE`), `NA`. For the special matrices (Matrix package), the
+#' default value is `0`. For these special matrices, padding with 0 forces
+#' conversion to sparse matrix.
+#'
+#' The default value can be changed by providing any value (e.g, `-1`) to
+#' `expand`, in which case the same padding value is used for all matrices.
 #'
 #' If different padding values are needed for each matrices, a list can be
 #' provided to `expand`. If the list is unnamed, it must match the number of

@@ -381,7 +381,8 @@ set_meta <- function(side, meta, info, key, tag, adjust)
 #'                    Setting this parameter to `TRUE` will enable the expansion
 #'                    feature. See the section \sQuote{Matrix Expansion} for more
 #'                    details of what it is, as well as other possible options
-#'                    for `expand`.
+#'                    for `expand`. The section will also detail how the default
+#'                    expansion value is dependent on the matrix types.
 #' @param row_info    a data frame, used to annotate matrix rows. The link
 #'                    between the matrix row names and the data frame is given
 #'                    in column "rowname". A different column can be used if one

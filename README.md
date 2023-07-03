@@ -12,9 +12,10 @@ experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](h
 status](https://www.r-pkg.org/badges/version/matrixset)](https://CRAN.R-project.org/package=matrixset)
 <!-- badges: end -->
 
-A `matrixset` is a container of matrices, each having the same number of
-rows and columns and the same dimnames. Moreover, each dimname must
-uniquely identify elements.
+A `matrixset` is a container of matrices (both `matrix` and types from
+`Matrix` package), each having the same number of rows and columns and
+the same dimnames. Moreover, each dimname must uniquely identify
+elements.
 
 While there is minimal support for `NULL` dimnames (and that is bound to
 change at some point in the future), it is strongly recommended to
@@ -35,10 +36,13 @@ developped to manipulate `matrixset`s, accounting for annotations.
 Many problems that `matrixset` can tackle could be solved via a
 `data.frame` and more specifically using the `tidyverse` suite.
 
-Two reasons for which you may want to use a `matrixset` instead are:
+Three reasons for which you may want to use a `matrixset` instead are:
 
 - object size. The `data.frame` needed to store the same information as
   a `matrixset` can be significantly bigger
+- You can store sparse matrices and other special matrices of package
+  `Matrix`. This, among other advantages, can make the object size
+  argument even more important.
 - You actually need a matrix format, for example for running a PCA.
 
 ## Installation

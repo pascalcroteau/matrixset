@@ -25,7 +25,8 @@ placeholder that can be filled later on.}
 Setting this parameter to \code{TRUE} will enable the expansion
 feature. See the section \sQuote{Matrix Expansion} for more
 details of what it is, as well as other possible options
-for \code{expand}.}
+for \code{expand}. The section will also detail how the default
+expansion value is dependent on the matrix types.}
 
 \item{row_info}{a data frame, used to annotate matrix rows. The link
 between the matrix row names and the data frame is given

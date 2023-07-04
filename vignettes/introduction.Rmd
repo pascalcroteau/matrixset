@@ -25,6 +25,8 @@ library(matrixset)
 It's a container of matrices, each having the same number of rows and columns
 and the same dimnames. Moreover, each dimname must uniquely identify elements.
 
+Both `matrix` and special matrices (from `Matrix` package) objects can be used.
+
 While there is minimal support for `NULL` dimnames (and that is bound to change 
 at some point in the future), it is strongly recommended to provide meaningful
 dimnames. One of the main reason for this is that annotation is impossible with
@@ -44,10 +46,15 @@ only a single matrix, because several methods have been developped to manipulate
 Many problems that `matrixset` can tackle could be solved via a `data.frame` and
 more specifically using the `tidyverse` suite.
 
-Two reasons for which you may want to use a `matrixset` instead are:
+Three reasons for which you may want to use a `matrixset` instead are:
 
  * object size. The `data.frame` needed to store the same information as a
-   `matrixset` can be significantly bigger
+   `matrixset` can be significantly bigger.
+ * You can store sparse matrices and other special matrices of package `Matrix`.
+   This is one of very few ways (maybe even the only way) to annotate special
+   matrices.
+   In addition, dealing with special matrices make the object size argument even
+   more striking when comparing to the data frame strategy.
  * You actually need a matrix format, for example for running a PCA.
 
 ## How to create a matrixset?

@@ -49,8 +49,10 @@ Three reasons for which you may want to use a `matrixset` instead are:
  * object size. The `data.frame` needed to store the same information as a
    `matrixset` can be significantly bigger
  * You can store sparse matrices and other special matrices of package `Matrix`.
-   This, among other advantages, can make the object size argument even more
-   important.
+   This is one of very few ways (maybe even the only way) to annotate special
+   matrices.
+   In addition, dealing with special matrices make the object size argument even
+   more striking when comparing to the data frame strategy.
  * You actually need a matrix format, for example for running a PCA.
 
 ## Installation

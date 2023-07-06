@@ -614,7 +614,15 @@ as_matrixset.default <- function(x, expand = NULL, row_info = NULL,
                                  column_info = NULL, row_key = "rowname",
                                  column_key = "colname", row_tag = ".rowname",
                                  column_tag = ".colname")
-  stop(paste("objects of class", class(x), "are not supported"))
+{
+  if (methods::is(x, "Matrix")) {
+
+    matrixset("..1" = x, row_info = row_info, column_info = column_info,
+              row_key = row_key, column_key = column_key, row_tag = row_tag,
+              column_tag = column_tag)
+
+  } else stop(paste("objects of class", class(x), "are not supported"))
+}
 
 
 #' @export

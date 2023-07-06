@@ -707,6 +707,9 @@ coll <- function(s)
 }
 
 
+
+
+
 print_matrix <- function(m, nrow_print = NULL, ncol_print = NULL,
                          class_print = NULL)
   UseMethod("print_matrix")
@@ -808,7 +811,8 @@ print_matrix.matrix <- function(m, nrow_print = NULL, ncol_print = NULL,
 
 
 
-print_matrix.Matrix <- function(m)
+print_matrix.Matrix <- function(m, nrow_print = NULL, ncol_print = NULL,
+                                class_print = NULL)
 {
   M <- m
 

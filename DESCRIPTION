@@ -1,5 +1,5 @@
 Package: matrixset
-Title: Creating and Manipulating Matrix Ensemble
+Title: Creating, Manipulating and Annotating Matrix Ensemble
 Version: 0.1.1.9000
 Authors@R: 
     person(given = "Pascal",

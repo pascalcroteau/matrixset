@@ -1,4 +1,14 @@
-## Version 0.1.1, resubmission of version 0.1.0 
+# Version 0.2.0
+
+## R CMD check results
+
+0 errors | 0 warnings | 0 notes
+
+## revdepcheck results
+
+No reverse dependencies.
+
+# Version 0.1.1, resubmission of version 0.1.0 
 
 In this resubmission, I have adressed the following comments:
 
@@ -13,6 +23,8 @@ It was also suggested that if there are references describing the methods in
 the package, to add these in the description field of the DESCRIPTION file.
 There are no references related to this package, so none were added to the 
 DESCRIPTION file.
+
+# Version 0.1.0
 
 ## R CMD check results
 

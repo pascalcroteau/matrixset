@@ -36,14 +36,14 @@ test_that("matrixset matrix mutation works", {
                       bar = matrix(1,
                                    nrow=current_n_row(),
                                    ncol=current_n_column()) |>
-                        set_rownames(current_row_name()) |>
-                        set_colnames(current_column_name()))
+                        magrittr::set_rownames(current_row_name()) |>
+                        magrittr::set_colnames(current_column_name()))
   ms2 <- add_matrix(student_results,
                     bar=matrix(1,
                            nrow=nrow(student_results),
                            ncol=ncol(student_results)) |>
-                      set_rownames(rownames(student_results)) |>
-                      set_colnames(colnames(student_results)))
+                      magrittr::set_rownames(rownames(student_results)) |>
+                      magrittr::set_colnames(colnames(student_results)))
   expect_identical(ms, ms2)
 
 
@@ -54,8 +54,8 @@ test_that("matrixset matrix mutation works", {
                            matrix(n,
                                   nrow=current_n_row(),
                                   ncol=current_n_column()) |>
-                             set_rownames(current_row_name()) |>
-                             set_colnames(current_column_name())
+                             magrittr::set_rownames(current_row_name()) |>
+                             magrittr::set_colnames(current_column_name())
                          }
                          foo(1)
                        } )

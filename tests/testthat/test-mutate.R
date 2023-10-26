@@ -30,4 +30,41 @@ test_that("matrixset matrix mutation works", {
                       logFC = log(FC))
   ms2 <- add_matrix(student_results, ms[,,c("FC", "logFC"),keep_annotation=FALSE, warn_class_change = FALSE])
   expect_identical(ms, ms2)
+
+
+  ms <- mutate_matrix(student_results,
+                      bar = matrix(1,
+                                   nrow=current_n_row(),
+                                   ncol=current_n_column()) |>
+                        set_rownames(current_row_name()) |>
+                        set_colnames(current_column_name()))
+  ms2 <- add_matrix(student_results,
+                    bar=matrix(1,
+                           nrow=nrow(student_results),
+                           ncol=ncol(student_results)) |>
+                      set_rownames(rownames(student_results)) |>
+                      set_colnames(colnames(student_results)))
+  expect_identical(ms, ms2)
+
+
+
+  ms2 <- mutate_matrix(student_results,
+                       bar = {
+                         foo <- function(n) {
+                           matrix(n,
+                                  nrow=current_n_row(),
+                                  ncol=current_n_column()) |>
+                             set_rownames(current_row_name()) |>
+                             set_colnames(current_column_name())
+                         }
+                         foo(1)
+                       } )
+  expect_identical(ms, ms2)
+
+
+  ms <- mutate_matrix(student_results,
+                      bar = remedial)
+  ms2 <- add_matrix(student_results,
+                    stats::setNames(ms[,,"remedial",keep_annotation=FALSE, warn_class_change = FALSE], "bar"))
+  expect_identical(ms, ms2)
 })

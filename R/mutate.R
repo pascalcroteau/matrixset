@@ -142,19 +142,107 @@ remove_matrix.matrixset <- function(.ms, matrix)
                    ".\n  If any of these are needed, you should use context functions to make sure to use the correct ones."))
   }
 
+
+
+
+
+
   top <- new.env()
   flush_matrix <- function() ._NULL_
   assign("remove_matrix", flush_matrix, top)
-
   middle <- new.env(parent = top)
   middle <- list2env(.rowinf, middle)
   middle <- list2env(.colinf, middle)
-
-  bottom <- new.env(parent = middle)
+  funs <- new.env(parent = middle)
+  bottom <- new.env(parent = funs)
   bottom <- list2env(.mats, bottom)
-
   mask <- rlang::new_data_mask(bottom, top = top)
   mask$.data <- rlang::as_data_pronoun(mask)
+
+
+
+  funs[["current_row_info"]] <- function() {
+    funs$.__row_info
+  }
+
+  funs[["current_column_info"]] <- function() {
+    funs$.__column_info
+  }
+
+  funs[["current_n_row"]] <- function() {
+    nrow(funs$.__row_info)
+  }
+
+  funs[["current_n_column"]] <- function() {
+    nrow(funs$.__column_info)
+  }
+
+  funs[["current_row_name"]] <- function() {
+    funs$.__row_name
+  }
+
+  funs[["row_pos"]] <- function() {
+    funs$.__row_idx
+  }
+
+  funs[["row_rel_pos"]] <- function() {
+    seq_len(nrow(funs$.__row_info))
+  }
+
+  funs[["current_column_name"]] <- function() {
+    funs$.__column_name
+  }
+
+  funs[["column_pos"]] <- function() {
+    funs$.__col_idx
+  }
+
+  funs[["column_rel_pos"]] <- function() {
+    seq_len(nrow(funs$.__column_info))
+  }
+
+
+  context_enclos("current_row_info", funs)
+  context_enclos("current_column_info", funs)
+  context_enclos("current_n_row", funs)
+  context_enclos("current_n_column", funs)
+  context_enclos("current_row_name", funs)
+  context_enclos("current_column_name", funs)
+  context_enclos("row_pos", funs)
+  context_enclos("row_rel_pos", funs)
+  context_enclos("column_pos", funs)
+  context_enclos("column_rel_pos", funs)
+
+
+  funs[[".__row_info"]] <- .rowinf
+  funs[[".__row_idx"]] <- seq_len(nrow(.ms))
+  funs[[".__row_name"]] <- rownames(.ms)
+  funs[[".__column_info"]] <- .colinf
+  funs[[".__col_idx"]] <- seq_len(ncol(.ms))
+  funs[[".__column_name"]] <- colnames(.ms)
+
+
+
+
+
+
+
+
+
+
+  # top <- new.env()
+  # flush_matrix <- function() ._NULL_
+  # assign("remove_matrix", flush_matrix, top)
+  #
+  # middle <- new.env(parent = top)
+  # middle <- list2env(.rowinf, middle)
+  # middle <- list2env(.colinf, middle)
+  #
+  # bottom <- new.env(parent = middle)
+  # bottom <- list2env(.mats, bottom)
+  #
+  # mask <- rlang::new_data_mask(bottom, top = top)
+  # mask$.data <- rlang::as_data_pronoun(mask)
 
   for (i in seq_along(quos)) {
     assign(names(quos)[i], rlang::eval_tidy(quos[[i]], mask, .env), bottom)
@@ -227,9 +315,10 @@ mutate_matrix <- function(.ms, ...)
   nms <- .matrixnames(.ms)
   all_nms <- unique(c(nms, new_nms), fromLast = TRUE)
 
-  for (i in seq_along(quosures)) {
-    quosures[[i]] <- norm_call(quosures[[i]], NULL, FALSE)
-  }
+  # for (i in seq_along(quosures)) {
+  #   quosures[[i]] <- norm_call(quosures[[i]], NULL, FALSE)
+  # }
+
 
   candidates <- .mutate_mat(quosures, .ms, rlang::caller_env())
   candidates <- candidates[all_nms]

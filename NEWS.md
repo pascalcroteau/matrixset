@@ -1,5 +1,33 @@
 # matrixset (development version)
 
+## Improved performance
+
+A complete rewrite of the `apply_` functions have been performed. The initial
+goal was to have clearer codes to maintain, but from a user perspective, an 
+improvement on speed should be observed as well.
+
+On another positive note, the opportunity of the rewrite was taken to correct
+some bugs (see below).
+
+## Improved functionality
+
+* The `mutate_matrix()` function now has access to context functions.
+* The `apply_` function family gained a new `.force_name` argument, available
+  for the `dfl/dfw` versions. This allows better control in getting meaningful
+  IDs to the outcomes.
+  
+  For instance, using `.force_name` solves the issue
+  [#12](https://github.com/pascalcroteau/matrixset/issues/12)
+
+## Bug correction
+
+* The function `mutate_matrix()` can now accept statements such as 
+  `mutate_matrix(ms, foo=bar)`, which was impossible before.
+* `apply_matrix_df*` now works when subgroup yields 1 x m or n x 1 matrices.
+  This solves [#13](https://github.com/pascalcroteau/matrixset/issues/13)
+* [#12](https://github.com/pascalcroteau/matrixset/issues/12) has been resolved
+  by the addition of the `.force_name` argument.
+
 # matrixset 0.2.0
 
 ## Main new Feature

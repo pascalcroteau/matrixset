@@ -632,7 +632,8 @@ test_that("matrixset 'long' loop works for Matrix", {
 
 
   # grouped
-  grfc <- apply_row_dfl(column_group_by(student_results_M, program), ~ .i2/.i1, .matrix_wise = FALSE)
+  grfc <- apply_row_dfl(column_group_by(student_results_M, program), ~ .i2/.i1,
+                        .matrix_wise = FALSE, .force_name = TRUE)
   grs <- column_group_meta(column_group_by(student_results_M, program))
   fc_ref <- grs
   fc_ref_tmp <- lapply(grs$.rows, function(gr) {
@@ -940,7 +941,8 @@ test_that("matrixset 'wide' loop works", {
   expect_identical(grfc, fc_ref)
 
 
-  grfc <- apply_row_dfw(column_group_by(student_results_M, program), FC = ~.i2/.i1, .matrix_wise = FALSE)
+  grfc <- apply_row_dfw(column_group_by(student_results_M, program), FC = ~.i2/.i1,
+                        .matrix_wise = FALSE, .force_name = TRUE)
   grs <- column_group_meta(column_group_by(student_results_M, program))
   fc_ref_tmp <- lapply(grs$.rows, function(gr) {
     tmp <- lapply(setNames(seq(nrow(student_results_M)), rownames(student_results_M)), function(r) {

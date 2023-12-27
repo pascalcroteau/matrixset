@@ -395,7 +395,7 @@ test_that("matrixset general loop works", {
 
 
 
-  # grouuped
+  # grouped
   #
   grmn <- apply_row(column_group_by(student_results, program), mean)
   grs <- column_group_meta(column_group_by(student_results, program))
@@ -1435,6 +1435,51 @@ test_that("matrixset matrix loop works", {
   expect_equal(e, e_ref, ignore_attr = TRUE)
 
 
+
+
+  fc <- apply_matrix_dfl(student_results, FC = rowMeans(.m),
+                         FC_rob = apply(.m, 1, median))
+  fc_ref <- lapply(seq(nmatrix(student_results)),
+                  function(m) {
+                    .m <- matrix_elm(student_results,m)
+                    .fc <- do.call(cbind,
+                                   list(FC = rowMeans(.m), FC_rob = apply(.m, 1, median)))
+                    .fc <- tibble::as_tibble(.fc, rownames = "FC.name")
+                    .fc <- dplyr::mutate(.fc, FC_rob.name = FC.name)
+                    .fc[, c("FC.name", "FC", "FC_rob.name", "FC_rob")]
+                  })
+  names(fc_ref) <- matrixnames(student_results)
+  expect_identical(fc, fc_ref)
+
+
+  expect_error(apply_matrix_dfl(student_results, FC = rowMeans(.m),
+                                FC_rob = apply(.m, 2, median)),
+               "vectors must be of the same length")
+
+
+
+
+  fc <- apply_matrix_dfw(student_results, FC = rowMeans(.m),
+                         FC_rob = apply(.m, 1, median))
+  fc_ref <- lapply(seq(nmatrix(student_results)),
+                   function(m) {
+                     .m <- matrix_elm(student_results,m)
+                     .fc <- do.call(cbind,
+                                    list(FC = rowMeans(.m), FC_rob = apply(.m, 1, median)))
+                     .fc <- tibble::as_tibble(.fc, rownames = "FC.name")
+                     .fc <- dplyr::mutate(.fc, FC_rob.name = FC.name)
+                     .fc <- tidyr::pivot_wider(.fc,
+                                               names_from = c(FC.name, FC_rob.name),
+                                               values_from = c(FC, FC_rob),
+                                               names_glue = "{.value} {FC.name}")
+                     # .fc[, c("FC.name", "FC", "FC_rob.name", "FC_rob")]
+                   })
+  names(fc_ref) <- matrixnames(student_results)
+  expect_identical(fc, fc_ref)
+
+
+
+
   # .data
   rg <- apply_matrix(student_results, reg = unname(coef(lm(.m ~ .data[["teacher"]] + class))))
   rg_ref <- apply_matrix(student_results, reg = unname(coef(lm(.m ~ teacher + class))))
@@ -1552,6 +1597,240 @@ test_that("matrixset matrix loop works", {
   expect_identical(grmn$remedial$.vals, mn_ref$remedial)
 
 
+
+  grmn <- apply_matrix_dfl(column_group_by(student_results, program), mn=mean)
+  grs <- column_group_meta(column_group_by(student_results, program))
+  mn_ref <- lapply(seq(nmatrix(student_results)),
+                   function(m) {
+                     ans <- grs
+                     grmn_ref <- lapply(grs$.rows, function(gr) {
+                       M <- matrix_elm(student_results,m)
+                       mean(M[, gr])
+                     })
+                     ans$.rows <- NULL
+                     ans$mn <- grmn_ref
+                     ans %>% tidyr::unnest(mn)
+                   })
+  names(mn_ref) <- matrixnames(student_results)
+  expect_identical(grmn, mn_ref)
+
+
+  # grmn <- apply_matrix_dfl(column_group_by(student_results, program), FC = colMeans(.m),
+  #                          FC_rob = apply(.m, 2, median), .force_name = TRUE)
+  # grs <- column_group_meta(column_group_by(student_results, program))
+  # mn_ref <- lapply(seq(nmatrix(student_results)),
+  #                  function(m) {
+  #                    ans <- grs
+  #                    grmn_ref <- lapply(grs$.rows, function(gr) {
+  #                      M <- matrix_elm(student_results,m)
+  #                      Mgr <- M[, gr, drop = FALSE]
+  #                      colMeans(Mgr)
+  #                    })
+  #                    ans$FC <- grmn_ref
+  #
+  #                    grmn_ref <- lapply(grs$.rows, function(gr) {
+  #                      M <- matrix_elm(student_results,m)
+  #                      Mgr <- M[, gr, drop = FALSE]
+  #                      apply(Mgr, 2, median)
+  #
+  #                    })
+  #                    ans$FC_rob <- grmn_ref
+  #                    ans$.rows <- NULL
+  #                    ans %>% tidyr::unnest_longer(c(FC, FC_rob)) %>%
+  #                      dplyr::select(program, FC.name = FC_id, FC,
+  #                                    FC_rob.name = FC_rob_id, FC_rob) %>%
+  #                      dplyr::mutate(FC = unname(FC), FC_rob = unname(FC_rob))
+  #                  })
+  # names(mn_ref) <- matrixnames(student_results)
+  # expect_identical(grmn, mn_ref)
+
+
+  grmn <- apply_matrix_dfl(column_group_by(student_results, program), FC = rowMeans(.m))
+  grs <- column_group_meta(column_group_by(student_results, program))
+  mn_ref <- lapply(seq(nmatrix(student_results)),
+                   function(m) {
+                     ans <- grs
+                     grmn_ref <- lapply(grs$.rows, function(gr) {
+                       M <- matrix_elm(student_results,m)
+                       rowMeans(M[, gr, drop = FALSE])
+                     })
+                     ans$.rows <- NULL
+                     ans$FC <- grmn_ref
+                     ans %>% tidyr::unnest_longer(FC) %>%
+                       dplyr::select(program, FC.name=FC_id, FC) %>%
+                       dplyr::mutate(FC=unname(FC))
+                   })
+  names(mn_ref) <- matrixnames(student_results)
+  expect_identical(grmn, mn_ref)
+
+
+  grfc <- apply_matrix_dfl(row_group_by(student_results, class, teacher), FC = colMeans(.m))
+  grs <- row_group_meta(row_group_by(student_results, class, teacher))
+  fc_ref <- lapply(seq(nmatrix(student_results)),
+                   function(m) {
+                     ans <- grs
+                     grmn_ref <- lapply(grs$.rows, function(gr) {
+                       M <- matrix_elm(student_results,m)
+                       colMeans(M[gr, , drop = FALSE])
+                     })
+                     ans$.rows <- NULL
+                     ans$FC <- grmn_ref
+                     ans %>% tidyr::unnest_longer(FC) %>%
+                       dplyr::select(class, teacher, FC.name=FC_id, FC) %>%
+                       dplyr::mutate(FC=unname(FC))
+                   })
+  names(mn_ref) <- matrixnames(student_results)
+  expect_identical(grmn, mn_ref)
+
+
+
+  grfc <- apply_matrix_dfl(row_group_by(student_results, class, teacher), FC = rowMeans(.m),
+                           FC_rob = apply(.m, 1, mean))
+  grs <- row_group_meta(row_group_by(student_results, class, teacher))
+  fc_ref <- lapply(seq(nmatrix(student_results)),
+                   function(m) {
+                     ans <- grs
+                     grmn_ref <- lapply(grs$.rows, function(gr) {
+                       M <- matrix_elm(student_results,m)
+                       rowMeans(M[gr, , drop = FALSE])
+                     })
+                     ans$FC <- grmn_ref
+
+                     grmn_ref <- lapply(grs$.rows, function(gr) {
+                       M <- matrix_elm(student_results,m)
+                       apply(M[gr, , drop = FALSE], 1, mean)
+                     })
+                     ans$.rows <- NULL
+                     ans$FC_rob <- grmn_ref
+                     ans %>% tidyr::unnest_longer(c(FC, FC_rob)) %>%
+                       dplyr::select(class, teacher, FC.name=FC_id, FC,
+                                     FC_rob.name=FC_rob_id, FC_rob) %>%
+                       dplyr::mutate(FC=unname(FC), FC_rob=unname(FC_rob))
+                   })
+  names(mn_ref) <- matrixnames(student_results)
+  expect_identical(grmn, mn_ref)
+
+
+  # grfc <- apply_matrix_dfl(column_group_by(row_group_by(student_results, teacher), program), FC = colMeans(.m),
+  #                          FC_rob = apply(.m, 2, median), .force_name = TRUE)
+  # grs <- column_group_by(row_group_by(student_results, teacher), program)
+  # grs_row <- row_group_meta(grs)
+  # grs_col <- column_group_meta(grs)
+  # fc_ref <- lapply(seq(nmatrix(student_results)),
+  #                  function(m) {
+  #                    ans <- grs_row
+  #                    M <- matrix_elm(student_results,m)
+  #                    ans$.rows <- NULL
+  #                    grmn_ref <- lapply(grs_row$.rows, function(grr) {
+  #                      lapply(grs_col$.rows, function(grc) {
+  #                        colMeans(M[grr, grc, drop = FALSE])
+  #                      })
+  #                    })
+  #                    ans$FC <- grmn_ref
+  #
+  #                    grmn_ref <- lapply(grs_row$.rows, function(grr) {
+  #                      lapply(grs_col$.rows, function(grc) {
+  #                        apply(M[grr, grc, drop = FALSE], 2, median)
+  #                      })
+  #                    })
+  #                    ans$FC_rob <- grmn_ref
+  #
+  #                    ans %>%
+  #                      tidyr::unnest(c(FC, FC_rob)) %>%
+  #                      tidyr::unnest_longer(c(FC, FC_rob)) %>%
+  #                      dplyr::left_join(column_info(student_results) %>%
+  #                                         dplyr::select(FC_id=.colname, program)) %>%
+  #                      dplyr::select(teacher, program, FC.name=FC_id, FC,
+  #                                    FC_rob.name=FC_rob_id, FC_rob) %>%
+  #                      dplyr::mutate(FC=unname(FC), FC_rob=unname(FC_rob))
+  #                  })
+  # names(fc_ref) <- matrixnames(student_results)
+  # expect_identical(grfc, fc_ref)
+
+
+
+
+
+  #dfw
+  grmn <- apply_matrix_dfw(column_group_by(student_results, program), mn=mean)
+  mn_ref <- apply_matrix_dfl(column_group_by(student_results, program), mn=mean)
+  expect_identical(grmn, mn_ref)
+
+
+
+
+  # grmn <- apply_matrix_dfw(column_group_by(student_results, program), FC = colMeans(.m),
+  #                          FC_rob = apply(.m, 2, median), .force_name = TRUE)
+  # mn_ref <- apply_matrix_dfl(column_group_by(student_results, program), FC = colMeans(.m),
+  #                            FC_rob = apply(.m, 2, median), .force_name = TRUE) %>%
+  #   lapply(function(m) {
+  #     m %>% tidyr::pivot_wider(names_from = c(FC.name, FC_rob.name),
+  #                              values_from = c(FC, FC_rob),
+  #                              names_glue = "{.value} {FC.name}")
+  #   })
+  # nms <- unlist(unique(lapply(grmn, names)))
+  # nms_ref <- unlist(unique(lapply(mn_ref, names)))
+  # expect_true(all(nms %in% nms_ref))
+  # expect_true(all(nms_ref %in% nms))
+  # mn_ref <- purrr::map2(mn_ref, grmn, ~ .x[, names(.y)])
+  # expect_identical(grmn, mn_ref)
+
+
+  fc <- apply_matrix_dfw(column_group_by(student_results, program), FC = rowMeans(.m))
+  fc_ref <- apply_matrix_dfl(column_group_by(student_results, program), FC = rowMeans(.m)) %>%
+    lapply(function(m) {
+      m %>% tidyr::pivot_wider(names_from = FC.name, values_from = FC,
+                               names_glue = "{.value} {FC.name}")
+    })
+  expect_identical(fc, fc_ref)
+
+
+
+  fc <- apply_matrix_dfw(row_group_by(student_results, class, teacher),
+                         FC = colMeans(.m))
+  fc_ref <- apply_matrix_dfl(row_group_by(student_results, class, teacher),
+                             FC = colMeans(.m)) %>%
+    lapply(function(m) {
+      m %>% tidyr::pivot_wider(names_from = FC.name, values_from = FC,
+                               names_glue = "{.value} {FC.name}")
+    })
+  expect_identical(fc, fc_ref)
+
+
+  mn <- apply_matrix_dfw(row_group_by(student_results, class, teacher), FC = rowMeans(.m),
+                         FC_rob = rowMeans(.m))
+  mn_ref <- apply_matrix_dfl(row_group_by(student_results, class, teacher), FC = rowMeans(.m),
+                             FC_rob = rowMeans(.m)) %>%
+    lapply(function(m) {
+      m %>% tidyr::pivot_wider(names_from = c(FC.name, FC_rob.name),
+                               values_from = c(FC, FC_rob),
+                               names_glue = "{.value} {FC.name}")
+    })
+  nms <- unlist(unique(lapply(mn, names)))
+  nms_ref <- unlist(unique(lapply(mn_ref, names)))
+  expect_true(all(nms %in% nms_ref))
+  expect_true(all(nms_ref %in% nms))
+  mn_ref <- purrr::map2(mn_ref, mn, ~ .x[, names(.y)])
+  expect_identical(mn, mn_ref)
+
+
+  # ct <- apply_matrix_dfw(column_group_by(row_group_by(student_results, teacher), program),
+  #                        FC = colMeans(.m),
+  #                        FC_rob = apply(.m, 2, median), .force_name = TRUE)
+  # ct_ref <- apply_matrix_dfl(column_group_by(row_group_by(student_results, teacher), program),
+  #                            FC = colMeans(.m),
+  #                            FC_rob = apply(.m, 2, median), .force_name = TRUE) %>%
+  #   lapply(function(m) {
+  #     m %>% tidyr::pivot_wider(names_from = c(FC.name, FC_rob.name),
+  #                              values_from = c(FC, FC_rob),
+  #                              names_glue = "{.value} {FC.name}")
+  #   })
+  # nms <- unlist(unique(lapply(ct, names)))
+  # nms_ref <- unlist(unique(lapply(ct_ref, names)))
+  # expect_true(all(nms %in% nms_ref))
+  # expect_true(all(nms_ref %in% nms))
+  # ct_ref <- purrr::map2(ct_ref, ct, ~ .x[, names(.y)])
+  # expect_identical(ct, ct_ref)
 
 })
 

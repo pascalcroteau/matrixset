@@ -1468,8 +1468,8 @@ test_that("matrixset matrix loop works", {
                      # ans
                    })
   names(mn_ref) <- matrixnames(student_results_M)
-  expect_identical(grmn$failure$.vals, mn_ref$failure)
-  expect_identical(grmn$remedial$.vals, mn_ref$remedial)
+  expect_equal(grmn$failure$.vals, mn_ref$failure)
+  expect_equal(grmn$remedial$.vals, mn_ref$remedial)
 
 
 

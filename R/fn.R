@@ -1,5 +1,12 @@
 
 
+
+# TEST USING COLUMN TRAIT IN COLUMN LOOP (AND ROW)
+# test same context as margin loop
+
+
+
+
 norm_call <- function(quo, var, .convert_name = TRUE)
 {
   expr <- rlang::quo_get_expr(quo)
@@ -28,20 +35,6 @@ norm_call <- function(quo, var, .convert_name = TRUE)
 
 
 
-
-
-subset_ij <- function(m, i, j) {
-  if (length(i) > 1 || length(j) > 1) return(m[i, j])
-
-  nm <- colnames(m)[j]
-  out <- m[i,j]
-  names(out) <- nm
-  out
-}
-
-
-
-
 assess_fun_names <- function(nms, tag, simplify)
 {
   if (is.na(tag) || !simplify) return(invisible(NULL))
@@ -52,162 +45,46 @@ assess_fun_names <- function(nms, tag, simplify)
 
 
 
-eval_fun_workhorse <- function(margin, ms, ..., matidx, row_first, list_input,
-                               .simplify, env)
-{
-  cl <- sys.call()
-  cash_status$set(cl)
-  on.exit(cash_status$clear(cl))
 
-  if (is.null(ms$matrix_set)) return(NULL)
-
-  wide <- NULL
-  if (!is.logical(.simplify)) {
-    if (.simplify == "wide") wide <- TRUE else wide <- FALSE
-    .simplify <- TRUE
-  }
-
-
-  as_list_mat <- if (is.logical(list_input)) {
-    list_input
-  } else NULL
-
-
-  rnms <- rownames(ms)
-  cnms <- colnames(ms)
-
-
-  if (margin == "row") {
-    gr_idx_row <- as.list(seq_len(nrow(ms)))
-    gr_idx_col <- column_group_where(ms)
-    gr_lbl_row <- rownames(ms)
-    gr_lbl_col <- NULL
-  } else if (margin == "col") {
-    gr_idx_row <- row_group_where(ms)
-    gr_idx_col <- as.list(seq_len(ncol(ms)))
-    gr_lbl_row <- NULL
-    gr_lbl_col <- colnames(ms)
-  } else {
-    gr_idx_row <- row_group_where(ms)
-    gr_idx_col <- column_group_where(ms)
-    gr_lbl_row <- NULL
-    gr_lbl_col <- NULL
-  }
-
-  dropit <- margin != "mat"
-
-
-  if (is.null(matidx)) {
-    nmat <- .nmatrix(ms)
-    matidx <- seq_len(nmat)
-    matnms <- matrixnames(ms)
-  } else {
-    matidx <- index_to_integer(matidx, nmatrix(ms), matrixnames(ms))
-    nmat <- length(matidx)
-    matnms <- matrixnames(ms)[matidx]
-  }
-  seq_mats <- seq_len(nmat)
-
-  quosures <- rlang::enquos(..., .named = TRUE, .ignore_empty = "all")
-
-  var_lab <- switch(margin, "row" = ".i", "col"=".j", "mat" = ".m")
-  mat_lab <- paste0(var_lab, seq_mats)
-
-  nmfn <- names(quosures)
-  tag <- switch(margin, "row" = .rowtag(ms), "col"= .coltag(ms), "mat" = NA_character_)
-  assess_fun_names(nmfn, tag, .simplify)
-
-  nfn <- length(quosures)
-  for (i in seq_len(nfn)) {
-    quosures[[i]] <- norm_call(quosures[[i]], var_lab)
-  }
-
-  val_cntr <- vector('list', nfn)
-  names(val_cntr) <- nmfn
-
-
-  if (!is.null(wide) && !wide && .simplify) {
-    stack <- vector('list', 2*nfn)
-    names(stack)[seq(1,2*nfn,2)] <- paste0(nmfn, ".name")
-    names(stack)[seq(2,2*nfn,2)] <- nmfn
-  }
-
-
-  ngroup_row <- length(gr_idx_row)
-  ngroup_col <- length(gr_idx_col)
-  if (margin == "row") {
-    grouped_col <- ngroup_col > 0
-    grouped_row <- FALSE
-  } else if (margin == "col") {
-    grouped_col <- FALSE
-    grouped_row <- ngroup_row > 0
-  } else {
-    grouped_col <- ngroup_col > 0
-    grouped_row <- ngroup_row > 0
-  }
-  grouped <- grouped_row || grouped_col
-
-  if (ngroup_row == 0L) ngroup_row <- 1L
-  if (ngroup_col == 0L) ngroup_col <- 1L
-
-
-  seq1 <- if (row_first) seq(ngroup_row) else seq(ngroup_col)
-  seq2 <- if (row_first) seq(ngroup_col) else seq(ngroup_row)
-  n1 <- length(seq1)
-  n2 <- length(seq2)
-  asgr1 <- if (row_first) grouped_row || margin == "row" else grouped_col || margin == "col"
-  asgr2 <- if (row_first) grouped_col || margin == "col" else grouped_row || margin == "row"
-  gr_lbl1 <- if (row_first) gr_lbl_row else gr_lbl_col
-  gr_lbl2 <- if (row_first) gr_lbl_col else gr_lbl_row
-
-
-  if (n1 > 1 || asgr1) {
-    tmp <- vector("list", n1)
-    names(tmp) <- gr_lbl1
-  }
-  if (n2 > 1 || asgr2) tmp2 <- vector("list", n2)
-
-  if (n1 > 1 || asgr1) {
-    if (n2 > 1 || asgr2) {
-      for (i in seq_len(n1)) {
-        tmp[[i]] <- tmp2
-        names(tmp[[i]]) <- gr_lbl2
-      }
-    }
-
-  } else {
-
-    if (n2 > 1 || asgr2) {
-      tmp <- tmp2
-      names(tmp) <- gr_lbl2
-    }
-
-  }
-
-
-  if (is.logical(list_input)) {
-    if (n1 > 1 || n2 > 1 || asgr1 || asgr2) v <- tmp
-  } else {
-
-    v <- vector("list", nmat)
-    names(v) <- matnms
-
-    if (n1 > 1 || n2 > 1 || asgr1 || asgr2) {
-      for (k in 1:nmat) v[[k]] <- tmp
-    }
-  }
+.tag <- function(mg) switch(mg, "row" = .rowtag, "col" = .coltag)
+margin <- function(mg) switch (mg, "row" = nrow, "col" = ncol)
+margin_nms <- function(mg) switch (mg, "row" = rownames, "col" = colnames)
+margin_info <- function(mg) switch (mg, "row" = column_info, "col" = row_info)
+margin_info_compl <- function(mg) switch (mg, "row" = row_info, "col" = column_info)
+group_where <- function(mg) switch (mg, "row" = column_group_where, "col" = row_group_where)
+group_meta <- function(mg) switch (mg, "row" = column_group_meta, "col" = row_group_meta)
+margin_group_vars <- function(mg) switch (mg, "row" = column_group_vars, "col" = row_group_vars)
 
 
 
+set_env_expr <- quote({
   top <- new.env()
   middle <- new.env(parent = top)
   funs <- new.env(parent = middle)
   bottom <- new.env(parent = funs)
   mask <- rlang::new_data_mask(bottom, top = top)
   mask$.data <- rlang::as_data_pronoun(mask)
+})
+
+
+context_matidx <- quote({
+  if (is.null(matidx)) {
+    nmat <- .nmatrix(ms)
+    matidx <- seq_len(nmat)
+    seq_mats <- matidx
+    matnms <- matrixnames(ms)
+  } else {
+    matidx <- index_to_integer(matidx, nmatrix(ms), matrixnames(ms))
+    nmat <- length(matidx)
+    seq_mats <- seq_len(nmat)
+    matnms <- matrixnames(ms)[matidx]
+  }
+  seq_mats <- stats::setNames(seq_mats, matnms)
+})
 
 
 
+funs_context_expr <- quote({
   funs[["current_row_info"]] <- function() {
     funs$.__row_info
   }
@@ -241,14 +118,16 @@ eval_fun_workhorse <- function(margin, ms, ..., matidx, row_first, list_input,
   }
 
   funs[["column_pos"]] <- function() {
-    funs$.__col_idx
+    funs$.__column_idx
   }
 
   funs[["column_rel_pos"]] <- function() {
     seq_len(nrow(funs$.__column_info))
   }
+})
 
 
+context_enclos_expr <- quote({
   context_enclos("current_row_info", funs)
   context_enclos("current_column_info", funs)
   context_enclos("current_n_row", funs)
@@ -259,315 +138,125 @@ eval_fun_workhorse <- function(margin, ms, ..., matidx, row_first, list_input,
   context_enclos("row_rel_pos", funs)
   context_enclos("column_pos", funs)
   context_enclos("column_rel_pos", funs)
+})
 
 
-  all_lens <- NULL
-
-  for (gr1 in seq1)
-  {
-    if (row_first) {
-      idx1 <- gr_idx_row[[gr1]]
-
-      if (n1 > 1 || asgr1) {
-        top <- list2env(ms$row_info[idx1, , drop = FALSE], top)
-        funs[[".__row_info"]] <- ms$row_info[idx1, , drop = FALSE]
-        funs[[".__row_idx"]] <- idx1
-        funs[[".__row_name"]] <- rnms[idx1]
-      } else {
-        top <- list2env(ms$row_info, top)
-        funs[[".__row_info"]] <- ms$row_info
-        funs[[".__row_idx"]] <- seq_len(nrow(funs[[".__row_info"]]))
-        funs[[".__row_name"]] <- rnms
-      }
-    } else {
-      idx1 <- gr_idx_col[[gr1]]
-
-      if (n1 > 1 || asgr1) {
-        top <- list2env(ms$column_info[idx1, , drop = FALSE], top)
-        funs[[".__column_info"]] <- ms$column_info[idx1, , drop = FALSE]
-        funs[[".__col_idx"]] <- idx1
-        funs[[".__column_name"]] <- cnms[idx1]
-      } else {
-        top <- list2env(ms$column_info, top)
-        funs[[".__column_info"]] <- ms$column_info
-        funs[[".__col_idx"]] <- seq_len(nrow(funs[[".__column_info"]]))
-        funs[[".__column_name"]] <- cnms
-      }
-    }
-
-    for (gr2 in seq2)
-    {
-      if (row_first) {
-        idx2 <- gr_idx_col[[gr2]]
-
-        if (n2 > 1 || asgr2) {
-          top <- list2env(ms$column_info[idx2, , drop = FALSE], top)
-          funs[[".__column_info"]] <- ms$column_info[idx2, , drop = FALSE]
-          funs[[".__col_idx"]] <- idx2
-          funs[[".__column_name"]] <- cnms[idx2]
-        } else {
-          top <- list2env(ms$column_info, top)
-          funs[[".__column_info"]] <- ms$column_info
-          funs[[".__col_idx"]] <- seq_len(nrow(funs[[".__column_info"]]))
-          funs[[".__column_name"]] <- cnms
-        }
-      } else {
-        idx2 <- gr_idx_row[[gr2]]
-
-        if (n2 > 1 || asgr2) {
-          top <- list2env(ms$row_info[idx2, , drop = FALSE], top)
-          funs[[".__row_info"]] <- ms$row_info[idx2, , drop = FALSE]
-          funs[[".__row_idx"]] <- idx2
-          funs[[".__row_name"]] <- rnms[idx2]
-        } else {
-          top <- list2env(ms$row_info, top)
-          funs[[".__row_info"]] <- ms$row_info
-          funs[[".__row_idx"]] <- seq_len(nrow(funs[[".__row_info"]]))
-          funs[[".__row_name"]] <- rnms
-        }
-      }
 
 
-      if (is.logical(list_input)) {
-        mat_list <- vector("list", nmat)
-        names(mat_list) <- matnms
-      }
+context_funs_assign_expr <- function(mrg, inf_sym, idx_expr, name_expr)
+{
+  switch(mrg,
+         row = substitute({
+           funs[[".__row_info"]] <- inf
+           funs[[".__row_idx"]] <- idx
+           funs[[".__row_name"]] <- nms
+         },
+         list(inf = inf_sym,
+              idx = idx_expr,
+              nms = name_expr)),
+
+         substitute({
+           funs[[".__column_info"]] <- inf
+           funs[[".__column_idx"]] <- idx
+           funs[[".__column_name"]] <- nms
+         },
+         list(inf = inf_sym,
+              idx = idx_expr,
+              nms = name_expr)))
+}
 
 
-      for (k in seq_len(nmat))
-      {
-        if (is.null(ms$matrix_set[[matidx[k]]])) {
-          if (is.logical(list_input)) {
-            NULL
-          } else {
-            if (.simplify) {
-              for (vidx in seq_len(nfn)) val_cntr[[vidx]] <- ._NULL_
-            } else {
-              for (vidx in seq_len(nfn)) val_cntr[vidx] <- list(NULL)
-            }
-            val <- val_cntr
-          }
-        } else {
-
-          mat <- if (row_first) {
-            if (n1 > 1 || asgr1) {
-              if (n2 > 1 || asgr2) {
-                subset_ij(ms$matrix_set[[matidx[k]]], gr_idx_row[[gr1]], gr_idx_col[[gr2]])
-              } else {
-                ms$matrix_set[[matidx[k]]][gr_idx_row[[gr1]], , drop = dropit]
-              }
-            } else {
-              if (n2 > 1 || asgr2) {
-                ms$matrix_set[[matidx[k]]][, gr_idx_col[[gr2]], drop = dropit]
-              } else {
-                ms$matrix_set[[matidx[k]]]
-              }
-            }
-          } else {
-            if (n1 > 1 || asgr1) {
-              if (n2 > 1 || asgr2) {
-                subset_ij(ms$matrix_set[[matidx[k]]], gr_idx_row[[gr2]], gr_idx_col[[gr1]])
-              } else {
-                ms$matrix_set[[matidx[k]]][gr_idx_row[[gr1]], , drop = dropit]
-              }
-            } else {
-              if (n2 > 1 || asgr2) {
-                ms$matrix_set[[matidx[k]]][, gr_idx_col[[gr2]], drop = dropit]
-              } else {
-                ms$matrix_set[[matidx[k]]]
-              }
-            }
-          }
-
-          if (is.logical(list_input)) {
-            mat_list[[k]] <- mat
-          } else {
-            middle[[var_lab]] <- mat
-
-            for (vidx in seq_len(nfn))
-              val_cntr[[vidx]] <- rlang::eval_tidy(quosures[[vidx]], mask, env)
-            val <- val_cntr
-          }
-
-        }
-
-        if (!is.logical(list_input)) {
-
-          if (.simplify) {
-
-            is_vect <- sapply(val, is.vector)
-            lens <- mapply(function(vl, lgl) if (is_null_obj(vl)) -1 else if(lgl) length(vl) else 0, val, is_vect)
-            lens <- unique(lens)
 
 
-            if (length(lens) == 1L && lens > 0) {
+eval_fun_margin <- function(ms, mrg, var_lab, ..., matidx, .simplify, env)
+{
+  cl <- sys.call()
+  cash_status$set(cl)
+  on.exit(cash_status$clear(cl))
 
-              if (wide) {
+  nmat <- NULL
+  seq_mats <- NULL
+  matnms <- NULL
+  mask <- NULL
 
-                if (lens > 1) {
-                  val <- purrr::imap_dfc(val, function(v, nm) {
-                    names(v) <- concat(nm, make_names(v, ""), sep = " ")
-                    tibble::new_tibble(list_row(v), nrow = 1)
-                  })
-                } else {
-                  val <- tibble::as_tibble(val)
-                }
+  if (is.null(ms$matrix_set)) return(NULL)
 
-              } else {
+  N <- margin(mrg)(ms)
+  inf <- margin_info(mrg)(ms)
+  inf_compl <- margin_info_compl(mrg)(ms)
 
-                if (lens > 1) {
+  mrg_compl <- switch(mrg, row = "col", "row")
 
-                  for (vi in seq_along(val)) {
-                    val_tmp <- val[[vi]]
-                    nms <- make_names(val_tmp, "")
-                    names(val_tmp) <- NULL
-                    stack[[2*vi-1]] <- nms
-                    stack[[2*vi]] <- val_tmp
-                  }
+  eval(context_matidx)
 
-                  val <- tibble::as_tibble(stack)
-
-                } else {
-                  val <- tibble::as_tibble(val)
-                }
-
-              }
-            } else {
-              if (length(lens) > 1)
-                stop("vectors must be of the same length", call. = FALSE)
-              if (lens == 0L) stop("function results must be non-empty vectors")
-            }
-          }
-
-          if (row_first) {
-            if (n1 > 1 || asgr1) {
-              if (n2 > 1 || asgr2) {
-                v[[k]][[gr1]][[gr2]] <- val
-              } else {
-                v[[k]][[gr1]] <- val
-              }
-            } else {
-              if (n2 > 1 || asgr2) {
-                v[[k]][[gr2]] <- val
-              } else {
-                v[[k]] <- val
-              }
-            }
-          } else {
-            if (n1 > 1 || asgr1) {
-              if (n2 > 1 || asgr2) {
-                v[[k]][[gr1]][[gr2]] <- val
-              } else {
-                v[[k]][[gr1]] <- val
-              }
-            } else {
-              if (n2 > 1 || asgr2) {
-                v[[k]][[gr2]] <- val
-              } else {
-                v[[k]]<- val
-              }
-            }
-          }
-
-        }
-
-      }
-
-      if (is.logical(list_input)) {
-        if (as_list_mat) {
-          middle[[var_lab]] <- mat_list
-        } else {
-          names(mat_list) <- mat_lab
-          middle <- list2env(mat_list, envir = middle)
-        }
-
-        for (vidx in seq_len(nfn))
-          val_cntr[[vidx]] <- rlang::eval_tidy(quosures[[vidx]], mask, env)
-        val <- val_cntr
+  quosures <- rlang::enquos(..., .named = TRUE, .ignore_empty = "all")
 
 
-        if (.simplify) {
+  nmfn <- names(quosures)
+  assess_fun_names(nmfn, .tag(mrg)(ms), .simplify)
 
-          is_vect <- sapply(val, is.vector)
-          lens <- mapply(function(vl, lgl) if (is.null(vl)) -1 else if(lgl) length(vl) else 0, val, is_vect)
-          lens <- unique(lens)
-          all_lens <- union(all_lens, lens)
-
-          if (length(lens) == 1L && lens > 0) {
-
-            if (wide) {
-
-              if (lens > 1 || grouped) {
-                val <- purrr::imap_dfc(val, function(v, nm) {
-                  names(v) <- concat(nm, make_names(v, "", length(v) == 1L), sep = " ")
-                  tibble::new_tibble(list_row(v), nrow = 1)
-                })
-              } else {
-                val <- tibble::as_tibble(val)
-              }
-
-            } else {
-
-              for (vi in seq_along(val)) {
-                val_tmp <- val[[vi]]
-                nms <- make_names(val_tmp, "")
-                names(val_tmp) <- NULL
-                stack[[2*vi-1]] <- nms
-                stack[[2*vi]] <- val_tmp
-              }
-
-              val <- tibble::as_tibble(stack)
-            }
-          } else {
-            if (length(lens) > 1)
-              stop("vectors must be of the same length", call. = FALSE)
-            if (lens == 0L) stop("function results must be non-empty vectors")
-          }
-        }
-
-
-        if (row_first) {
-          if (n1 > 1 || asgr1) {
-            if (n2 > 1 || asgr2) {
-              v[[gr1]][[gr2]] <- val
-            } else {
-              v[[gr1]] <- val
-            }
-          } else {
-            if (n2 > 1 || asgr2) {
-              v[[gr2]] <- val
-            } else {
-              v <- val
-            }
-          }
-        } else {
-          if (n1 > 1 || asgr1) {
-            if (n2 > 1 || asgr2) {
-              v[[gr1]][[gr2]] <- val
-            } else {
-              v[[gr1]] <- val
-            }
-          } else {
-            if (n2 > 1 || asgr2) {
-              v[[gr2]] <- val
-            } else {
-              v <- val
-            }
-          }
-        }
-      }
-
-    }
+  nfn <- length(quosures)
+  seq_fn <- stats::setNames(seq_len(nfn), nmfn)
+  for (i in seq_fn) {
+    quosures[[i]] <- norm_call(quosures[[i]], var_lab)
   }
 
-  if (.simplify && length(all_lens) == 1L && all_lens == 1L) {
-    if (wide) {
-      attr(v, "strip_nms") <- TRUE
-    } else {
-      drop_nms <- names(stack)[seq(1, 2*nfn, 2)]
-      attr(v, "drop_col") <- drop_nms
+  eval(set_env_expr)
+
+  eval(funs_context_expr)
+  eval(context_enclos_expr)
+
+
+
+
+  v <- vector('list', nmat)
+  names(v) <- matnms
+
+  vm <- vector('list', N)
+  names(vm) <- margin_nms(mrg)(ms)
+
+  vf <- vector('list', nfn)
+  names(vf) <- nmfn
+
+  top <- list2env(inf, top)
+
+  eval(context_funs_assign_expr(mrg_compl, quote(inf),
+                                quote(seq_len(margin(mrg_compl)(ms))),
+                                quote(margin_nms(mrg_compl)(ms))))
+
+  for (k in seq_mats) {
+
+    M <- ms$matrix_set[[matidx[[k]]]]
+
+    for (j in 1:N) {
+
+      inf_compl_j <- inf_compl[j, , drop = FALSE]
+      top <- list2env(inf_compl_j, top)
+
+      eval(context_funs_assign_expr(mrg, quote(inf_compl_j), quote(j),
+                                    quote(margin_nms(mrg)(ms)[j])))
+
+      if (!is.null(M)) {
+        mat <- if (mrg == "row") M[j, , drop = TRUE] else M[, j, drop = TRUE]
+        middle[[var_lab]] <- mat
+      }
+
+      for (vidx in seq_fn) {
+
+        if (is.null(M)) {
+          vf[vidx] <- list(NULL)
+        } else {
+          vf[[vidx]] <- rlang::eval_tidy(quosures[[vidx]], mask, env)
+        }
+
+      }
+      vm[[j]] <- vf
     }
+
+    v[[k]] <- vm
+
   }
+
 
   v
 
@@ -576,17 +265,1400 @@ eval_fun_workhorse <- function(margin, ms, ..., matidx, row_first, list_input,
 
 
 
-eval_fun <- function(margin, ms, ..., matidx, row_first, .simplify, env) {
-  eval_fun_workhorse(margin, ms, ..., matidx=matidx, row_first=row_first,
-                     list_input=NULL, .simplify=.simplify, env=env)
+
+eval_fun_margin_grp <- function(ms, mrg, var_lab, ..., matidx, .simplify, env)
+{
+  cl <- sys.call()
+  cash_status$set(cl)
+  on.exit(cash_status$clear(cl))
+
+  nmat <- NULL
+  seq_mats <- NULL
+  matnms <- NULL
+  mask <- NULL
+
+  if (is.null(ms$matrix_set)) return(NULL)
+
+  N <- margin(mrg)(ms)
+  inf <- margin_info(mrg)(ms)
+  inf_compl <- margin_info_compl(mrg)(ms)
+
+  gr_idx <- group_where(mrg)(ms)
+
+  ngroup <- length(gr_idx)
+
+  mrg_compl <- switch(mrg, row = "col", "row")
+
+  eval(context_matidx)
+
+  quosures <- rlang::enquos(..., .named = TRUE, .ignore_empty = "all")
+
+
+  nmfn <- names(quosures)
+  assess_fun_names(nmfn, .tag(mrg)(ms), .simplify)
+
+  nfn <- length(quosures)
+  seq_fn <- stats::setNames(seq_len(nfn), nmfn)
+  for (i in seq_fn) {
+    quosures[[i]] <- norm_call(quosures[[i]], var_lab)
+  }
+
+  eval(set_env_expr)
+
+  eval(funs_context_expr)
+  eval(context_enclos_expr)
+
+
+
+  v <- vector('list', ngroup)
+
+  vmt <- vector('list', nmat)
+  names(vmt) <- matnms
+
+  vm <- vector('list', N)
+  names(vm) <- margin_nms(mrg)(ms)
+
+  vf <- vector('list', nfn)
+  names(vf) <- nmfn
+
+  for (gr in 1:ngroup) {
+
+    idx <- gr_idx[[gr]]
+
+    inf_idx <- inf[idx, , drop = FALSE]
+    top <- list2env(inf_idx, top)
+
+    eval(context_funs_assign_expr(mrg_compl, quote(inf_idx), quote(idx),
+                                  quote(margin_nms(mrg_compl)(ms)[idx])))
+
+
+    for (k in seq_mats) {
+
+      Mfull <- ms$matrix_set[[matidx[[k]]]]
+
+      if (!is.null(Mfull)) {
+        M <- if (mrg == "row") Mfull[, idx, drop = FALSE] else Mfull[idx, , drop = FALSE]
+      }
+
+      for (j in 1:N) {
+
+        inf_compl_j <- inf_compl[j, , drop = FALSE]
+        top <- list2env(inf_compl_j, top)
+
+        eval(context_funs_assign_expr(mrg, quote(inf_compl_j), quote(j),
+                                      quote(margin_nms(mrg)(ms)[j])))
+
+        if (is.null(Mfull)) {
+          for (vidx in seq_fn) vf[vidx] <- list(NULL)
+        } else {
+
+          mat <- if (mrg == "row") M[j, , drop = TRUE] else M[, j, drop = TRUE]
+          middle[[var_lab]] <- mat
+
+          for (vidx in seq_fn) {
+            vf[[vidx]] <- rlang::eval_tidy(quosures[[vidx]], mask, env)
+          }
+
+        }
+
+        vm[[j]] <- vf
+
+      }
+
+      vmt[[k]] <- vm
+
+    }
+
+    v[[gr]] <- vmt
+
+  }
+
+
+  ans <- group_meta(mrg)(ms)
+  ans$.rows <- NULL
+  v <- lapply(seq_mats, function(k) {
+    ans$.vals <- lapply(1:ngroup, function(gr) {
+      v[[gr]][[k]]
+    })
+    ans
+  })
+
+  if (.simplify) attr(v, "group_vars") <- margin_group_vars(mrg)(ms)
+
+  v
+
 }
 
 
-eval_fun_mult <- function(margin, ms, ..., matidx, row_first, list_input,
-                          .simplify, env) {
-  eval_fun_workhorse(margin, ms, ..., matidx=matidx, row_first=row_first,
-                     list_input=list_input, .simplify=.simplify, env=env)
+
+
+
+eval_fun_margin_mult <- function(ms, mrg, var_lab, ..., matidx, as_list_mat,
+                                 .simplify, env)
+{
+  cl <- sys.call()
+  cash_status$set(cl)
+  on.exit(cash_status$clear(cl))
+
+  nmat <- NULL
+  seq_mats <- NULL
+  matnms <- NULL
+  mask <- NULL
+
+  if (is.null(ms$matrix_set)) return(NULL)
+
+  N <- margin(mrg)(ms)
+  inf <- margin_info(mrg)(ms)
+  inf_compl <- margin_info_compl(mrg)(ms)
+
+  mrg_compl <- switch(mrg, row = "col", "row")
+
+  eval(context_matidx)
+
+  quosures <- rlang::enquos(..., .named = TRUE, .ignore_empty = "all")
+
+  if (!as_list_mat) mat_lab <- paste0(var_lab, seq_mats)
+
+  nmfn <- names(quosures)
+  assess_fun_names(nmfn, .tag(mrg)(ms), .simplify)
+
+  nfn <- length(quosures)
+  seq_fn <- stats::setNames(seq_len(nfn), nmfn)
+  for (i in seq_fn) {
+    quosures[[i]] <- norm_call(quosures[[i]], var_lab)
+  }
+
+  eval(set_env_expr)
+
+  eval(funs_context_expr)
+  eval(context_enclos_expr)
+
+  mat_list <- vector("list", nmat)
+  names(mat_list) <- matnms
+
+  val <- vector("list", N)
+  names(val) <- margin_nms(mrg)(ms)
+
+  v <- vector('list', nfn)
+  names(v) <- nmfn
+
+  top <- list2env(inf, top)
+
+  eval(context_funs_assign_expr(mrg_compl, quote(inf),
+                                quote(seq_len(margin(mrg_compl)(ms))),
+                                quote(margin_nms(mrg_compl)(ms))))
+
+
+  for (j in 1:N) {
+
+    inf_compl_j <- inf_compl[j, , drop = FALSE]
+
+    eval(context_funs_assign_expr(mrg, quote(inf_compl_j), quote(j),
+                                  quote(margin_nms(mrg)(ms)[j])))
+
+    top <- list2env(inf_compl_j, top)
+
+    for (k in seq_mats) {
+
+      M <- ms$matrix_set[[matidx[[k]]]]
+
+
+      if (!is.null(M)) {
+        mat_list[[k]] <- if (mrg == "row") M[j, , drop = TRUE] else M[, j, drop = TRUE]
+      }
+
+    }
+
+    if (as_list_mat) {
+      middle[[var_lab]] <- mat_list
+    } else {
+      names(mat_list) <- mat_lab
+      middle <- list2env(mat_list, envir = middle)
+    }
+
+
+    for (vidx in seq_fn)
+      v[[vidx]] <- rlang::eval_tidy(quosures[[vidx]], mask, env)
+    val[[j]] <- v
+
+
+  }
+
+
+  val
+
 }
+
+
+
+
+
+eval_fun_margin_grp_mult <- function(ms, mrg, var_lab, ..., matidx, as_list_mat,
+                                     .simplify, env)
+{
+  cl <- sys.call()
+  cash_status$set(cl)
+  on.exit(cash_status$clear(cl))
+
+  nmat <- NULL
+  seq_mats <- NULL
+  matnms <- NULL
+  mask <- NULL
+
+  if (is.null(ms$matrix_set)) return(NULL)
+
+  N <- margin(mrg)(ms)
+  inf <- margin_info(mrg)(ms)
+  inf_compl <- margin_info_compl(mrg)(ms)
+
+  gr_idx <- group_where(mrg)(ms)
+  ngroup <- length(gr_idx)
+
+  mrg_compl <- switch(mrg, row = "col", "row")
+
+  eval(context_matidx)
+
+  quosures <- rlang::enquos(..., .named = TRUE, .ignore_empty = "all")
+
+  if (!as_list_mat) mat_lab <- paste0(var_lab, seq_mats)
+
+  nmfn <- names(quosures)
+  assess_fun_names(nmfn, .tag(mrg)(ms), .simplify)
+
+  nfn <- length(quosures)
+  seq_fn <- stats::setNames(seq_len(nfn), nmfn)
+  for (i in seq_fn) {
+    quosures[[i]] <- norm_call(quosures[[i]], var_lab)
+  }
+
+  eval(set_env_expr)
+
+  eval(funs_context_expr)
+  eval(context_enclos_expr)
+
+
+  mat_list <- vector("list", nmat)
+  names(mat_list) <- matnms
+
+  val <- vector('list', nfn)
+  names(val) <- nmfn
+
+  vj <- vector('list', N)
+  names(vj) <- margin_nms(mrg)(ms)
+
+  v <- vector('list', ngroup)
+
+  for (gr in 1:ngroup) {
+
+    idx <- gr_idx[[gr]]
+
+    inf_idx <- inf[idx, , drop = FALSE]
+    top <- list2env(inf_idx, top)
+
+    eval(context_funs_assign_expr(mrg_compl, quote(inf_idx), quote(idx),
+                                  quote(margin_nms(mrg_compl)(ms)[idx])))
+
+
+    for (j in 1:N) {
+
+      inf_compl_j <- inf_compl[j, , drop = FALSE]
+
+      eval(context_funs_assign_expr(mrg, quote(inf_compl_j), quote(j),
+                                    quote(margin_nms(mrg)(ms)[j])))
+
+      top <- list2env(inf_compl_j, top)
+
+
+      for (k in seq_mats) {
+
+        M <- ms$matrix_set[[matidx[[k]]]]
+
+        if (!is.null(M)) {
+          mat_list[[k]] <- if (mrg == "row") M[j, , drop = TRUE][idx] else M[, j, drop = TRUE][idx]
+        }
+
+      }
+
+      if (as_list_mat) {
+        middle[[var_lab]] <- mat_list
+      } else {
+        names(mat_list) <- mat_lab
+        middle <- list2env(mat_list, envir = middle)
+      }
+
+
+      for (vidx in seq_fn)
+        val[[vidx]] <- rlang::eval_tidy(quosures[[vidx]], mask, env)
+      vj[[j]] <- val
+
+    }
+
+    v[[gr]] <- vj
+
+  }
+
+
+  ans <- group_meta(mrg)(ms)
+  ans$.rows <- NULL
+  ans$.vals <- v
+
+
+  if (.simplify) attr(ans, "group_vars") <- margin_group_vars(mrg)(ms)
+
+
+  ans
+
+}
+
+
+
+
+
+
+eval_fun_matrix <- function(ms, ..., matidx, .simplify, env)
+{
+  cl <- sys.call()
+  cash_status$set(cl)
+  on.exit(cash_status$clear(cl))
+
+  nmat <- NULL
+  seq_mats <- NULL
+  matnms <- NULL
+  mask <- NULL
+
+  if (is.null(ms$matrix_set)) return(NULL)
+
+  var_lab <- var_lab_mat
+
+  nr <- nrow(ms)
+  nc <- ncol(ms)
+  rinf <- row_info(ms)
+  cinf <- column_info(ms)
+
+  eval(context_matidx)
+
+  quosures <- rlang::enquos(..., .named = TRUE, .ignore_empty = "all")
+
+
+  nmfn <- names(quosures)
+  assess_fun_names(nmfn, .rowtag(ms), .simplify)
+  assess_fun_names(nmfn, .coltag(ms), .simplify)
+
+  nfn <- length(quosures)
+  seq_fn <- stats::setNames(seq_len(nfn), nmfn)
+  for (i in seq_fn) {
+    quosures[[i]] <- norm_call(quosures[[i]], var_lab)
+  }
+
+  eval(set_env_expr)
+
+  eval(funs_context_expr)
+  eval(context_enclos_expr)
+
+
+  v <- vector('list', nmat)
+  names(v) <- matnms
+
+  vf <- vector('list', nfn)
+  names(vf) <- nmfn
+
+  top <- list2env(cinf, top)
+  top <- list2env(rinf, top)
+  eval(context_funs_assign_expr("col", quote(cinf), quote(seq_len(ncol(ms))),
+                                quote(colnames(ms))))
+  eval(context_funs_assign_expr("row", quote(rinf), quote(seq_len(nrow(ms))),
+                                quote(rownames(ms))))
+
+
+  for (k in seq_mats) {
+
+    M <- ms$matrix_set[[matidx[[k]]]]
+
+
+    if (!is.null(M)) {
+      middle[[var_lab]] <- M
+    }
+
+    for (vidx in seq_fn) {
+
+      if (is.null(M)) {
+        vf[vidx] <- list(NULL)
+      } else {
+        vf[[vidx]] <- rlang::eval_tidy(quosures[[vidx]], mask, env)
+      }
+
+    }
+
+    v[[k]] <- vf
+
+  }
+
+
+  v
+
+}
+
+
+
+
+#sgms = singly grouped matrixset
+eval_fun_matrix_sgms <- function(ms, mrg, ..., matidx, .simplify, env)
+{
+  cl <- sys.call()
+  cash_status$set(cl)
+  on.exit(cash_status$clear(cl))
+
+  nmat <- NULL
+  seq_mats <- NULL
+  matnms <- NULL
+  mask <- NULL
+
+  if (is.null(ms$matrix_set)) return(NULL)
+
+  var_lab <- var_lab_mat
+  mrg_compl <- switch(mrg, row = "col", col = "row", "oops")
+  if (mrg_compl == "oops") stop("wrong margin specification")
+
+  nr <- nrow(ms)
+  nc <- ncol(ms)
+  inf <- switch(mrg, row = row_info(ms), column_info(ms))
+  inf_compl <- switch(mrg_compl, row = row_info(ms), column_info(ms))
+
+
+  gr_idx <- switch(mrg, "row"=row_group_where(ms), column_group_where(ms))
+  ngroup <- length(gr_idx)
+
+  eval(context_matidx)
+
+  quosures <- rlang::enquos(..., .named = TRUE, .ignore_empty = "all")
+
+
+  nmfn <- names(quosures)
+  assess_fun_names(nmfn, .rowtag(ms), .simplify)
+  assess_fun_names(nmfn, .coltag(ms), .simplify)
+
+  nfn <- length(quosures)
+  seq_fn <- stats::setNames(seq_len(nfn), nmfn)
+  for (i in seq_fn) {
+    quosures[[i]] <- norm_call(quosures[[i]], var_lab)
+  }
+
+
+  eval(set_env_expr)
+
+  eval(funs_context_expr)
+  eval(context_enclos_expr)
+
+  v <- vector('list', ngroup)
+
+  vmt <- vector('list', nmat)
+  names(vmt) <- matnms
+
+  vf <- vector('list', nfn)
+  names(vf) <- nmfn
+
+  for (gr in 1:ngroup) {
+
+    idx <- gr_idx[[gr]]
+
+    inf_idx <- inf[idx, , drop = FALSE]
+    top <- list2env(inf_idx, top)
+
+    eval(context_funs_assign_expr(mrg, quote(inf_idx), quote(idx),
+                                  quote(margin_nms(mrg)(ms)[idx])))
+
+    top <- list2env(inf_compl, top)
+
+    eval(context_funs_assign_expr(mrg_compl, quote(inf_compl),
+                                  quote(seq_len(margin(mrg_compl)(ms))),
+                                  quote(margin_nms(mrg_compl)(ms))))
+
+
+    for (k in seq_mats) {
+
+      M <- ms$matrix_set[[matidx[[k]]]]
+      M <- switch(mrg, row=M[idx, , drop = FALSE], M[, idx, drop = FALSE])
+
+
+      if (!is.null(M)) {
+        middle[[var_lab]] <- M
+      }
+
+      for (vidx in seq_fn) {
+
+        if (is.null(M)) {
+          vf[vidx] <- list(NULL)
+        } else {
+          vf[[vidx]] <- rlang::eval_tidy(quosures[[vidx]], mask, env)
+        }
+
+      }
+
+      vmt[[k]] <- vf
+
+    }
+    v[[gr]] <- vmt
+  }
+
+
+  ans <- group_meta(mrg_compl)(ms)
+  ans$.rows <- NULL
+  v <- lapply(seq_mats, function(k) {
+    ans$.vals <- lapply(1:ngroup, function(gr) {
+      v[[gr]][[k]]
+    })
+    ans
+  })
+
+  if (.simplify) attr(v, "group_vars") <- margin_group_vars(mrg_compl)(ms)
+
+  v
+
+}
+
+
+
+
+eval_fun_matrix_dgms <- function(ms, ..., matidx, .simplify, env)
+{
+  cl <- sys.call()
+  cash_status$set(cl)
+  on.exit(cash_status$clear(cl))
+
+  nmat <- NULL
+  seq_mats <- NULL
+  matnms <- NULL
+  mask <- NULL
+
+  if (is.null(ms$matrix_set)) return(NULL)
+
+  var_lab <- var_lab_mat
+
+  nr <- nrow(ms)
+  nc <- ncol(ms)
+  rinf <- row_info(ms)
+  cinf <- column_info(ms)
+
+  gr_idx_row <- row_group_where(ms)
+  gr_idx_col <- column_group_where(ms)
+  ngroup_row <- length(gr_idx_row)
+  ngroup_col <- length(gr_idx_col)
+
+  eval(context_matidx)
+
+  quosures <- rlang::enquos(..., .named = TRUE, .ignore_empty = "all")
+
+
+  nmfn <- names(quosures)
+  assess_fun_names(nmfn, .rowtag(ms), .simplify)
+  assess_fun_names(nmfn, .coltag(ms), .simplify)
+
+  nfn <- length(quosures)
+  seq_fn <- stats::setNames(seq_len(nfn), nmfn)
+  for (i in seq_fn) {
+    quosures[[i]] <- norm_call(quosures[[i]], var_lab)
+  }
+
+  eval(set_env_expr)
+
+  eval(funs_context_expr)
+  eval(context_enclos_expr)
+
+  ans_col <- column_group_meta(ms)
+  ans_col$.rows <- NULL
+
+  v <- vector('list', ngroup_row)
+  vr <- vector('list', ngroup_col)
+
+  vmt <- vector('list', nmat)
+  names(vmt) <- matnms
+
+  vf <- vector('list', nfn)
+  names(vf) <- nmfn
+
+  for (grr in 1:ngroup_row) {
+
+
+    for (grc in 1:ngroup_col) {
+
+      idx_row <- gr_idx_row[[grr]]
+      idx_col <- gr_idx_col[[grc]]
+
+      inf_idx <- rinf[idx_row, , drop = FALSE]
+      inf_compl <- cinf[idx_col, , drop = FALSE]
+      top <- list2env(inf_idx, top)
+      top <- list2env(inf_compl, top)
+
+      eval(context_funs_assign_expr("row", quote(inf_idx), quote(idx_row),
+                                    quote(rownames(ms)[idx_row])))
+      eval(context_funs_assign_expr("col", quote(inf_compl), quote(idx_col),
+                                    quote(colnames(ms)[idx_col])))
+
+      for (k in seq_mats) {
+
+        M <- ms$matrix_set[[matidx[[k]]]]
+
+
+        if (!is.null(M)) {
+          M <- M[idx_row, idx_col, drop = FALSE]
+          middle[[var_lab]] <- M
+        }
+
+        for (vidx in seq_fn) {
+
+          if (is.null(M)) {
+            vf[vidx] <- list(NULL)
+          } else {
+            vf[[vidx]] <- rlang::eval_tidy(quosures[[vidx]], mask, env)
+          }
+
+        }
+
+        vmt[[k]] <- vf
+
+      }
+
+      vr[[grc]] <- vmt
+
+    }
+
+    vtmp <- lapply(seq_mats, function(k) {
+      ans_col$.vals <- lapply(1:ngroup_col, function(gr) {
+        vr[[gr]][[k]]
+      })
+      ans_col
+    })
+    v[[grr]] <- vtmp
+
+
+  }
+
+
+  ans <- row_group_meta(ms)
+  ans$.rows <- NULL
+  vans <- lapply(seq_mats, function(k) {
+    ans$.___tmp___ <- lapply(1:ngroup_row, function(gr) {
+      v[[gr]][[k]]
+    })
+    tidyr::unnest(ans, .data$.___tmp___)
+  })
+
+  if (.simplify) attr(vans, "group_vars") <- margin_group_vars("row")(ms)
+
+  vans
+
+}
+
+
+
+
+
+eval_fun_matrix_mult <- function(ms, ..., matidx, as_list_mat, .simplify, env)
+{
+  cl <- sys.call()
+  cash_status$set(cl)
+  on.exit(cash_status$clear(cl))
+
+  nmat <- NULL
+  seq_mats <- NULL
+  matnms <- NULL
+  mask <- NULL
+
+  if (is.null(ms$matrix_set)) return(NULL)
+
+  var_lab <- var_lab_mat
+
+  nr <- nrow(ms)
+  nc <- ncol(ms)
+  rinf <- row_info(ms)
+  cinf <- column_info(ms)
+
+  eval(context_matidx)
+
+  quosures <- rlang::enquos(..., .named = TRUE, .ignore_empty = "all")
+
+  if (!as_list_mat) mat_lab <- paste0(var_lab, seq_mats)
+
+  nmfn <- names(quosures)
+  assess_fun_names(nmfn, .rowtag(ms), .simplify)
+  assess_fun_names(nmfn, .coltag(ms), .simplify)
+
+  nfn <- length(quosures)
+  seq_fn <- stats::setNames(seq_len(nfn), nmfn)
+  for (i in seq_fn) {
+    quosures[[i]] <- norm_call(quosures[[i]], var_lab)
+  }
+
+
+  eval(set_env_expr)
+
+  eval(funs_context_expr)
+  eval(context_enclos_expr)
+
+
+
+  mat_list <- vector("list", nmat)
+  names(mat_list) <- matnms
+
+  v <- vector('list', nfn)
+  names(v) <- nmfn
+
+
+  top <- list2env(cinf, top)
+  top <- list2env(rinf, top)
+  eval(context_funs_assign_expr("col", quote(cinf), quote(seq_len(ncol(ms))),
+                                quote(colnames(ms))))
+  eval(context_funs_assign_expr("row", quote(rinf), quote(seq_len(nrow(ms))),
+                                quote(rownames(ms))))
+
+
+  for (k in seq_mats) {
+    M <- ms$matrix_set[[matidx[[k]]]]
+    if (!is.null(M)) mat_list[[k]] <- M
+  }
+
+  if (as_list_mat) {
+    middle[[var_lab]] <- mat_list
+  } else {
+    names(mat_list) <- mat_lab
+    middle <- list2env(mat_list, envir = middle)
+  }
+
+
+  for (vidx in seq_fn)
+    v[[vidx]] <- rlang::eval_tidy(quosures[[vidx]], mask, env)
+
+  v
+
+}
+
+
+
+
+
+#sgms = singly grouped matrixset
+eval_fun_matrix_sgms_mult <- function(ms, mrg, ..., matidx, as_list_mat,
+                                      .simplify, env)
+{
+  cl <- sys.call()
+  cash_status$set(cl)
+  on.exit(cash_status$clear(cl))
+
+  nmat <- NULL
+  seq_mats <- NULL
+  matnms <- NULL
+  mask <- NULL
+
+  if (is.null(ms$matrix_set)) return(NULL)
+
+  var_lab <- var_lab_mat
+  mrg_compl <- switch(mrg, row = "col", col = "row", "oops")
+  if (mrg_compl == "oops") stop("wrong margin specification")
+
+  nr <- nrow(ms)
+  nc <- ncol(ms)
+  inf <- switch(mrg, row = row_info(ms), column_info(ms))
+  inf_compl <- switch(mrg_compl, row = row_info(ms), column_info(ms))
+
+  gr_idx <- switch(mrg, "row"=row_group_where(ms), column_group_where(ms))
+  ngroup <- length(gr_idx)
+
+  eval(context_matidx)
+
+  quosures <- rlang::enquos(..., .named = TRUE, .ignore_empty = "all")
+
+  if (!as_list_mat) mat_lab <- paste0(var_lab, seq_mats)
+
+  nmfn <- names(quosures)
+  assess_fun_names(nmfn, .rowtag(ms), .simplify)
+  assess_fun_names(nmfn, .coltag(ms), .simplify)
+
+  nfn <- length(quosures)
+  seq_fn <- stats::setNames(seq_len(nfn), nmfn)
+  for (i in seq_fn) {
+    quosures[[i]] <- norm_call(quosures[[i]], var_lab)
+  }
+
+
+  eval(set_env_expr)
+
+  eval(funs_context_expr)
+  eval(context_enclos_expr)
+
+  mat_list <- vector("list", nmat)
+  names(mat_list) <- matnms
+
+  val <- vector("list", ngroup)
+
+  v <- vector('list', nfn)
+  names(v) <- nmfn
+
+  for (gr in 1:ngroup) {
+    idx <- gr_idx[[gr]]
+
+    inf_idx <- inf[idx, , drop = FALSE]
+    top <- list2env(inf_idx, top)
+
+    eval(context_funs_assign_expr(mrg, quote(inf_idx), quote(idx),
+                                  quote(margin_nms(mrg)(ms)[idx])))
+
+    top <- list2env(inf_compl, top)
+
+    eval(context_funs_assign_expr(mrg_compl, quote(inf_compl),
+                                  quote(seq_len(margin(mrg_compl)(ms))),
+                                  quote(margin_nms(mrg_compl)(ms))))
+
+    for (k in seq_mats) {
+
+      M <- ms$matrix_set[[matidx[[k]]]]
+      M <- switch(mrg, row=M[idx, , drop = FALSE], M[, idx, drop = FALSE])
+
+      if (!is.null(M)) mat_list[[k]] <- M
+    }
+
+    if (as_list_mat) {
+      middle[[var_lab]] <- mat_list
+    } else {
+      names(mat_list) <- mat_lab
+      middle <- list2env(mat_list, envir = middle)
+    }
+
+
+    for (vidx in seq_fn)
+      v[[vidx]] <- rlang::eval_tidy(quosures[[vidx]], mask, env)
+
+    val[[gr]] <- v
+  }
+
+
+  ans <- group_meta(mrg_compl)(ms)
+  ans$.rows <- NULL
+  ans$.vals <- val
+
+  if (.simplify) attr(ans, "group_vars") <- margin_group_vars(mrg_compl)(ms)
+
+  ans
+
+}
+
+
+
+
+
+
+eval_fun_matrix_dgms_mult <- function(ms, ..., matidx, as_list_mat, .simplify,
+                                      env)
+{
+  cl <- sys.call()
+  cash_status$set(cl)
+  on.exit(cash_status$clear(cl))
+
+  nmat <- NULL
+  seq_mats <- NULL
+  matnms <- NULL
+  mask <- NULL
+
+  if (is.null(ms$matrix_set)) return(NULL)
+
+  var_lab <- var_lab_mat
+
+  nr <- nrow(ms)
+  nc <- ncol(ms)
+  rinf <- row_info(ms)
+  cinf <- column_info(ms)
+
+  gr_idx_row <- row_group_where(ms)
+  gr_idx_col <- column_group_where(ms)
+  ngroup_row <- length(gr_idx_row)
+  ngroup_col <- length(gr_idx_col)
+
+  eval(context_matidx)
+
+  quosures <- rlang::enquos(..., .named = TRUE, .ignore_empty = "all")
+
+  if (!as_list_mat) mat_lab <- paste0(var_lab, seq_mats)
+
+  nmfn <- names(quosures)
+  assess_fun_names(nmfn, .rowtag(ms), .simplify)
+  assess_fun_names(nmfn, .coltag(ms), .simplify)
+
+  nfn <- length(quosures)
+  seq_fn <- stats::setNames(seq_len(nfn), nmfn)
+  for (i in seq_fn) {
+    quosures[[i]] <- norm_call(quosures[[i]], var_lab)
+  }
+
+
+  eval(set_env_expr)
+
+  eval(funs_context_expr)
+  eval(context_enclos_expr)
+
+  mat_list <- vector("list", nmat)
+  names(mat_list) <- matnms
+
+  v <- vector('list', ngroup_row)
+  vr <- vector('list', ngroup_col)
+
+  val <- vector('list', nfn)
+  names(val) <- nmfn
+
+  for (grr in 1:ngroup_row) {
+
+
+    for (grc in 1:ngroup_col) {
+
+      idx_row <- gr_idx_row[[grr]]
+      idx_col <- gr_idx_col[[grc]]
+
+      inf_idx <- rinf[idx_row, , drop = FALSE]
+      inf_compl <- cinf[idx_col, , drop = FALSE]
+      top <- list2env(inf_idx, top)
+      top <- list2env(inf_compl, top)
+
+      eval(context_funs_assign_expr("row", quote(inf_idx), quote(idx_row),
+                                    quote(rownames(ms)[idx_row])))
+      eval(context_funs_assign_expr("col", quote(inf_compl), quote(idx_col),
+                                    quote(colnames(ms)[idx_col])))
+
+
+      for (k in seq_mats) {
+
+        M <- ms$matrix_set[[matidx[[k]]]]
+        M <- M[idx_row, idx_col, drop = FALSE]
+
+        if (!is.null(M)) mat_list[[k]] <- M
+      }
+
+
+      if (as_list_mat) {
+        middle[[var_lab]] <- mat_list
+      } else {
+        names(mat_list) <- mat_lab
+        middle <- list2env(mat_list, envir = middle)
+      }
+
+
+      for (k in seq_mats) {
+
+        M <- ms$matrix_set[[matidx[[k]]]]
+
+
+        if (!is.null(M)) {
+          M <- M[idx_row, idx_col, drop = FALSE]
+          middle[[var_lab]] <- M
+        }
+
+        for (vidx in seq_fn) {
+
+          if (is.null(M)) {
+            val[vidx] <- list(NULL)
+          } else {
+            val[[vidx]] <- rlang::eval_tidy(quosures[[vidx]], mask, env)
+          }
+
+        }
+
+        vr[[grc]] <- val
+
+
+        ans <- column_group_meta(ms)
+        ans$.rows <- NULL
+        ans$.vals <- vr
+
+      }
+
+      v[[grr]] <- ans
+
+    }
+
+
+  }
+
+
+  ans <- row_group_meta(ms)
+  ans$.rows <- NULL
+  ans$.___tmp___ <- v
+  ans <- tidyr::unnest(ans, .data$.___tmp___)
+
+  if (.simplify) attr(ans, "group_vars") <- row_group_vars(ms)
+  ans
+}
+
+
+
+
+
+
+
+
+
+
+eval_fun_mrg <- function(ms, mrg, var_lab, ..., matidx, .simplify, env)
+  UseMethod("eval_fun_mrg")
+
+
+eval_fun_mrg.matrixset <- function(ms, mrg, var_lab, ..., matidx, .simplify,
+                                   env)
+  eval_fun_margin(ms, mrg, var_lab, ..., matidx = matidx, .simplify = .simplify,
+                  env = env)
+
+eval_fun_mrg.row_grouped_ms <- function(ms, mrg, var_lab, ..., matidx, .simplify,
+                                        env)
+{
+  if (mrg == "row") {
+    eval_fun_margin(ms, mrg, var_lab, ..., matidx = matidx,
+                    .simplify = .simplify, env = env)
+  } else {
+    eval_fun_margin_grp(ms, mrg, var_lab, ..., matidx = matidx,
+                        .simplify = .simplify, env = env)
+  }
+}
+
+
+eval_fun_mrg.col_grouped_ms <- function(ms, mrg, var_lab, ..., matidx, .simplify,
+                                        env)
+  if (mrg == "col") {
+    eval_fun_margin(ms, mrg, var_lab, ..., matidx = matidx,
+                    .simplify = .simplify, env = env)
+  } else {
+    eval_fun_margin_grp(ms, mrg, var_lab, ..., matidx = matidx,
+                        .simplify = .simplify, env = env)
+  }
+
+eval_fun_mrg.dual_grouped_ms <- function(ms, mrg, var_lab, ..., matidx,
+                                         .simplify, env)
+{
+  if (mrg == "row") {
+    eval_fun_mrg.col_grouped_ms(ms, mrg, var_lab, ..., matidx=matidx,
+                                .simplify=.simplify, env=env)
+  } else  {
+    eval_fun_mrg.row_grouped_ms(ms, mrg, var_lab, ..., matidx=matidx,
+                                .simplify=.simplify, env=env)
+  }
+}
+
+
+
+
+
+
+
+eval_fun_mrg_mlt <- function(ms, mrg, var_lab, ..., matidx, as_list_mat,
+                             .simplify, env)
+  UseMethod("eval_fun_mrg_mlt")
+
+
+eval_fun_mrg_mlt.matrixset <- function(ms, mrg, var_lab, ..., matidx,
+                                       as_list_mat, .simplify, env)
+  eval_fun_margin_mult(ms, mrg, var_lab, ..., matidx = matidx,
+                       as_list_mat = as_list_mat, .simplify = .simplify,
+                       env = env)
+
+eval_fun_mrg_mlt.row_grouped_ms <- function(ms, mrg, var_lab, ..., matidx,
+                                            as_list_mat, .simplify, env)
+{
+  if (mrg == "row") {
+    eval_fun_margin_mult(ms, mrg, var_lab, ..., matidx = matidx,
+                         as_list_mat = as_list_mat, .simplify = .simplify,
+                         env = env)
+  } else {
+    eval_fun_margin_grp_mult(ms, mrg, var_lab, ..., matidx = matidx,
+                             as_list_mat = as_list_mat, .simplify = .simplify,
+                             env = env)
+  }
+}
+
+
+eval_fun_mrg_mlt.col_grouped_ms <- function(ms, mrg, var_lab, ..., matidx,
+                                            as_list_mat, .simplify, env)
+  if (mrg == "col") {
+    eval_fun_margin_mult(ms, mrg, var_lab, ..., matidx = matidx,
+                         as_list_mat = as_list_mat, .simplify = .simplify,
+                         env = env)
+  } else {
+    eval_fun_margin_grp_mult(ms, mrg, var_lab, ..., matidx = matidx,
+                             as_list_mat = as_list_mat, .simplify = .simplify,
+                             env = env)
+  }
+
+
+eval_fun_mrg_mlt.dual_grouped_ms <- function(ms, mrg, var_lab, ..., matidx,
+                                             as_list_mat, .simplify, env)
+{
+  if (mrg == "row") {
+    eval_fun_mrg_mlt.col_grouped_ms(ms, mrg, var_lab, ..., matidx=matidx,
+                                    as_list_mat=as_list_mat,
+                                    .simplify=.simplify, env=env)
+  } else  {
+    eval_fun_mrg_mlt.row_grouped_ms(ms, mrg, var_lab, ..., matidx=matidx,
+                                    as_list_mat=as_list_mat,
+                                    .simplify=.simplify, env=env)
+  }
+}
+
+
+
+
+
+eval_fun_mtrx <- function(ms, ..., matidx, .simplify, env)
+  UseMethod("eval_fun_mtrx")
+
+
+eval_fun_mtrx.matrixset <- function(ms, ..., matidx, .simplify, env)
+  eval_fun_matrix(ms, ..., matidx = matidx, .simplify = .simplify,
+                  env = env)
+
+eval_fun_mtrx.row_grouped_ms <- function(ms, ..., matidx, .simplify, env)
+  eval_fun_matrix_sgms(ms, mrg="row", ..., matidx = matidx, .simplify = .simplify,
+                       env = env)
+
+eval_fun_mtrx.col_grouped_ms <- function(ms, ..., matidx, .simplify, env)
+  eval_fun_matrix_sgms(ms, mrg="col", ..., matidx = matidx, .simplify = .simplify,
+                       env = env)
+
+eval_fun_mtrx.dual_grouped_ms <- function(ms, ..., matidx, .simplify, env)
+  eval_fun_matrix_dgms(ms, ..., matidx = matidx, .simplify = .simplify,
+                       env = env)
+
+
+
+
+eval_fun_mtrx_mlt <- function(ms, ..., matidx, as_list_mat, .simplify, env)
+  UseMethod("eval_fun_mtrx_mlt")
+
+eval_fun_mtrx_mlt.matrixset <- function(ms, ..., matidx, as_list_mat, .simplify, env)
+  eval_fun_matrix_mult(ms, ..., matidx=matidx, as_list_mat=as_list_mat,
+                       .simplify=.simplify, env=env)
+
+eval_fun_mtrx_mlt.row_grouped_ms <- function(ms, ..., matidx, as_list_mat,
+                                             .simplify, env)
+  eval_fun_matrix_sgms_mult(ms, "row", ..., matidx=matidx, as_list_mat=as_list_mat,
+                            .simplify=.simplify, env=env)
+
+eval_fun_mtrx_mlt.col_grouped_ms <- function(ms, ..., matidx, as_list_mat,
+                                             .simplify, env)
+  eval_fun_matrix_sgms_mult(ms, "col", ..., matidx=matidx, as_list_mat=as_list_mat,
+                            .simplify=.simplify, env=env)
+
+eval_fun_mtrx_mlt.dual_grouped_ms <- function(ms, ..., matidx, as_list_mat,
+                                              .simplify, env)
+  eval_fun_matrix_dgms_mult(ms, ..., matidx = matidx, as_list_mat=as_list_mat,
+                            .simplify = .simplify, env = env)
+
+
+
+
+
+
+make_longer_val <- function(.v, force_name)
+{
+  tbls <- purrr::imap(.v,
+                      ~ {
+                        ln <- length(.x)
+                        if (ln > 1 && is.null(names(.x))) names(.x) <- make_names(.x, "")
+                        if (ln > 1L || force_name) {
+                          stats::setNames(tibble::tibble(names(.x), unname(.x)),
+                                          c(paste0(.y, ".name"), .y))
+                        } else {
+                          stats::setNames(tibble::tibble(.x), .y)
+                        }
+                      })
+  dplyr::bind_cols(tbls)
+}
+
+
+
+
+make_longer <- function(val, force_name)
+{
+  lapply(val, function(x) {
+    len <- unique(sapply(x, length))
+
+    if (length(len) > 1) stop("vectors must be of the same length",
+                              call. = FALSE)
+
+    is_null <- sapply(x, is.null)
+    if (any(is_null)) x[is_null] <- list(logical(0))
+
+    make_longer_val(x, force_name)
+
+  })
+}
+
+
+
+
+
+
+make_wider_val <- function(.v, force_name)
+{
+  tbls <- purrr::imap(.v,
+                      ~ {
+                        ln <- length(.x)
+                        if (ln > 1L || force_name) {
+                          nms <- names(.x)
+                          if (is.null(nms) || any(nms == ""))
+                            names(.x) <- make_names(.x, "")
+                          names(.x) <- paste(.y, names(.x))
+                          tibble::new_tibble(list_row(.x))
+                        } else if (ln > 0L) {
+                          stats::setNames(tibble::tibble(.x), .y)
+                        } else {
+                          mpty <- tibble::tibble()
+                          mpty[[.y]] <- logical(0)
+                          mpty
+                        }
+                      })
+  dplyr::bind_cols(tbls)
+}
+
+
+
+make_wider <- function(val, force_name)
+{
+  lapply(val, function(x) {
+    len <- unique(sapply(x, length))
+
+    if (length(len) > 1) stop("vectors must be of the same length",
+                              call. = FALSE)
+
+    is_null <- sapply(x, is.null)
+    if (any(is_null)) x[is_null] <- list(logical(0))
+
+    make_wider_val(x, force_name)
+
+  })
+}
+
+
+
+
+tblize_lg <- function(fna, mrg_tag, matrix = FALSE, mult = FALSE, force_name = FALSE)
+{
+  bind_long <- function(v, force_name, mrg_tag)
+    dplyr::bind_rows(make_longer(v, force_name), .id = mrg_tag)
+
+  if (is.null(fna)) return(NULL)
+  grp_vars <- attr(fna, "group_vars")
+
+  if (is.null(grp_vars)) {
+
+    if (matrix) {
+      if (mult) {
+        make_longer_val(fna, force_name)
+      } else make_longer(fna, force_name)
+    } else {
+
+      if (mult) {
+        bind_long(fna, force_name, mrg_tag)
+      } else {
+        lapply(fna, function(m) {
+          bind_long(m, force_name, mrg_tag)
+        })
+      }
+
+    }
+
+  } else {
+
+    if (matrix) {
+      if (mult) {
+        unfold <- lapply(fna$.vals, function(v) make_longer_val(v, force_name))
+        fna$.vals <- unfold
+        tidyr::unnest(fna, .data$.vals)
+      } else {
+        lapply(fna, function(v) {
+          .vals <- make_longer(v$.vals, force_name)
+          v$.vals <- .vals
+          tidyr::unnest(v, .data$.vals)
+        })
+      }
+
+    } else {
+
+      if (mult) {
+        unfold <- lapply(fna$.vals, function(v) bind_long(v, force_name, mrg_tag))
+        fna$.vals <- unfold
+        tidyr::unnest(fna, .data$.vals)
+
+      } else {
+        lapply(fna, function(m) {
+          unfold <- lapply(m$.vals, function(v) bind_long(v, force_name, mrg_tag))
+          m$.vals <- unfold
+          tidyr::unnest(m, .data$.vals)
+        })
+      }
+
+    }
+
+  }
+
+}
+
+
+
+
+
+tblize_wd <- function(fna, mrg_tag, matrix = FALSE, mult = FALSE, force_name = FALSE)
+{
+  bind_wide <- function(v, force_name, mrg_tag)
+    dplyr::bind_rows(make_wider(v, force_name), .id = mrg_tag)
+
+  if (is.null(fna)) return(NULL)
+  grp_vars <- attr(fna, "group_vars")
+  if (is.null(grp_vars)) {
+    if (matrix) {
+      if (mult) {
+        make_wider_val(fna, force_name)
+      } else {
+        make_wider(fna, force_name)
+      }
+
+    } else {
+      if (mult) {
+        bind_wide(fna, force_name, mrg_tag)
+      } else {
+        lapply(fna, function(m) {
+          bind_wide(m, force_name, mrg_tag)
+        })
+      }
+
+    }
+
+  } else {
+    if (matrix) {
+      if (mult) {
+        unfold <- lapply(fna$.vals, function(v) make_wider_val(v, force_name))
+        fna$.vals <- unfold
+        tidyr::unnest(fna, .data$.vals)
+      } else {
+        lapply(fna, function(m) {
+          .vals <- make_wider(m$.vals, force_name)
+          m$.vals <- .vals
+          tidyr::unnest(m, .data$.vals)
+        })
+      }
+
+    } else {
+      if (mult) {
+        unfold <- lapply(fna$.vals, function(v) bind_wide(v, force_name, mrg_tag))
+        fna$.vals <- unfold
+        tidyr::unnest(fna, .data$.vals)
+      } else {
+        lapply(fna, function(m) {
+          unfold <- lapply(m$.vals, function(v) bind_wide(v, force_name, mrg_tag))
+          m$.vals <- unfold
+          tidyr::unnest(m, .data$.vals)
+        })
+      }
+
+    }
+
+  }
+
+}
+
 
 
 
@@ -594,7 +1666,7 @@ eval_fun_mult <- function(margin, ms, ..., matidx, row_first, list_input,
 #'
 #' @description
 #' The `apply_matrix` function applies functions to each matrix of a `matrixset`.
-#' The `apply_row`/`apply_column` functions do the same but separately for the
+#' The `apply_row`/`apply_column` functions do the same but separately for each
 #' row/column. The functions can be applied to all matrices or only a subset.
 #'
 #' The `dfl`/`dfw` versions differ in their output format and when possible,
@@ -620,15 +1692,15 @@ eval_fun_mult <- function(margin, ms, ..., matidx, row_first, list_input,
 #'      annotation. You can use `.env[[var]]` or `.env$var` to make sure to use
 #'      the proper variable.
 #'
-#' The matrixset package defines its own pronouns: `.m`, `.i` and `.j`, which
+#' The matrixset package defines its own pronouns: `r var_lab_mat`, `r var_lab_row` and `r var_lab_col`, which
 #' are discussed in the function specification argument (`...`).
 #'
 #' It is not necessary to import any of the pronouns (or load `rlang` in the
 #' case of `.data` and `.env`) in a interactive session.
 #'
 #' It is useful however when writing a package to avoid the `R CMD check` notes.
-#' As needed, you can import `.data` and `.env` (from `rlang`) or any of `.i`,
-#' `.j` or `.m` from `matrixset`.
+#' As needed, you can import `.data` and `.env` (from `rlang`) or any of `r var_lab_mat`,
+#' `r var_lab_row` or `r var_lab_col` from `matrixset`.
 #'
 #' @section Multivariate:
 #' The default behavior is to apply a function or expression to a single
@@ -690,16 +1762,17 @@ eval_fun_mult <- function(margin, ms, ..., matidx, row_first, list_input,
 #'     the following way:
 #'
 #'    * a function name, e.g., `mean`.
-#'    * a function call, where you can use `.m` to represent the current matrix
-#'       (for `apply_matrix`), `.i` to represent the current row (for `apply_row`)
-#'       and `.j` for the current column (`apply_column`). Bare names of object
+#'    * a function call, where you can use `r var_lab_mat` to represent the current matrix
+#'       (for `apply_matrix`), `r var_lab_row` to represent the current row (for `apply_row`)
+#'       and `r var_lab_col` for the current column (`apply_column`). Bare names of object
 #'       traits can be used as well. For instance, `lm(.i ~ program)`.
 #'
 #'       The pronouns are also available for the multivariate version, under
 #'       certain circumstances, but they have a different meaning. See the
 #'       "Multivariate" section for more details.
-#'    * a formula expression. The pronouns `.m`, `.i` and `.j` can be used as
-#'       well. See examples to see the usefulness of this.
+#'    * a formula expression. The pronouns `r var_lab_mat`, `r var_lab_row` and
+#'       `r var_lab_col` can be used as well. See examples to see the usefulness
+#'       of this.
 #'
 #'    The expressions can be named; these names will be used to provide names to
 #'    the results.
@@ -730,6 +1803,18 @@ eval_fun_mult <- function(margin, ms, ..., matidx, row_first, list_input,
 #' @param .input_list    `logical`. If multivariate (`.matrix_wise ==  FALSE`),
 #'    the matrices are provided as a single list, where each element is a matrix
 #'    (or matrix row or column). The list elements are the matrix names.
+#'
+#' @param .force_name    `logical`. Used only for the simplified output versions
+#'    (dfl/dfw). By default (`FALSE`), function IDs will be provided only if the
+#'    function outcome is a vector of length 2 or more. If `.force_name` is
+#'    `TRUE` then function IDs are provided in all situations.
+#'
+#'    This can be useful in situation of grouping. As the functions are
+#'    evaluated independently within each group, there could be situations where
+#'    function outcomes are of length 1 for some groups and lenght 2 or more in
+#'    other groups.
+#'
+#'    See examples.
 #'
 #' @returns
 #' A list for every matrix in the matrixset object. Each list is itself a list.
@@ -825,9 +1910,14 @@ eval_fun_mult <- function(margin, ms, ..., matidx, row_first, list_input,
 #'                                  ct = c(avr = mean(.j), med = median(.j)),
 #'                                  rg = range))
 #'
+#'
+#' # This is an example where you may want to use the .force_name argument
+#' (apply_matrix_dfl(column_group_by(student_results, program), FC = colMeans(.m)))
+#' (apply_matrix_dfl(column_group_by(student_results, program), FC = colMeans(.m),
+#'                   .force_name = TRUE))
+#'
 #' @name loop
 NULL
-
 
 
 
@@ -837,31 +1927,53 @@ apply_row <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
                       .input_list = FALSE)
   if (.matrix_wise) {
     warn_if(.matrix_wise, .input_list)
-    .apply_row(.ms, ..., .matrix = .matrix)
+    eval_fun_mrg(.ms, mrg="row", var_lab=var_lab_row, ..., matidx=.matrix,
+                 .simplify=FALSE, env=rlang::caller_env())
   } else {
-    .mapply_row(.ms, ..., .matrix = .matrix, .list_input = .input_list)
+    eval_fun_mrg_mlt(.ms, mrg="row", var_lab=var_lab_row, ..., matidx = .matrix,
+                     as_list_mat = .input_list, .simplify = FALSE,
+                     env = rlang::caller_env())
   }
 
 #' @rdname loop
 #' @export
 apply_row_dfl <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
-                          .input_list = FALSE)
+                          .input_list = FALSE, .force_name = FALSE)
   if (.matrix_wise) {
     warn_if(.matrix_wise, .input_list)
-    .apply_row_dfl(.ms, ..., .matrix = .matrix)
+    tblize_lg(eval_fun_mrg(.ms, mrg="row", var_lab=var_lab_row, ...,
+                           matidx=.matrix, .simplify=TRUE,
+                           env=rlang::caller_env()),
+              .rowtag(.ms),
+              .force_name)
   } else {
-    .mapply_row_dfl(.ms, ..., .matrix = .matrix, .list_input = .input_list)
+    tblize_lg(eval_fun_mrg_mlt(.ms, mrg="row", var_lab=var_lab_row, ...,
+                               matidx = .matrix, as_list_mat = .input_list,
+                               .simplify = TRUE, env = rlang::caller_env()),
+              .rowtag(.ms),
+              mult = TRUE,
+              force_name = .force_name)
   }
+
 
 #' @rdname loop
 #' @export
 apply_row_dfw <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
-                          .input_list = FALSE)
+                          .input_list = FALSE, .force_name = FALSE)
   if (.matrix_wise) {
     warn_if(.matrix_wise, .input_list)
-    .apply_row_dfw(.ms, ..., .matrix = .matrix)
+    tblize_wd(eval_fun_mrg(.ms, mrg="row", var_lab=var_lab_row, ...,
+                           matidx=.matrix, .simplify=TRUE,
+                           env=rlang::caller_env()),
+              .rowtag(.ms),
+              .force_name)
   } else {
-    .mapply_row_dfw(.ms, ..., .matrix = .matrix, .list_input = .input_list)
+    tblize_wd(eval_fun_mrg_mlt(.ms, mrg="row", var_lab=var_lab_row, ...,
+                               matidx = .matrix, as_list_mat = .input_list,
+                               .simplify = TRUE, env = rlang::caller_env()),
+              .rowtag(.ms),
+              mult = TRUE,
+              force_name = .force_name)
   }
 
 
@@ -871,1586 +1983,108 @@ apply_column <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
                          .input_list = FALSE)
   if (.matrix_wise) {
     warn_if(.matrix_wise, .input_list)
-    .apply_column(.ms, ..., .matrix = .matrix)
+    eval_fun_mrg(.ms, mrg="col", var_lab=var_lab_col, ..., matidx=.matrix,
+                 .simplify=FALSE, env=rlang::caller_env())
   } else {
-    .mapply_column(.ms, ..., .matrix = .matrix, .list_input = .input_list)
+    eval_fun_mrg_mlt(.ms, mrg="col", var_lab=var_lab_col, ..., matidx = .matrix,
+                     as_list_mat = .input_list, .simplify = FALSE,
+                     env = rlang::caller_env())
   }
+
 
 #' @rdname loop
 #' @export
 apply_column_dfl <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
-                             .input_list = FALSE)
+                             .input_list = FALSE, .force_name = FALSE)
   if (.matrix_wise) {
     warn_if(.matrix_wise, .input_list)
-    .apply_column_dfl(.ms, ..., .matrix = .matrix)
+    tblize_lg(eval_fun_mrg(.ms, mrg="col", var_lab=var_lab_col, ..., matidx=.matrix,
+                           .simplify=TRUE, env=rlang::caller_env()),
+              .coltag(.ms),
+              .force_name)
   } else {
-    .mapply_column_dfl(.ms, ..., .matrix = .matrix, .list_input = .input_list)
+    tblize_lg(eval_fun_mrg_mlt(.ms, mrg="col", var_lab=var_lab_col, ...,
+                               matidx = .matrix, as_list_mat = .input_list,
+                               .simplify = TRUE, env = rlang::caller_env()),
+              .coltag(.ms),
+              mult = TRUE,
+              force_name = .force_name)
   }
+
+
 
 #' @rdname loop
 #' @export
 apply_column_dfw <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
-                             .input_list = FALSE)
+                             .input_list = FALSE, .force_name = FALSE)
   if (.matrix_wise) {
     warn_if(.matrix_wise, .input_list)
-    .apply_column_dfw(.ms, ..., .matrix = .matrix)
+    tblize_wd(eval_fun_mrg(.ms, mrg="col", var_lab=var_lab_col, ..., matidx=.matrix,
+                           .simplify=TRUE, env=rlang::caller_env()),
+              .coltag(.ms),
+              .force_name)
   } else {
-    .mapply_column_dfw(.ms, ..., .matrix = .matrix, .list_input = .input_list)
+    tblize_wd(eval_fun_mrg_mlt(.ms, mrg="col", var_lab=var_lab_col, ...,
+                               matidx = .matrix, as_list_mat = .input_list,
+                               .simplify = TRUE, env = rlang::caller_env()),
+              .coltag(.ms),
+              mult = TRUE,
+              force_name = .force_name)
   }
+
 
 
 #' @rdname loop
 #' @export
 apply_matrix <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
-                      .input_list = FALSE)
+                         .input_list = FALSE)
   if (.matrix_wise) {
     warn_if(.matrix_wise, .input_list)
-    .apply_mat(.ms, ..., .matrix = .matrix)
+    eval_fun_mtrx(.ms, ..., matidx = .matrix, .simplify = FALSE,
+                  env = rlang::caller_env())
   } else {
-    .mapply_mat(.ms, ..., .matrix = .matrix, .list_input = .input_list)
+    eval_fun_mtrx_mlt(.ms, ..., matidx=.matrix, as_list_mat=.input_list,
+                      .simplify = FALSE, env=rlang::caller_env())
   }
+
 
 
 #' @rdname loop
 #' @export
 apply_matrix_dfl <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
-                          .input_list = FALSE)
+                             .input_list = FALSE, .force_name = FALSE)
   if (.matrix_wise) {
     warn_if(.matrix_wise, .input_list)
-    .apply_mat_dfl(.ms, ..., .matrix = .matrix)
-  } else {
-    .mapply_mat_dfl(.ms, ..., .matrix = .matrix, .list_input = .input_list)
-  }
 
+    val <- eval_fun_mtrx(.ms, ..., matidx=.matrix, .simplify=TRUE,
+                         env=rlang::caller_env())
+
+    tblize_lg(val, "", matrix = TRUE, force_name = .force_name)
+
+
+  } else {
+    tblize_lg(eval_fun_mtrx_mlt(.ms, ..., matidx = .matrix,
+                                as_list_mat = .input_list, .simplify = TRUE,
+                                env = rlang::caller_env()),
+              matrix = TRUE, mult = TRUE, force_name = .force_name)
+  }
 
 #' @rdname loop
 #' @export
 apply_matrix_dfw <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
-                          .input_list = FALSE)
+                             .input_list = FALSE, .force_name = FALSE)
   if (.matrix_wise) {
     warn_if(.matrix_wise, .input_list)
-    .apply_mat_dfw(.ms, ..., .matrix = .matrix)
+    val <- eval_fun_mtrx(.ms, ..., matidx=.matrix, .simplify=TRUE,
+                         env=rlang::caller_env())
+
+    tblize_wd(val, "", matrix = TRUE, force_name = .force_name)
   } else {
-    .mapply_mat_dfw(.ms, ..., .matrix = .matrix, .list_input = .input_list)
+    tblize_wd(eval_fun_mtrx_mlt(.ms, ..., matidx = .matrix,
+                                as_list_mat = .input_list,
+                                .simplify = TRUE, env = rlang::caller_env()),
+              matrix = TRUE, mult = TRUE, force_name = .force_name)
   }
-
-
-
-
-
-
-.apply_row <- function(.ms, ..., .matrix = NULL)
-  UseMethod(".apply_row")
-
-
-
-.apply_row.NULL <- function(.ms, ..., .matrix = NULL) NULL
-
-
-
-
-.apply_row.matrixset <- function(.ms, ..., .matrix = NULL)
-{
-  eval_fun(margin="row", ms=.ms, ..., matidx=.matrix, row_first = TRUE,
-           .simplify = FALSE, env=rlang::caller_env())
-}
-
-
-
-
-.apply_row.row_grouped_ms <- function(.ms, ..., .matrix = NULL)
-{
-  NextMethod()
-}
-
-
-
-
-.apply_row.col_grouped_ms <- function(.ms, ..., .matrix = NULL)
-{
-  ans <- column_group_meta(.ms)
-  vals <- eval_fun(margin="row", ms=.ms, ..., matidx=.matrix,
-                   row_first = FALSE, .simplify = FALSE,
-                   env=rlang::caller_env())
-  lapply(vals, function(v) {
-    ans$.rows <- NULL
-    ans$.vals <- v
-    ans
-  })
-}
-
-
-
-
-
-.apply_row.dual_grouped_ms <- function(.ms, ..., .matrix = NULL)
-{
-  ans <- column_group_meta(.ms)
-  vals <- eval_fun(margin="row", ms=.ms, ..., matidx=.matrix,
-                   row_first = FALSE, .simplify = FALSE,
-                   env=rlang::caller_env())
-  lapply(vals, function(v) {
-    ans$.rows <- NULL
-    ans$.vals <- v
-    ans
-  })
-}
-
-
-
-
-
-.apply_column <- function(.ms, ..., .matrix = NULL)
-  UseMethod(".apply_column")
-
-
-
-
-.apply_column.NULL <- function(.ms, ..., .matrix = NULL) NULL
-
-
-
-
-.apply_column.matrixset <- function(.ms, ..., .matrix = NULL)
-{
-  eval_fun(margin="col", ms=.ms, ..., matidx=.matrix, row_first = TRUE,
-           .simplify = FALSE, env=rlang::caller_env())
-}
-
-
-
-
-.apply_column.col_grouped_ms <- function(.ms, ..., .matrix = NULL)
-{
-  NextMethod()
-}
-
-
-
-
-.apply_column.row_grouped_ms <- function(.ms, ..., .matrix = NULL)
-{
-  ans_tmp <- row_group_meta(.ms)
-  vals <- eval_fun(margin="col", ms=.ms, ..., matidx=.matrix,
-                   row_first = TRUE, .simplify = FALSE,
-                   env=rlang::caller_env())
-  ans <- lapply(vals, function(v) {
-    ans_tmp$.vals <- v
-    ans_tmp$.rows <- NULL
-    ans_tmp
-  })
-  ans
-}
-
-
-
-
-.apply_column.dual_grouped_ms <- function(.ms, ..., .matrix = NULL)
-{
-  ans_tmp <- row_group_meta(.ms)
-  vals <- eval_fun(margin="col", ms=.ms, ..., matidx=.matrix,
-                   row_first = TRUE, .simplify = FALSE,
-                   env=rlang::caller_env())
-  ans <- lapply(vals, function(v) {
-    ans_tmp$.vals <- v
-    ans_tmp$.rows <- NULL
-    ans_tmp
-  })
-  ans
-}
-
-
-
-
-
-
-.apply_row_dfl <- function(.ms, ..., .matrix = NULL)
-  UseMethod(".apply_row_dfl")
-
-
-
-.apply_row_dfl.NULL <- function(.ms, ..., .matrix = NULL) NULL
-
-
-
-
-.apply_row_dfl.matrixset <- function(.ms, ..., .matrix = NULL)
-{
-  eval_obj <- eval_fun(margin="row", ms=.ms, ..., matidx=.matrix,
-                       row_first = TRUE, .simplify = "long",
-                       env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  lapply(eval_obj, function(vals) {
-    dplyr::bind_rows(vals, .id = .rowtag(.ms))
-  })
-
-}
-
-
-
-
-.apply_row_dfl.row_grouped_ms <- function(.ms, ..., .matrix = NULL)
-{
-  NextMethod()
-}
-
-
-
-
-.apply_row_dfl.col_grouped_ms <- function(.ms, ..., .matrix = NULL)
-{
-  eval_obj <- eval_fun(margin="row", ms=.ms, ..., matidx=.matrix,
-                       row_first = FALSE, .simplify = "long",
-                       env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  group_inf <- column_group_keys(.ms)
-
-  lapply(eval_obj, function(mats) {
-
-    purrr::map2_dfr(mats, seq_along(mats),
-                    function(gr, i) dplyr::bind_cols(group_inf[i, ],
-                                                     dplyr::bind_rows(gr,
-                                                                      .id = .rowtag(.ms))))
-  })
-}
-
-
-
-
-.apply_row_dfl.dual_grouped_ms <- function(.ms, ..., .matrix = NULL)
-{
-  eval_obj <- eval_fun(margin="row", ms=.ms, ..., matidx=.matrix,
-                       row_first = FALSE, .simplify = "long",
-                       env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  group_inf <- column_group_keys(.ms)
-
-  lapply(eval_obj, function(mats) {
-
-    purrr::map2_dfr(mats, seq_along(mats),
-                    function(gr, i) dplyr::bind_cols(group_inf[i, ],
-                                                     dplyr::bind_rows(gr,
-                                                                      .id = .rowtag(.ms))))
-  })
-}
-
-
-
-
-
-
-
-.apply_column_dfl <- function(.ms, ..., .matrix = NULL)
-  UseMethod(".apply_column_dfl")
-
-
-
-.apply_column_dfl.NULL <- function(.ms, ..., .matrix = NULL) NULL
-
-
-
-
-.apply_column_dfl.matrixset <- function(.ms, ..., .matrix = NULL)
-{
-  eval_obj <- eval_fun(margin="col", ms=.ms, ..., matidx=.matrix,
-                       row_first = TRUE, .simplify = "long",
-                       env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  lapply(eval_obj, function(vals) {
-    dplyr::bind_rows(vals, .id = .coltag(.ms))
-  })
-
-}
-
-
-
-
-
-.apply_column_dfl.col_grouped_ms <- function(.ms, ..., .matrix = NULL)
-{
-  NextMethod()
-}
-
-
-
-
-.apply_column_dfl.row_grouped_ms <- function(.ms, ..., .matrix = NULL)
-{
-  eval_obj <- eval_fun(margin="col", ms=.ms, ..., matidx=.matrix,
-                       row_first = TRUE, .simplify = "long",
-                       env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  group_inf <- row_group_keys(.ms)
-
-  lapply(eval_obj, function(mats) {
-
-    purrr::map2_dfr(mats, seq_along(mats),
-                    function(gr, i) dplyr::bind_cols(group_inf[i, ],
-                                                     dplyr::bind_rows(gr,
-                                                                      .id = .coltag(.ms))))
-  })
-}
-
-
-
-
-.apply_column_dfl.dual_grouped_ms <- function(.ms, ..., .matrix = NULL)
-{
-  eval_obj <- eval_fun(margin="col", ms=.ms, ..., matidx=.matrix,
-                       row_first = TRUE, .simplify = "long",
-                       env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  group_inf <- row_group_keys(.ms)
-
-  lapply(eval_obj, function(mats) {
-
-    purrr::map2_dfr(mats, seq_along(mats),
-                    function(gr, i) dplyr::bind_cols(group_inf[i, ],
-                                                     dplyr::bind_rows(gr,
-                                                                      .id = .coltag(.ms))))
-  })
-}
-
-
-
-
-
-
-
-.apply_row_dfw <- function(.ms, ..., .matrix = NULL)
-  UseMethod(".apply_row_dfw")
-
-
-
-
-.apply_row_dfw.matrixset <- function(.ms, ..., .matrix = NULL)
-{
-  eval_obj <- eval_fun(margin="row", ms=.ms, ..., matidx=.matrix,
-                       row_first = TRUE, .simplify = "wide",
-                       env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  lapply(eval_obj, function(vals) {
-    dplyr::bind_rows(vals, .id = .rowtag(.ms))
-  })
-
-}
-
-
-
-
-.apply_row_dfw.row_grouped_ms <- function(.ms, ..., .matrix = NULL)
-{
-  NextMethod()
-}
-
-
-
-
-.apply_row_dfw.col_grouped_ms <- function(.ms, ..., .matrix = NULL)
-{
-  eval_obj <- eval_fun(margin="row", ms=.ms, ..., matidx=.matrix,
-                       row_first = FALSE, .simplify = "wide",
-                       env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  group_inf <- column_group_keys(.ms)
-
-  lapply(eval_obj, function(mats) {
-
-    purrr::map2_dfr(mats, seq_along(mats),
-                    function(gr, i) dplyr::bind_cols(group_inf[i, ],
-                                                     dplyr::bind_rows(gr,
-                                                                      .id = .rowtag(.ms))))
-  })
-}
-
-
-
-
-.apply_row_dfw.dual_grouped_ms <- function(.ms, ..., .matrix = NULL)
-{
-  eval_obj <- eval_fun(margin="row", ms=.ms, ..., matidx=.matrix,
-                       row_first = FALSE, .simplify = "wide",
-                       env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  group_inf <- column_group_keys(.ms)
-
-  lapply(eval_obj, function(mats) {
-
-    purrr::map2_dfr(mats, seq_along(mats),
-                    function(gr, i) dplyr::bind_cols(group_inf[i, ],
-                                                     dplyr::bind_rows(gr,
-                                                                      .id = .rowtag(.ms))))
-  })
-}
-
-
-
-
-
-.apply_column_dfw <- function(.ms, ..., .matrix = NULL)
-  UseMethod(".apply_column_dfw")
-
-
-
-.apply_column_dfw.NULL <- function(.ms, ..., .matrix = NULL) NULL
-
-
-
-
-.apply_column_dfw.matrixset <- function(.ms, ..., .matrix = NULL)
-{
-  eval_obj <- eval_fun(margin="col", ms=.ms, ..., matidx=.matrix,
-                       row_first = TRUE, .simplify = "wide",
-                       env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  lapply(eval_obj, function(vals) {
-    dplyr::bind_rows(vals, .id = .coltag(.ms))
-  })
-
-}
-
-
-
-
-.apply_column_dfw.col_grouped_ms <- function(.ms, ..., .matrix = NULL)
-{
-  NextMethod()
-}
-
-
-
-
-.apply_column_dfw.row_grouped_ms <- function(.ms, ..., .matrix = NULL)
-{
-  eval_obj <- eval_fun(margin="col", ms=.ms, ..., matidx=.matrix,
-                       row_first = TRUE, .simplify = "wide",
-                       env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  group_inf <- row_group_keys(.ms)
-
-  lapply(eval_obj, function(mats) {
-
-    purrr::map2_dfr(mats, seq_along(mats),
-                    function(gr, i) dplyr::bind_cols(group_inf[i, ],
-                                                     dplyr::bind_rows(gr,
-                                                                      .id = .coltag(.ms))))
-  })
-}
-
-
-
-
-
-.apply_column_dfw.dual_grouped_ms <- function(.ms, ..., .matrix = NULL)
-{
-  eval_obj <- eval_fun(margin="col", ms=.ms, ..., matidx=.matrix,
-                       row_first = TRUE, .simplify = "wide",
-                       env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  group_inf <- row_group_keys(.ms)
-
-  lapply(eval_obj, function(mats) {
-
-    purrr::map2_dfr(mats, seq_along(mats),
-                    function(gr, i) dplyr::bind_cols(group_inf[i, ],
-                                                     dplyr::bind_rows(gr,
-                                                                      .id = .coltag(.ms))))
-  })
-}
-
-
-
-
-.apply_mat <- function(.ms, ..., .matrix = NULL)
-  UseMethod(".apply_mat")
-
-
-
-.apply_mat.NULL <- function(.ms, ..., .matrix = NULL) NULL
-
-
-
-
-.apply_mat.matrixset <- function(.ms, ..., .matrix = NULL)
-{
-  eval_fun("mat", ms=.ms, ..., matidx=.matrix, row_first = TRUE,
-           .simplify = FALSE, env=rlang::caller_env())
-}
-
-
-
-
-.apply_mat.row_grouped_ms <- function(.ms, ..., .matrix = NULL)
-{
-  ans <- row_group_meta(.ms)
-  vals <- eval_fun("mat", ms=.ms, ..., matidx=.matrix, row_first = TRUE,
-                   .simplify = FALSE, env=rlang::caller_env())
-  lapply(vals, function(v) {
-    ans$.vals <- v
-    ans$.rows <- NULL
-    ans
-  })
-}
-
-
-
-
-.apply_mat.col_grouped_ms <- function(.ms, ..., .matrix = NULL)
-{
-  ans <- column_group_meta(.ms)
-  vals <- eval_fun("mat", ms=.ms, ..., matidx=.matrix, row_first = TRUE,
-                   .simplify = FALSE, env=rlang::caller_env())
-  lapply(vals, function(v) {
-    ans$.vals <- v
-    ans$.rows <- NULL
-    ans
-  })
-}
-
-
-
-
-
-.apply_mat.dual_grouped_ms <- function(.ms, ..., .matrix = NULL)
-{
-  meta_row <- row_group_keys(.ms)
-  meta_col <- column_group_keys(.ms)
-
-  ngr_row <- nrow(meta_row)
-  ngr_col <- nrow(meta_col)
-
-  rep_idx_row <- rep(seq(ngr_row), each = ngr_col)
-  rep_idx_col <- rep(seq(ngr_col), ngr_row)
-
-  meta <- meta_row[rep_idx_row, ]
-  meta_col <- meta_col[rep_idx_col, ]
-  for (nm in names(meta_col)) meta[[nm]] <- meta_col[[nm]]
-
-
-  vals <- eval_fun("mat", ms=.ms, ..., matidx=.matrix, row_first = TRUE,
-                   .simplify = FALSE, env=rlang::caller_env())
-  lapply(vals, function(v) {
-    meta$.vals <- unlist(v, recursive = FALSE)
-    meta
-  })
-
-}
-
-
-
-
-
-
-.apply_mat_dfl <- function(.ms, ..., .matrix = NULL)
-  UseMethod(".apply_mat_dfl")
-
-
-
-.apply_mat_dfl.NULL <- function(.ms, ..., .matrix = NULL) NULL
-
-
-
-
-
-.apply_mat_dfl.matrixset <- function(.ms, ..., .matrix = NULL)
-{
-  eval_obj <- eval_fun("mat", ms=.ms, ..., matidx=.matrix, row_first = TRUE,
-                       .simplify = "long", env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  eval_obj
-}
-
-
-
-
-.apply_mat_dfl.row_grouped_ms <- function(.ms, ..., .matrix = NULL)
-{
-  eval_obj <- eval_fun("mat", ms=.ms, ..., matidx=.matrix, row_first = TRUE,
-                       .simplify = "long", env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  group_inf <- row_group_keys(.ms)
-
-  lapply(eval_obj, function(mats) {
-
-    purrr::map2_dfr(mats, seq_along(mats),
-                    function(gr, i) dplyr::bind_cols(group_inf[i, ],
-                                                     dplyr::bind_rows(gr)))
-  })
-}
-
-
-
-
-.apply_mat_dfl.col_grouped_ms <- function(.ms, ..., .matrix = NULL)
-{
-  eval_obj <- eval_fun(margin="mat", ms=.ms, ..., matidx=.matrix,
-                       row_first = TRUE, .simplify = "long",
-                       env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  group_inf <- column_group_keys(.ms)
-
-  lapply(eval_obj, function(mats) {
-
-    purrr::map2_dfr(mats, seq_along(mats),
-                    function(gr, i) dplyr::bind_cols(group_inf[i, ],
-                                                     dplyr::bind_rows(gr)))
-  })
-}
-
-
-#'
-
-
-.apply_mat_dfl.dual_grouped_ms <- function(.ms, ..., .matrix = NULL)
-{
-  meta_row <- row_group_keys(.ms)
-  meta_col <- column_group_keys(.ms)
-
-  ngr_row <- nrow(meta_row)
-  ngr_col <- nrow(meta_col)
-
-  rep_idx_row <- rep(seq(ngr_row), each = ngr_col)
-  rep_idx_col <- rep(seq(ngr_col), ngr_row)
-
-  meta <- meta_row[rep_idx_row, ]
-  meta_col <- meta_col[rep_idx_col, ]
-  for (nm in names(meta_col)) meta[[nm]] <- meta_col[[nm]]
-
-  nmeta <- nrow(meta)
-
-
-  vals <- eval_fun("mat", ms=.ms, ..., matidx=.matrix, row_first = TRUE,
-                   .simplify = "long", env=rlang::caller_env())
-
-  res <- lapply(vals, function(v) unlist(v, recursive = FALSE))
-  nres <- lapply(res, function(r) unique(sapply(r, function(a) nrow(a))))
-
-
-  purrr::map2(res, nres,
-              function(r, n) {
-                idx <- rep(seq(nmeta), each = n)
-                dplyr::bind_cols(meta[idx, ], dplyr::bind_rows(r))
-              })
-
-}
-
-
-
-
-
-
-
-
-
-
-
-.apply_mat_dfw <- function(.ms, ..., .matrix = NULL)
-  UseMethod(".apply_mat_dfw")
-
-
-
-.apply_mat_dfw.NULL <- function(.ms, ..., .matrix = NULL) NULL
-
-
-
-
-
-.apply_mat_dfw.matrixset <- function(.ms, ..., .matrix = NULL)
-{
-  eval_obj <- eval_fun("mat", ms=.ms, ..., matidx=.matrix, row_first = TRUE,
-                       .simplify = "wide", env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  eval_obj
-}
-
-
-
-
-.apply_mat_dfw.row_grouped_ms <- function(.ms, ..., .matrix = NULL)
-{
-  eval_obj <- eval_fun("mat", ms=.ms, ..., matidx=.matrix, row_first = TRUE,
-                       .simplify = "wide", env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  group_inf <- row_group_keys(.ms)
-
-  lapply(eval_obj, function(mats) {
-
-    purrr::map2_dfr(mats, seq_along(mats),
-                    function(gr, i) dplyr::bind_cols(group_inf[i, ],
-                                                     dplyr::bind_rows(gr)))
-  })
-}
-
-
-
-
-.apply_mat_dfw.col_grouped_ms <- function(.ms, ..., .matrix = NULL)
-{
-  eval_obj <- eval_fun(margin="mat", ms=.ms, ..., matidx=.matrix,
-                       row_first = TRUE, .simplify = "wide",
-                       env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  group_inf <- column_group_keys(.ms)
-
-  lapply(eval_obj, function(mats) {
-
-    purrr::map2_dfr(mats, seq_along(mats),
-                    function(gr, i) dplyr::bind_cols(group_inf[i, ],
-                                                     dplyr::bind_rows(gr)))
-  })
-}
-
-
-#'
-
-
-.apply_mat_dfw.dual_grouped_ms <- function(.ms, ..., .matrix = NULL)
-{
-  meta_row <- row_group_keys(.ms)
-  meta_col <- column_group_keys(.ms)
-
-  ngr_row <- nrow(meta_row)
-  ngr_col <- nrow(meta_col)
-
-  rep_idx_row <- rep(seq(ngr_row), each = ngr_col)
-  rep_idx_col <- rep(seq(ngr_col), ngr_row)
-
-  meta <- meta_row[rep_idx_row, ]
-  meta_col <- meta_col[rep_idx_col, ]
-  for (nm in names(meta_col)) meta[[nm]] <- meta_col[[nm]]
-
-
-  vals <- eval_fun("mat", ms=.ms, ..., matidx=.matrix, row_first = TRUE,
-                   .simplify = "wide", env=rlang::caller_env())
-
-
-  lapply(vals,
-         function(v) {
-           dplyr::bind_cols(meta, dplyr::bind_rows(v))
-         })
-
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-.mapply_row <- function(.ms, ..., .matrix = NULL, .list_input = FALSE)
-  UseMethod(".mapply_row")
-
-
-
-.mapply_row.NULL <- function(.ms, ..., .matrix = NULL, .list_input = FALSE) NULL
-
-
-
-
-.mapply_row.matrixset <- function(.ms, ..., .matrix = NULL, .list_input = FALSE)
-{
-  eval_fun_mult(margin="row", ms=.ms, ..., matidx=.matrix, row_first = TRUE,
-                list_input = .list_input, .simplify = FALSE,
-                env = rlang::caller_env())
-}
-
-
-
-
-.mapply_row.row_grouped_ms <- function(.ms, ..., .matrix = NULL, .list_input = FALSE)
-{
-  NextMethod()
-}
-
-
-
-
-.mapply_row.col_grouped_ms <- function(.ms, ..., .matrix = NULL, .list_input = FALSE)
-{
-  ans <- column_group_meta(.ms)
-  vals <- eval_fun_mult(margin="row", ms=.ms, ..., matidx=.matrix,
-                        row_first = FALSE, list_input = .list_input,
-                        .simplify = FALSE, env=rlang::caller_env())
-  ans$.rows <- NULL
-  ans$.vals <- vals
-  ans
-}
-
-
-
-
-.mapply_row.dual_grouped_ms <- function(.ms, ..., .matrix = NULL, .list_input = FALSE)
-{
-  ans <- column_group_meta(.ms)
-  vals <- eval_fun_mult(margin="row", ms=.ms, ..., matidx=.matrix,
-                        row_first = FALSE, list_input = .list_input,
-                        .simplify = FALSE, env=rlang::caller_env())
-  ans$.rows <- NULL
-  ans$.vals <- vals
-  ans
-}
-
-
-
-
-
-.mapply_column <- function(.ms, ..., .matrix = NULL, .list_input = FALSE)
-  UseMethod(".mapply_column")
-
-
-
-
-.mapply_column.NULL <- function(.ms, ..., .matrix = NULL, .list_input = FALSE) NULL
-
-
-
-
-.mapply_column.matrixset <- function(.ms, ..., .matrix = NULL, .list_input = FALSE)
-{
-  eval_fun_mult(margin="col", ms=.ms, ..., matidx=.matrix, row_first = TRUE,
-                list_input = .list_input, .simplify = FALSE,
-                env = rlang::caller_env())
-}
-
-
-
-
-.mapply_column.col_grouped_ms <- function(.ms, ..., .matrix = NULL, .list_input = FALSE)
-{
-  NextMethod()
-}
-
-
-
-
-.mapply_column.row_grouped_ms <- function(.ms, ..., .matrix = NULL, .list_input = FALSE)
-{
-  ans <- row_group_meta(.ms)
-  vals <- eval_fun_mult(margin="col", ms=.ms, ..., matidx=.matrix,
-                        row_first = TRUE, list_input = .list_input,
-                        .simplify = FALSE,
-                        env=rlang::caller_env())
-  ans$.rows <- NULL
-  ans$.vals <- vals
-  ans
-}
-
-
-
-
-.mapply_column.dual_grouped_ms <- function(.ms, ..., .matrix = NULL, .list_input = FALSE)
-{
-  ans_tmp <- row_group_meta(.ms)
-  vals <- eval_fun_mult(margin="col", ms=.ms, ..., matidx=.matrix,
-                        row_first = TRUE, list_input = .list_input,
-                        .simplify = FALSE,
-                        env=rlang::caller_env())
-  ans$.rows <- NULL
-  ans$.vals <- vals
-  ans
-}
-
-
-
-
-
-
-.mapply_row_dfl <- function(.ms, ..., .matrix = NULL, .list_input = FALSE)
-  UseMethod(".mapply_row_dfl")
-
-
-
-.mapply_row_dfl.NULL <- function(.ms, ..., .matrix = NULL, .list_input = FALSE) NULL
-
-
-
-
-.mapply_row_dfl.matrixset <- function(.ms, ..., .matrix = NULL, .list_input = FALSE)
-{
-  eval_obj <- eval_fun_mult(margin="row", ms=.ms, ..., matidx=.matrix,
-                            row_first = TRUE, list_input = .list_input,
-                            .simplify = "long",
-                            env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  tbl <- dplyr::bind_rows(eval_obj, .id = .rowtag(.ms))
-  if (!is.null(attr(eval_obj, "drop_col"))) {
-    drop_idx <- which(names(tbl) %in% attr(eval_obj, "drop_col"))
-    tbl <- tbl[, -drop_idx]
-  }
-
-  tbl
-
-}
-
-
-
-
-.mapply_row_dfl.row_grouped_ms <- function(.ms, ..., .matrix = NULL, .list_input = FALSE)
-{
-  NextMethod()
-}
-
-
-
-
-.mapply_row_dfl.col_grouped_ms <- function(.ms, ..., .matrix = NULL, .list_input = FALSE)
-{
-  eval_obj <- eval_fun_mult(margin="row", ms=.ms, ..., matidx=.matrix,
-                            row_first = FALSE, list_input = .list_input,
-                            .simplify = "long",
-                            env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  group_inf <- column_group_keys(.ms)
-
-  tbl <- purrr::map2_dfr(eval_obj, seq_along(eval_obj),
-                         function(gr, i) dplyr::bind_cols(group_inf[i, ],
-                                                          dplyr::bind_rows(gr,
-                                                                           .id = .rowtag(.ms))))
-
-  if (!is.null(attr(eval_obj, "drop_col"))) {
-    drop_idx <- which(names(tbl) %in% attr(eval_obj, "drop_col"))
-    tbl <- tbl[, -drop_idx]
-  }
-
-  tbl
-
-}
-
-
-
-
-.mapply_row_dfl.dual_grouped_ms <- function(.ms, ..., .matrix = NULL, .list_input = FALSE)
-{
-  eval_obj <- eval_fun_mult(margin="row", ms=.ms, ..., matidx=.matrix,
-                            row_first = FALSE, list_input = .list_input,
-                            .simplify = "long",
-                            env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  group_inf <- column_group_keys(.ms)
-
-  tbl <- purrr::map2_dfr(eval_obj, seq_along(eval_obj),
-                         function(gr, i) dplyr::bind_cols(group_inf[i, ],
-                                                          dplyr::bind_rows(gr,
-                                                                           .id = .rowtag(.ms))))
-
-  if (!is.null(attr(eval_obj, "drop_col"))) {
-    drop_idx <- which(names(tbl) %in% attr(eval_obj, "drop_col"))
-    tbl <- tbl[, -drop_idx]
-  }
-
-  tbl
-}
-
-
-
-
-
-
-
-.mapply_column_dfl <- function(.ms, ..., .matrix = NULL, .list_input = FALSE)
-  UseMethod(".mapply_column_dfl")
-
-
-
-.mapply_column_dfl.NULL <- function(.ms, ..., .matrix = NULL, .list_input = FALSE) NULL
-
-
-
-
-.mapply_column_dfl.matrixset <- function(.ms, ..., .matrix = NULL, .list_input = FALSE)
-{
-  eval_obj <- eval_fun_mult(margin="col", ms=.ms, ..., matidx=.matrix,
-                            row_first = TRUE, list_input = .list_input,
-                            .simplify = "long",
-                            env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  tbl <- dplyr::bind_rows(eval_obj, .id = .coltag(.ms))
-
-  if (!is.null(attr(eval_obj, "drop_col"))) {
-    drop_idx <- which(names(tbl) %in% attr(eval_obj, "drop_col"))
-    tbl <- tbl[, -drop_idx]
-  }
-
-  tbl
-
-}
-
-
-
-
-
-.mapply_column_dfl.col_grouped_ms <- function(.ms, ..., .matrix = NULL, .list_input = FALSE)
-{
-  NextMethod()
-}
-
-
-
-
-.mapply_column_dfl.row_grouped_ms <- function(.ms, ..., .matrix = NULL, .list_input = FALSE)
-{
-  eval_obj <- eval_fun_mult(margin="col", ms=.ms, ..., matidx=.matrix,
-                            row_first = TRUE, list_input = .list_input,
-                            .simplify = "long",
-                            env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  group_inf <- row_group_keys(.ms)
-
-  tbl <- purrr::map2_dfr(eval_obj, seq_along(eval_obj),
-                         function(gr, i) dplyr::bind_cols(group_inf[i, ],
-                                                          dplyr::bind_rows(gr,
-                                                                           .id = .coltag(.ms))))
-
-  if (!is.null(attr(eval_obj, "drop_col"))) {
-    drop_idx <- which(names(tbl) %in% attr(eval_obj, "drop_col"))
-    tbl <- tbl[, -drop_idx]
-  }
-
-  tbl
-
-}
-
-
-
-
-.mapply_column_dfl.dual_grouped_ms <- function(.ms, ..., .matrix = NULL, .list_input = FALSE)
-{
-  eval_obj <- eval_fun_mult(margin="col", ms=.ms, ..., matidx=.matrix,
-                            row_first = TRUE, list_input = .list_input,
-                            .simplify = "long",
-                            env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  group_inf <- row_group_keys(.ms)
-
-  tbl <- purrr::map2_dfr(eval_obj, seq_along(eval_obj),
-                         function(gr, i) dplyr::bind_cols(group_inf[i, ],
-                                                          dplyr::bind_rows(gr,
-                                                                           .id = .coltag(.ms))))
-
-  if (!is.null(attr(eval_obj, "drop_col"))) {
-    drop_idx <- which(names(tbl) %in% attr(eval_obj, "drop_col"))
-    tbl <- tbl[, -drop_idx]
-  }
-
-  tbl
-
-
-}
-
-
-
-
-
-
-
-.mapply_row_dfw <- function(.ms, ..., .matrix = NULL, .list_input = FALSE)
-  UseMethod(".mapply_row_dfw")
-
-
-
-
-.mapply_row_dfw.matrixset <- function(.ms, ..., .matrix = NULL, .list_input = FALSE)
-{
-  eval_obj <- eval_fun_mult(margin="row", ms=.ms, ..., matidx=.matrix,
-                            row_first = TRUE, list_input = .list_input,
-                            .simplify = "wide", env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  dplyr::bind_rows(eval_obj, .id = .rowtag(.ms))
-
-}
-
-
-
-
-.apply_row_dfw.row_grouped_ms <- function(.ms, ..., .matrix = NULL, .list_input = FALSE)
-{
-  NextMethod()
-}
-
-
-
-
-.mapply_row_dfw.col_grouped_ms <- function(.ms, ..., .matrix = NULL, .list_input = FALSE)
-{
-  eval_obj <- eval_fun_mult(margin="row", ms=.ms, ..., matidx=.matrix,
-                            row_first = FALSE, list_input = .list_input,
-                            .simplify = "wide", env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  group_inf <- column_group_keys(.ms)
-
-  purrr::map2_dfr(eval_obj, seq_along(eval_obj), function(gr, i) {
-    dplyr::bind_cols(group_inf[i, ],
-                     dplyr::bind_rows(gr,
-                                      .id = .rowtag(.ms)))
-  })
-
-}
-
-
-
-
-.mapply_row_dfw.dual_grouped_ms <- function(.ms, ..., .matrix = NULL, .list_input = FALSE)
-{
-  eval_obj <- eval_fun_mult(margin="row", ms=.ms, ..., matidx=.matrix,
-                            row_first = FALSE, list_input = .list_input,
-                            .simplify = "wide", env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  group_inf <- column_group_keys(.ms)
-
-  purrr::map2_dfr(eval_obj, seq_along(eval_obj), function(gr, i) {
-    dplyr::bind_cols(group_inf[i, ],
-                     dplyr::bind_rows(gr,
-                                      .id = .rowtag(.ms)))
-  })
-}
-
-
-
-
-
-.mapply_column_dfw <- function(.ms, ..., .matrix = NULL, .list_input = FALSE)
-  UseMethod(".mapply_column_dfw")
-
-
-
-.mapply_column_dfw.NULL <- function(.ms, ..., .matrix = NULL, .list_input = FALSE) NULL
-
-
-
-
-.mapply_column_dfw.matrixset <- function(.ms, ..., .matrix = NULL, .list_input = FALSE)
-{
-  eval_obj <- eval_fun_mult(margin="col", ms=.ms, ..., matidx=.matrix,
-                            row_first = TRUE, list_input = .list_input,
-                            .simplify = "wide", env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  dplyr::bind_rows(eval_obj, .id = .coltag(.ms))
-
-}
-
-
-
-
-.mapply_column_dfw.col_grouped_ms <- function(.ms, ..., .matrix = NULL, .list_input = FALSE)
-{
-  NextMethod()
-}
-
-
-
-
-.mapply_column_dfw.row_grouped_ms <- function(.ms, ..., .matrix = NULL, .list_input = FALSE)
-{
-  eval_obj <- eval_fun_mult(margin="col", ms=.ms, ..., matidx=.matrix,
-                            row_first = TRUE, list_input = .list_input,
-                            .simplify = "wide", env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  group_inf <- row_group_keys(.ms)
-
-  purrr::map2_dfr(eval_obj, seq_along(eval_obj),
-                  function(gr, i) dplyr::bind_cols(group_inf[i, ],
-                                                   dplyr::bind_rows(gr,
-                                                                    .id = .coltag(.ms))))
-
-}
-
-
-
-.mapply_column_dfw.dual_grouped_ms <- function(.ms, ..., .matrix = NULL, .list_input = FALSE)
-{
-  eval_obj <- eval_fun_mult(margin="col", ms=.ms, ..., matidx=.matrix,
-                            row_first = TRUE, list_input = .list_input,
-                            .simplify = "wide", env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  group_inf <- row_group_keys(.ms)
-
-  purrr::map2_dfr(eval_obj, seq_along(eval_obj),
-                  function(gr, i) dplyr::bind_cols(group_inf[i, ],
-                                                   dplyr::bind_rows(gr,
-                                                                    .id = .coltag(.ms))))
-}
-
-
-
-
-
-
-.mapply_mat <- function(.ms, ..., .matrix = NULL, .list_input = FALSE)
-  UseMethod(".mapply_mat")
-
-
-
-.mapply_mat.NULL <- function(.ms, ..., .matrix = NULL, .list_input = FALSE) NULL
-
-
-
-
-.mapply_mat.matrixset <- function(.ms, ..., .matrix = NULL, .list_input = FALSE)
-{
-  eval_fun_mult("mat", ms=.ms, ..., matidx=.matrix, row_first = TRUE,
-                list_input = .list_input,  .simplify = FALSE,
-                env=rlang::caller_env())
-}
-
-
-
-
-.mapply_mat.row_grouped_ms <- function(.ms, ..., .matrix = NULL,
-                                       .list_input = FALSE)
-{
-  ans <- row_group_meta(.ms)
-  vals <- eval_fun_mult("mat", ms=.ms, ..., matidx=.matrix, row_first = TRUE,
-                        list_input = .list_input, .simplify = FALSE,
-                        env=rlang::caller_env())
-
-  ans$.rows <- NULL
-  ans$.vals <- vals
-  ans
-}
-
-
-
-
-.mapply_mat.col_grouped_ms <- function(.ms, ..., .matrix = NULL,
-                                       .list_input = FALSE)
-{
-  ans <- column_group_meta(.ms)
-  vals <- eval_fun_mult("mat", ms=.ms, ..., matidx=.matrix, row_first = TRUE,
-                        list_input = .list_input, .simplify = FALSE,
-                        env=rlang::caller_env())
-  ans$.rows <- NULL
-  ans$.vals <- vals
-  ans
-}
-
-
-
-
-
-.mapply_mat.dual_grouped_ms <- function(.ms, ..., .matrix = NULL,
-                                        .list_input = FALSE)
-{
-  meta_row <- row_group_keys(.ms)
-  meta_col <- column_group_keys(.ms)
-
-  ngr_row <- nrow(meta_row)
-  ngr_col <- nrow(meta_col)
-
-  rep_idx_row <- rep(seq(ngr_row), each = ngr_col)
-  rep_idx_col <- rep(seq(ngr_col), ngr_row)
-
-  meta <- meta_row[rep_idx_row, ]
-  meta_col <- meta_col[rep_idx_col, ]
-  for (nm in names(meta_col)) meta[[nm]] <- meta_col[[nm]]
-
-
-  vals <- eval_fun_mult("mat", ms=.ms, ..., matidx=.matrix, row_first = TRUE,
-                        list_input = .list_input, .simplify = FALSE,
-                        env=rlang::caller_env())
-
-  meta$.vals <- unlist(vals, recursive = FALSE)
-  meta
-
-}
-
-
-
-
-
-
-.mapply_mat_dfl <- function(.ms, ..., .matrix = NULL, .list_input = FALSE)
-  UseMethod(".mapply_mat_dfl")
-
-
-
-.mapply_mat_dfl.NULL <- function(.ms, ..., .matrix = NULL, .list_input = FALSE) NULL
-
-
-
-
-
-.mapply_mat_dfl.matrixset <- function(.ms, ..., .matrix = NULL,
-                                      .list_input = FALSE)
-{
-  eval_obj <- eval_fun_mult("mat", ms=.ms, ..., matidx=.matrix, row_first = TRUE,
-                            list_input = .list_input, .simplify = "long",
-                            env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  eval_obj
-}
-
-
-
-
-.mapply_mat_dfl.row_grouped_ms <- function(.ms, ..., .matrix = NULL,
-                                           .list_input = FALSE)
-{
-  eval_obj <- eval_fun_mult("mat", ms=.ms, ..., matidx=.matrix, row_first = TRUE,
-                            list_input = .list_input, .simplify = "long",
-                            env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  group_inf <- row_group_keys(.ms)
-
-  tbl <- purrr::map2_dfr(eval_obj, seq_along(eval_obj),
-                         function(gr, i) dplyr::bind_cols(group_inf[i, ],
-                                                          dplyr::bind_rows(gr)))
-
-  if (!is.null(attr(eval_obj, "drop_col"))) {
-    drop_idx <- which(names(tbl) %in% attr(eval_obj, "drop_col"))
-    tbl <- tbl[, -drop_idx]
-  }
-
-  tbl
-}
-
-
-
-
-.mapply_mat_dfl.col_grouped_ms <- function(.ms, ..., .matrix = NULL,
-                                           .list_input = FALSE)
-{
-  eval_obj <- eval_fun_mult(margin="mat", ms=.ms, ..., matidx=.matrix,
-                            row_first = TRUE, list_input = .list_input,
-                            .simplify = "long", env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  group_inf <- column_group_keys(.ms)
-
-  tbl <- purrr::map2_dfr(eval_obj, seq_along(eval_obj),
-                         function(gr, i) dplyr::bind_cols(group_inf[i, ],
-                                                          dplyr::bind_rows(gr)))
-
-  if (!is.null(attr(eval_obj, "drop_col"))) {
-    drop_idx <- which(names(tbl) %in% attr(eval_obj, "drop_col"))
-    tbl <- tbl[, -drop_idx]
-  }
-
-  tbl
-}
-
-
-
-
-
-.mapply_mat_dfl.dual_grouped_ms <- function(.ms, ..., .matrix = NULL,
-                                            .list_input = FALSE)
-{
-  meta_row <- row_group_keys(.ms)
-  meta_col <- column_group_keys(.ms)
-
-  ngr_row <- nrow(meta_row)
-  ngr_col <- nrow(meta_col)
-
-  rep_idx_row <- rep(seq(ngr_row), each = ngr_col)
-  rep_idx_col <- rep(seq(ngr_col), ngr_row)
-
-  meta <- meta_row[rep_idx_row, ]
-  meta_col <- meta_col[rep_idx_col, ]
-  for (nm in names(meta_col)) meta[[nm]] <- meta_col[[nm]]
-
-  nmeta <- nrow(meta)
-
-
-  vals <- eval_fun_mult("mat", ms=.ms, ..., matidx=.matrix, row_first = TRUE,
-                        list_input = .list_input, .simplify = "long",
-                        env=rlang::caller_env())
-
-
-  res <- unlist(vals, recursive = FALSE)
-  nres <- sapply(res, function(a) nrow(a))
-
-
-  tbl <- purrr::map2_dfr(seq(nmeta), nres,
-                         function(i, n) dplyr::bind_cols(meta[rep(i, n), ], res[[i]]))
-
-  if (!is.null(attr(vals, "drop_col"))) {
-    drop_idx <- which(names(tbl) %in% attr(vals, "drop_col"))
-    tbl <- tbl[, -drop_idx]
-  }
-
-  tbl
-}
-
-
-
-
-
-
-
-
-
-
-
-.mapply_mat_dfw <- function(.ms, ..., .matrix = NULL, .list_input = FALSE)
-  UseMethod(".mapply_mat_dfw")
-
-
-
-.mapply_mat_dfw.NULL <- function(.ms, ..., .matrix = NULL, .list_input = FALSE) NULL
-
-
-
-
-
-.mapply_mat_dfw.matrixset <- function(.ms, ..., .matrix = NULL, .list_input = FALSE)
-{
-  eval_obj <- eval_fun_mult("mat", ms=.ms, ..., matidx=.matrix, row_first = TRUE,
-                            list_input = .list_input, .simplify = "wide",
-                            env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  eval_obj
-}
-
-
-
-
-.mapply_mat_dfw.row_grouped_ms <- function(.ms, ..., .matrix = NULL,
-                                           .list_input = FALSE)
-{
-  eval_obj <- eval_fun_mult("mat", ms=.ms, ..., matidx=.matrix, row_first = TRUE,
-                            list_input = .list_input, .simplify = "wide",
-                            env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  group_inf <- row_group_keys(.ms)
-
-  purrr::map2_dfr(eval_obj, seq_along(eval_obj),
-                  function(gr, i) dplyr::bind_cols(group_inf[i, ],
-                                                   dplyr::bind_rows(gr)))
-
-}
-
-
-
-
-.mapply_mat_dfw.col_grouped_ms <- function(.ms, ..., .matrix = NULL,
-                                           .list_input = FALSE)
-{
-  eval_obj <- eval_fun_mult(margin="mat", ms=.ms, ..., matidx=.matrix,
-                            row_first = TRUE, list_input = .list_input,
-                            .simplify = "wide", env=rlang::caller_env())
-
-  if (is.null(eval_obj)) return(NULL)
-
-  group_inf <- column_group_keys(.ms)
-
-  purrr::map2_dfr(eval_obj, seq_along(eval_obj),
-                  function(gr, i) dplyr::bind_cols(group_inf[i, ],
-                                                   dplyr::bind_rows(gr)))
-
-}
-
-
-
-
-
-.mapply_mat_dfw.dual_grouped_ms <- function(.ms, ..., .matrix = NULL,
-                                            .list_input = FALSE)
-{
-  meta_row <- row_group_keys(.ms)
-  meta_col <- column_group_keys(.ms)
-
-  ngr_row <- nrow(meta_row)
-  ngr_col <- nrow(meta_col)
-
-  rep_idx_row <- rep(seq(ngr_row), each = ngr_col)
-  rep_idx_col <- rep(seq(ngr_col), ngr_row)
-
-  meta <- meta_row[rep_idx_row, ]
-  meta_col <- meta_col[rep_idx_col, ]
-  for (nm in names(meta_col)) meta[[nm]] <- meta_col[[nm]]
-
-
-  vals <- eval_fun_mult("mat", ms=.ms, ..., matidx=.matrix, row_first = TRUE,
-                        list_input = .list_input, .simplify = "wide",
-                        env=rlang::caller_env())
-
-  dplyr::bind_cols(meta, dplyr::bind_rows(vals))
-
-
-}
-
-
-
-
-
 
 
 

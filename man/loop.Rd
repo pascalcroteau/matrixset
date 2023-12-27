@@ -20,7 +20,8 @@ apply_row_dfl(
   ...,
   .matrix = NULL,
   .matrix_wise = TRUE,
-  .input_list = FALSE
+  .input_list = FALSE,
+  .force_name = FALSE
 )
 
 apply_row_dfw(
@@ -28,7 +29,8 @@ apply_row_dfw(
   ...,
   .matrix = NULL,
   .matrix_wise = TRUE,
-  .input_list = FALSE
+  .input_list = FALSE,
+  .force_name = FALSE
 )
 
 apply_column(
@@ -44,7 +46,8 @@ apply_column_dfl(
   ...,
   .matrix = NULL,
   .matrix_wise = TRUE,
-  .input_list = FALSE
+  .input_list = FALSE,
+  .force_name = FALSE
 )
 
 apply_column_dfw(
@@ -52,7 +55,8 @@ apply_column_dfw(
   ...,
   .matrix = NULL,
   .matrix_wise = TRUE,
-  .input_list = FALSE
+  .input_list = FALSE,
+  .force_name = FALSE
 )
 
 apply_matrix(
@@ -68,7 +72,8 @@ apply_matrix_dfl(
   ...,
   .matrix = NULL,
   .matrix_wise = TRUE,
-  .input_list = FALSE
+  .input_list = FALSE,
+  .force_name = FALSE
 )
 
 apply_matrix_dfw(
@@ -76,7 +81,8 @@ apply_matrix_dfw(
   ...,
   .matrix = NULL,
   .matrix_wise = TRUE,
-  .input_list = FALSE
+  .input_list = FALSE,
+  .force_name = FALSE
 )
 }
 \arguments{
@@ -86,16 +92,16 @@ apply_matrix_dfw(
 the following way:
 \itemize{
 \item a function name, e.g., \code{mean}.
-\item a function call, where you can use \code{.m} to represent the current matrix
-(for \code{apply_matrix}), \code{.i} to represent the current row (for \code{apply_row})
-and \code{.j} for the current column (\code{apply_column}). Bare names of object
+\item a function call, where you can use .m to represent the current matrix
+(for \code{apply_matrix}),.i\verb{to represent the current row (for}apply_row\verb{) and.j} for the current column (\code{apply_column}). Bare names of object
 traits can be used as well. For instance, \code{lm(.i ~ program)}.
 
 The pronouns are also available for the multivariate version, under
 certain circumstances, but they have a different meaning. See the
 "Multivariate" section for more details.
-\item a formula expression. The pronouns \code{.m}, \code{.i} and \code{.j} can be used as
-well. See examples to see the usefulness of this.
+\item a formula expression. The pronouns .m, .i and
+.j` can be used as well. See examples to see the usefulness
+of this.
 }
 
 The expressions can be named; these names will be used to provide names to
@@ -127,6 +133,18 @@ one by one, in turn, to the functions/expressions. But if \code{.matrix_wise} is
 \item{.input_list}{\code{logical}. If multivariate (\code{.matrix_wise ==  FALSE}),
 the matrices are provided as a single list, where each element is a matrix
 (or matrix row or column). The list elements are the matrix names.}
+
+\item{.force_name}{\code{logical}. Used only for the simplified output versions
+(dfl/dfw). By default (\code{FALSE}), function IDs will be provided only if the
+function outcome is a vector of length 2 or more. If \code{.force_name} is
+\code{TRUE} then function IDs are provided in all situations.
+
+This can be useful in situation of grouping. As the functions are
+evaluated independently within each group, there could be situations where
+function outcomes are of length 1 for some groups and lenght 2 or more in
+other groups.
+
+See examples.}
 }
 \value{
 A list for every matrix in the matrixset object. Each list is itself a list.
@@ -151,7 +169,7 @@ context.
 }
 \description{
 The \code{apply_matrix} function applies functions to each matrix of a \code{matrixset}.
-The \code{apply_row}/\code{apply_column} functions do the same but separately for the
+The \code{apply_row}/\code{apply_column} functions do the same but separately for each
 row/column. The functions can be applied to all matrices or only a subset.
 
 The \code{dfl}/\code{dfw} versions differ in their output format and when possible,
@@ -180,15 +198,15 @@ annotation. You can use \code{.env[[var]]} or \code{.env$var} to make sure to us
 the proper variable.
 }
 
-The matrixset package defines its own pronouns: \code{.m}, \code{.i} and \code{.j}, which
+The matrixset package defines its own pronouns: .m, .i and .j, which
 are discussed in the function specification argument (\code{...}).
 
 It is not necessary to import any of the pronouns (or load \code{rlang} in the
 case of \code{.data} and \code{.env}) in a interactive session.
 
 It is useful however when writing a package to avoid the \verb{R CMD check} notes.
-As needed, you can import \code{.data} and \code{.env} (from \code{rlang}) or any of \code{.i},
-\code{.j} or \code{.m} from \code{matrixset}.
+As needed, you can import \code{.data} and \code{.env} (from \code{rlang}) or any of .m,
+.i or .j from \code{matrixset}.
 }
 
 \section{Multivariate}{
@@ -322,5 +340,11 @@ cl_prof_program_gr <- column_group_by(cl_prof_gr, program)
 (summ_gr_wide <- apply_column_dfw(cl_prof_program_gr,
                                  ct = c(avr = mean(.j), med = median(.j)),
                                  rg = range))
+
+
+# This is an example where you may want to use the .force_name argument
+(apply_matrix_dfl(column_group_by(student_results, program), FC = colMeans(.m)))
+(apply_matrix_dfl(column_group_by(student_results, program), FC = colMeans(.m),
+                  .force_name = TRUE))
 
 }

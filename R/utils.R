@@ -4,6 +4,22 @@ is_matrixish <- function(x)
 }
 
 
+flatten_or <- function(str)
+{
+  stringr::str_flatten(sQuote(str), collapse = ", ", last = " or ")
+}
+
+
+match_option <- function(x, opts)
+{
+  if (!x %in% opts) {
+    msg <- stringr::str_glue("'{x}' is not valid. It must be one of {OPTS}.",
+                             OPTS = flatten_or(opts))
+    stop(msg)
+  }
+  x
+}
+
 
 times <- cli::symbol$times
 

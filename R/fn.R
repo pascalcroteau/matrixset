@@ -940,7 +940,7 @@ eval_fun_matrix_dgms <- function(ms, ..., matidx, .simplify, env)
     ans$.___tmp___ <- lapply(1:ngroup_row, function(gr) {
       v[[gr]][[k]]
     })
-    tidyr::unnest(ans, .data$.___tmp___)
+    tidyr::unnest(ans, ".___tmp___")
   })
 
   if (.simplify) attr(vans, "group_vars") <- margin_group_vars("row")(ms)
@@ -1279,7 +1279,7 @@ eval_fun_matrix_dgms_mult <- function(ms, ..., matidx, as_list_mat, .simplify,
   ans <- row_group_meta(ms)
   ans$.rows <- NULL
   ans$.___tmp___ <- v
-  ans <- tidyr::unnest(ans, .data$.___tmp___)
+  ans <- tidyr::unnest(ans, ".___tmp___")
 
   if (.simplify) attr(ans, "group_vars") <- row_group_vars(ms)
   ans
@@ -1566,12 +1566,12 @@ tblize_lg <- function(fna, mrg_tag, matrix = FALSE, mult = FALSE, force_name = F
       if (mult) {
         unfold <- lapply(fna$.vals, function(v) make_longer_val(v, force_name))
         fna$.vals <- unfold
-        tidyr::unnest(fna, .data$.vals)
+        tidyr::unnest(fna, ".vals")
       } else {
         lapply(fna, function(v) {
           .vals <- make_longer(v$.vals, force_name)
           v$.vals <- .vals
-          tidyr::unnest(v, .data$.vals)
+          tidyr::unnest(v, ".vals")
         })
       }
 
@@ -1580,13 +1580,13 @@ tblize_lg <- function(fna, mrg_tag, matrix = FALSE, mult = FALSE, force_name = F
       if (mult) {
         unfold <- lapply(fna$.vals, function(v) bind_long(v, force_name, mrg_tag))
         fna$.vals <- unfold
-        tidyr::unnest(fna, .data$.vals)
+        tidyr::unnest(fna, ".vals")
 
       } else {
         lapply(fna, function(m) {
           unfold <- lapply(m$.vals, function(v) bind_long(v, force_name, mrg_tag))
           m$.vals <- unfold
-          tidyr::unnest(m, .data$.vals)
+          tidyr::unnest(m, ".vals")
         })
       }
 
@@ -1631,12 +1631,12 @@ tblize_wd <- function(fna, mrg_tag, matrix = FALSE, mult = FALSE, force_name = F
       if (mult) {
         unfold <- lapply(fna$.vals, function(v) make_wider_val(v, force_name))
         fna$.vals <- unfold
-        tidyr::unnest(fna, .data$.vals)
+        tidyr::unnest(fna, ".vals")
       } else {
         lapply(fna, function(m) {
           .vals <- make_wider(m$.vals, force_name)
           m$.vals <- .vals
-          tidyr::unnest(m, .data$.vals)
+          tidyr::unnest(m, ".vals")
         })
       }
 
@@ -1644,12 +1644,12 @@ tblize_wd <- function(fna, mrg_tag, matrix = FALSE, mult = FALSE, force_name = F
       if (mult) {
         unfold <- lapply(fna$.vals, function(v) bind_wide(v, force_name, mrg_tag))
         fna$.vals <- unfold
-        tidyr::unnest(fna, .data$.vals)
+        tidyr::unnest(fna, ".vals")
       } else {
         lapply(fna, function(m) {
           unfold <- lapply(m$.vals, function(v) bind_wide(v, force_name, mrg_tag))
           m$.vals <- unfold
-          tidyr::unnest(m, .data$.vals)
+          tidyr::unnest(m, ".vals")
         })
       }
 

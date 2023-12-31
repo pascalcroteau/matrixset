@@ -53,7 +53,20 @@ the meta info data frame.
 If \code{TRUE}, this will be allowed. In the case where the
 data frame is augmented, the matrices of \code{.ms}
 will be augmented accordingly by padding with \code{NA}s (
-except for the \code{NULL}matrices).}
+except for the \code{NULL} matrices).
+
+Alternatively, \code{adjust} can be a single string, one of
+'pad_x' or 'from_y'. Choosing "pad_x"
+is equivalent to \code{TRUE}. When choosing, "from_y",
+padding is done using values from \code{y}, but only
+\enumerate{
+\item if \code{y} is a \code{matrixset}
+\item for \code{y} matrices that are named the same in \code{x}
+\item If padding rows, only columns common between \code{x} and \code{y} will use \code{y}
+values. The same logic is applied when padding columns.
+}
+
+Other values are padded with \code{NA}.}
 
 \item{suffix}{Suffixes added to disambiguate trait variables. See
 \code{dplyr}'s \code{\link[dplyr:mutate-joins]{dplyr::join()}}.}

@@ -26,6 +26,18 @@ test_that("matrixset row info join works", {
 
 
 
+  ms1 <- remove_column_annotation(student_results, national_average, school_average)
+  ms <- join_column_info(ms1, student_results)
+  ms_ref <- student_results
+  ci <- column_info(ms_ref)
+  ci <- dplyr::mutate(ci, program.y = program)
+  ci <- dplyr::rename(ci, program.x = program)
+  ci <- ci[, c(".colname", "program.x", "national_average", "school_average", "program.y")]
+  column_info(ms_ref) <- ci
+  expect_identical(ms, ms_ref)
+
+
+
   ms1 <- remove_row_annotation(filter_row(student_results, class %in% c("classA", "classC")),
                                class, teacher)
   ms <- join_row_info(ms1, student_results)
@@ -58,6 +70,97 @@ test_that("matrixset row info join works", {
                       column_key = ".colname")
   expect_identical(ms, ms_ref)
 
+
+
+  ms1 <- remove_column_annotation(filter_column(student_results, program == "Applied Science"),
+                                  program)
+  ms <- join_column_info(ms1, student_results)
+  ms_ref <- filter_column(student_results, program == "Applied Science")
+  ci <- column_info(ms_ref)
+  ci <- dplyr::mutate(ci, national_average.y = national_average,
+                      school_average.y = school_average)
+  ci <- dplyr::rename(ci, national_average.x = national_average,
+                      school_average.x = school_average)
+  ci <- ci[, c(".colname", "national_average.x", "school_average.x",
+               "national_average.y", "school_average.y", "program")]
+  column_info(ms_ref) <- ci
+  expect_identical(ms, ms_ref)
+
+
+
+
+
+
+  ms1 <- remove_row_annotation(filter_row(student_results, class %in% c("classA", "classC")),
+                               class, teacher)
+
+
+  expect_error(join_row_info(ms1, student_results, type = "full"),
+               "the number of rows is modified by the join operation, which is against the 'matrixset' paradigm\\. Use 'adjust' to still perform the operation\\.")
+
+
+
+  ms2 <- remove_row_annotation(ms1, previous_year_score)
+  ms <- join_row_info(ms2, student_results, type = "full", adjust = TRUE)
+  m <- student_results[c(1:5, 11:15), , , keep_annotation = FALSE, warn_class_change = FALSE]
+  mNA <- matrix(NA_real_, 10, 3)
+  rownames(mNA) <- paste("student", c(6:10, 16:20))
+  colnames(mNA) <- colnames(student_results)
+  m <- lapply(m, function(M) rbind(M, mNA))
+  ri <- row_info(student_results)
+  ri <- ri[c(1:5, 11:15, 6:10, 16:20), ]
+  ci <- column_info(student_results)
+  ms_ref <- matrixset(m, row_info = ri, column_info = ci, row_key = ".rowname",
+                      column_key = ".colname")
+  expect_identical(ms, ms_ref)
+
+
+
+
+
+
+expect_warning(join_row_info(ms2, row_info(student_results), type = "full", adjust = "from_y"),
+               "'adjust' has been forced to")
+
+ms <- join_row_info(ms2, row_info(student_results), type = "full", adjust = TRUE)
+expect_identical(ms, ms_ref)
+
+expect_error(join_row_info(ms2, student_results, type = "full", adjust = "from_x"),
+             "'from_x' is not valid")
+
+ms <- join_row_info(ms2, student_results, type = "full", adjust = "pad_x")
+m <- student_results[c(1:5, 11:15), , , keep_annotation = FALSE, warn_class_change = FALSE]
+mNA <- matrix(NA_real_, 10, 3)
+rownames(mNA) <- paste("student", c(6:10, 16:20))
+colnames(mNA) <- colnames(student_results)
+m <- lapply(m, function(M) rbind(M, mNA))
+ri <- row_info(student_results)
+ri <- ri[c(1:5, 11:15, 6:10, 16:20), ]
+ci <- column_info(student_results)
+ms_ref <- matrixset(m, row_info = ri, column_info = ci, row_key = ".rowname",
+                    column_key = ".colname")
+expect_identical(ms, ms_ref)
+
+
+
+  ms2 <- remove_row_annotation(ms1, previous_year_score)
+  ms <- join_row_info(ms2, student_results[, -3, ], type = "full", adjust = "from_y")
+  m <- student_results[c(1:5, 11:15), , , keep_annotation = FALSE, warn_class_change = FALSE]
+  nms <- paste("student", c(6:10, 16:20))
+  mats <- student_results[nms, 1:2, , keep_annotation = FALSE, warn_class_change=FALSE]
+  mats <- lapply(mats, function(m) {
+    m <- cbind(m, NA)
+    colnames(m)[3] <- "Science"
+    m
+  })
+  m <- lapply(1:length(m), function(i) rbind(m[[i]], mats[[i]]))
+  names(m) <- names(mats)
+  ri <- row_info(student_results)
+  ri <- ri[c(1:5, 11:15, 6:10, 16:20), ]
+  ci <- column_info(student_results)
+  ms_ref <- matrixset(m, row_info = ri, column_info = ci, row_key = ".rowname",
+                      column_key = ".colname")
+  expect_identical(ms, ms_ref)
 
 
   expect_error(join_row_info(student_results, ms1, type = "inner"),

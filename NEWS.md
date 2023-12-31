@@ -18,6 +18,9 @@ some bugs (see below).
   
   For instance, using `.force_name` solves the issue
   [#12](https://github.com/pascalcroteau/matrixset/issues/12)
+* Functions `join_row_info()` and `join_column_info()` now have more `adjust`
+  possibilities to expand matrix sizes when the join operation results in matrix
+  expansion.
 
 ## Bug correction
 
@@ -27,6 +30,8 @@ some bugs (see below).
   This solves [#13](https://github.com/pascalcroteau/matrixset/issues/13)
 * [#12](https://github.com/pascalcroteau/matrixset/issues/12) has been resolved
   by the addition of the `.force_name` argument.
+* A miss-parametrization of function `join_column_info()` made it impossible to
+  be executed. This has now been fixed.
 
 # matrixset 0.2.0
 

@@ -230,10 +230,12 @@ type (blank or not) and random batch effect for calibration point.
 
 
 ```{r, message=FALSE}
-library(lme4)
+# library(lme4)
 diff <- mrm_plus2015_ratio %>% 
-    apply_column_dfl(p_cov = predict(lmer(.j ~ 1 + SampleType + (1|point)),
+    apply_column_dfl(p_cov = predict(lm(.j ~ 1 + SampleType + point),
                                      type = "response"),
+                     #p_cov = predict(lmer(.j ~ 1 + SampleType + (1|point)),
+                     #                type = "response"),
                      p_null = predict(lm(.j ~ 1)),
                      .matrix = "area_log_ratio") %>% 
     .[[1]] %>% 

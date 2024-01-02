@@ -733,11 +733,11 @@ print_matrix.matrix <- function(m, nrow_print = NULL, ncol_print = NULL,
 
   row_dimmed <- FALSE
   col_dimmed <- FALSE
-  if (is.null(rownames(m))) {
+  if (is.null(rownames(m)) && nr > 0) {
     rownames(mout) <- paste0("..", seq(nr))
     row_dimmed <- TRUE
   }
-  if (is.null(colnames(m))) {
+  if (is.null(colnames(m)) && nc > 0) {
     colnames(mout) <- paste0("..", seq(nc))
     col_dimmed <- TRUE
   }
@@ -777,9 +777,10 @@ print_matrix.matrix <- function(m, nrow_print = NULL, ncol_print = NULL,
   rn <- style_dim(rownames(mout), row_dimmed)
   cn <- colnames(mout)
 
-  len <- apply(nchar(mout), 2, max)
+  len <- if (nr) apply(nchar(mout), 2, max) else stats::setNames(rep(0L, ncol(mout)), cn)
   len <- pmax(len, stringr::str_width(cn))
-  len <- c(max(stringr::str_width(rn)), len)
+  lr <- if (length(rn)) max(stringr::str_width(rn)) else 0L
+  len <- c(lr, len)
 
 
   lout <- vector('list', NR+1)
@@ -789,7 +790,7 @@ print_matrix.matrix <- function(m, nrow_print = NULL, ncol_print = NULL,
                                      ~ stringr::str_pad(.y, .x)),
                      collapse = " ")
 
-  for (i in 2:(NR+1))
+  for (i in (seq_len(NR)+1))
   {
     l <-  purrr::map2_chr(len[-1], mout[i-1, ],
                           ~ stringr::str_pad(.y, .x))
@@ -797,7 +798,9 @@ print_matrix.matrix <- function(m, nrow_print = NULL, ncol_print = NULL,
   }
 
 
-  if (is.null(class_print)) class_print <- vctrs::vec_ptype_abbr(m[[1]])
+  if (is.null(class_print)) {
+    class_print <- if (length(m)) vctrs::vec_ptype_abbr(m[[1]]) else vctrs::vec_ptype_abbr(m)
+  }
   header <- paste("A", nrow_print, times, ncol_print, enclose(class_print),
                   "matrix")
 

@@ -80,8 +80,8 @@ index_to_integer <- function(idx, n, names)
       }
 
       idx <- which(idx)
-      if (length(idx) == 0L)
-        stop("logical subscript has no TRUEs")
+      # if (length(idx) == 0L)
+      #   stop("logical subscript has no TRUEs")
     }
     else if (typeof(idx) == "character") {
 

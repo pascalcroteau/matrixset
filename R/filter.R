@@ -101,7 +101,7 @@ filter_row.matrixset <- function(.ms, ..., .preserve = FALSE)
   tmp_info <- dplyr::mutate(.ms$row_info, ._idx_ = !!filter_expr)
   idx <- tmp_info$._idx_
 
-  if (!any(idx)) return(.ms)
+  # if (!any(idx)) return(.ms)
 
   .ms[idx,,]
 }

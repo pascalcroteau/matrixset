@@ -275,7 +275,7 @@ test_that("matrixset extraction reports errors properly for Matrix", {
 
   expect_error(matset[T, , ], "logical subscript not of appropriate length")
   expect_error(matset[c(T,T,T), , ], "logical subscript not of appropriate length")
-  expect_error(matset[c(F,F), ,], "logical subscript has no TRUEs")
+  # expect_error(matset[c(F,F), ,], "logical subscript has no TRUEs")
   expect_error(matset["r3", ,], "character subscript has no matches")
   expect_error(matset[list(1,2),,], "subscript type not handled")
   expect_error(matset_nonm["r1",,], "character subscript has no matches")

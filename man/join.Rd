@@ -31,8 +31,8 @@ join_column_info(
 
 \item{y}{A \code{matrixset} object or a \code{data.frame}.}
 
-\item{type}{Joining type, one of \code{"left"} (default), \code{"inner"},
-\code{"right"} or \code{"full"}}
+\item{type}{Joining type, one of 'left',
+'inner', 'right', 'full', 'semi' or 'anti'.}
 
 \item{by}{The names of the variable to join by.
 The default, \code{NULL}, results in slightly different
@@ -57,7 +57,7 @@ except for the \code{NULL} matrices).
 
 Alternatively, \code{adjust} can be a single string, one of
 'pad_x' or 'from_y'. Choosing "pad_x"
-is equivalent to \code{TRUE}. When choosing, "from_y",
+is equivalent to \code{TRUE}. When choosing "from_y",
 padding is done using values from \code{y}, but only
 \enumerate{
 \item if \code{y} is a \code{matrixset}
@@ -88,8 +88,9 @@ data.frame (\code{\link[=join_row_info]{join_row_info()}}) of \code{.ms} and \co
 data.frame if it is a \code{matrixset} object). The function \code{\link[=join_column_info]{join_column_info()}}
 does the equivalent operation for column meta info.
 
-The default join operation is a left join (type == \code{"left"}), but all dplyr's
-mutating joins are available (\code{"left"}, \code{"inner"}, \code{"right"} and \code{"full"}).
+The default join operation is a left join
+(type == 'left'), but most of dplyr's
+joins are available ('left', 'inner', 'right', 'full', 'semi' or 'anti').
 
 The \code{matrixset} paradigm of unique row/column names is enforced so if a
 \code{.ms} data.frame row matches multiple ones in \code{y}, this results in an

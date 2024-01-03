@@ -195,4 +195,21 @@ expect_identical(ms, ms_ref)
   row_info(ms_ref) <- ri
   expect_identical(ms, ms_ref)
 
+
+
+  ms1 <- filter_row(student_results, class %in% c("classA", "classC"))
+  ms <- join_row_info(remove_row_annotation(student_results, class, teacher),
+                      ms1, type = "anti", adjust = TRUE)
+  ms_ref <- remove_row_annotation(filter_row(student_results, class %in% c("classB", "classD")),
+                                  class, teacher)
+  expect_identical(ms, ms_ref)
+
+
+  expect_identical(join_row_info(remove_row_annotation(student_results, class),
+                                 ms1, type = "semi", adjust = TRUE),
+                   remove_row_annotation(ms1, class))
+
+
+  expect_identical(join_row_info(ms1, student_results, type = "anti", adjust = TRUE),
+                   filter_row(ms1, class == "none"))
 })

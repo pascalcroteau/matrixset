@@ -275,23 +275,30 @@ sub_matrix <- function(m, margin, old_names, all_names, compl_names)
   info_y <- join_info(.ms_y, margin)
 
 
+  # args <- list("info_x", "info_y", by = as.name("by"),
+  #              suffix = as.name("suffix"), na_matches = as.name('na_matches'))
   args <- list("info_x", "info_y", by = as.name("by"),
-               suffix = as.name("suffix"), na_matches = as.name('na_matches'))
+               na_matches = as.name('na_matches'))
+  if (!(type %in% filt_join_opts)) args <- c(args, suffix = as.name("suffix"))
   join_call <- rlang::call2(paste0(type, "_join"), !!!rlang::syms(args),
                             .ns = "dplyr")
   info <- rlang::eval_tidy(join_call)
 
-  # make sure the new key (row/col name has no duplicates)
-  ntag <- dplyr::count(info, !!as.name(x_tag))
-  ntag <- if(x_tag == "n") {
-    ntag[["nn"]]
-  } else {
-    ntag[["n"]]
-  }
-  ntag <- unique(ntag)
+  ni <- nrow(info)
 
-  if (length(ntag) > 1 || ntag > 1)
-    stop(paste("'by' does not result in unique", margin, "names"))
+  if (ni > 0) {
+    # make sure the new key (row/col name has no duplicates)
+    ntag <- dplyr::count(info, !!as.name(x_tag))
+    ntag <- if(x_tag == "n") {
+      ntag[["nn"]]
+    } else {
+      ntag[["n"]]
+    }
+    ntag <- unique(ntag)
+
+    if (length(ntag) > 1 || ntag > 1)
+      stop(paste("'by' does not result in unique", margin, "names"))
+  }
 
   tr <- colnames(info)
 
@@ -385,8 +392,9 @@ sub_matrix <- function(m, margin, old_names, all_names, compl_names)
 #' data.frame if it is a `matrixset` object). The function [join_column_info()]
 #' does the equivalent operation for column meta info.
 #'
-#' The default join operation is a left join (type == `"left"`), but all dplyr's
-#' mutating joins are available (`"left"`, `"inner"`, `"right"` and `"full"`).
+#' The default join operation is a `r join_opts["default"]` join
+#' (type == `r sQuote(join_opts["default"])`), but most of dplyr's
+#' joins are available (`r flatten_or(join_opts)`).
 #'
 #' The `matrixset` paradigm of unique row/column names is enforced so if a
 #' `.ms` data.frame row matches multiple ones in `y`, this results in an
@@ -394,8 +402,8 @@ sub_matrix <- function(m, margin, old_names, all_names, compl_names)
 #'
 #' @param .ms           A `matrixset` object
 #' @param y             A `matrixset` object or a `data.frame`.
-#' @param type          Joining type, one of `"left"` (default), `"inner"`,
-#'                      `"right"` or `"full"`
+#' @param type          Joining type, one of `r sQuote(join_opts["default"])`,
+#'                      `r flatten_or(join_opts[join_opts != join_opts["default"]])`.
 #' @param by            The names of the variable to join by.
 #'                      The default, `NULL`, results in slightly different
 #'                      behavior depending if `y` is a `matrixset` or a
@@ -418,7 +426,7 @@ sub_matrix <- function(m, margin, old_names, all_names, compl_names)
 #'
 #'    Alternatively, `adjust` can be a single string, one of
 #'    `r flatten_or(adjust_opts)`. Choosing "`r adjust_opts["x_only"]`"
-#'    is equivalent to `TRUE`. When choosing, "`r adjust_opts["from_y"]`",
+#'    is equivalent to `TRUE`. When choosing "`r adjust_opts["from_y"]`",
 #'    padding is done using values from `y`, but only
 #'
 #'    1. if `y` is a `matrixset`

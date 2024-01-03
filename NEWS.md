@@ -32,6 +32,8 @@ some bugs (see below).
   by the addition of the `.force_name` argument.
 * A miss-parametrization of function `join_column_info()` made it impossible to
   be executed. This has now been fixed.
+* `matrixset` objects with 0 rows can now be printed.
+* sub-setting `matrixset`s that yields 0-row objects is now possible.
 
 # matrixset 0.2.0
 

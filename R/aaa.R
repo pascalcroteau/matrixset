@@ -8,5 +8,7 @@ var_lab_mat <- ".m"
 dots_for_names <- ".."
 dots_for_names_expr <- "\\.\\."
 
+join_opts <- c(default="left", "inner", "right", "full", "semi", "anti")
+filt_join_opts <- c("semi", "anti")
 adjust_opts <- c(x_only="pad_x", from_y="from_y")
 

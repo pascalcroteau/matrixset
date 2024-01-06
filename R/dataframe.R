@@ -49,6 +49,11 @@
 #' @export
 ms_to_df <- function(.ms, add_row_info = TRUE, add_column_info = TRUE,
                      as_list = FALSE, .matrix = NULL)
+  UseMethod("ms_to_df")
+
+#' @export
+ms_to_df.matrixset <- function(.ms, add_row_info = TRUE, add_column_info = TRUE,
+                               as_list = FALSE, .matrix = NULL)
 {
   cl <- sys.call()
   cash_status$set(cl)

@@ -110,6 +110,11 @@ set_group_attrs <- function(old_attrs, new_attrs, dim)
 #' @rdname group_by
 #' @export
 row_group_by <- function(.ms, ..., .add = FALSE, .drop = row_group_by_drop_default(.ms))
+  UseMethod("row_group_by")
+
+
+#' @export
+row_group_by.matrixset <- function(.ms, ..., .add = FALSE, .drop = row_group_by_drop_default(.ms))
 {
   cl <- sys.call()
   cash_status$set(cl)
@@ -156,6 +161,11 @@ row_group_by <- function(.ms, ..., .add = FALSE, .drop = row_group_by_drop_defau
 #' @rdname group_by
 #' @export
 column_group_by <- function(.ms, ..., .add = FALSE, .drop = column_group_by_drop_default(.ms))
+  UseMethod("column_group_by")
+
+
+#' @export
+column_group_by.matrixset <- function(.ms, ..., .add = FALSE, .drop = column_group_by_drop_default(.ms))
 {
   cl <- sys.call()
   cash_status$set(cl)
@@ -217,7 +227,10 @@ column_group_by <- function(.ms, ..., .add = FALSE, .drop = column_group_by_drop
 #'
 #'
 #' @export
-row_group_by_drop_default <- function(.ms)
+row_group_by_drop_default <- function(.ms) UseMethod("row_group_by_drop_default")
+
+#' @export
+row_group_by_drop_default.matrixset <- function(.ms)
 {
   drop_attr <- attr(.ms, "row_group_level_drop")
   if (is.null(drop_attr)) return(TRUE)
@@ -243,7 +256,11 @@ row_group_by_drop_default <- function(.ms)
 #'     row_group_by_drop_default()
 #'
 #' @export
-column_group_by_drop_default <- function(.ms)
+column_group_by_drop_default <- function(.ms) UseMethod("column_group_by_drop_default")
+
+
+#' @export
+column_group_by_drop_default.matrixset <- function(.ms)
 {
   drop_attr <- attr(.ms, "col_group_level_drop")
   if (is.null(drop_attr)) return(TRUE)
@@ -254,7 +271,14 @@ column_group_by_drop_default <- function(.ms)
 
 #' @rdname group_by
 #' @export
-row_ungroup <- function(.ms, ...)
+row_ungroup <- function(.ms, ...) UseMethod("row_ungroup")
+#' @export
+row_ungroup.matrixset <- function(.ms, ...) .ms
+#' @export
+row_ungroup.col_grouped_ms <- function(.ms, ...) .ms
+
+#' @export
+row_ungroup.row_grouped_ms <- function(.ms, ...)
 {
   cl <- sys.call()
   cash_status$set(cl)
@@ -298,12 +322,23 @@ row_ungroup <- function(.ms, ...)
   .ms
 }
 
+#' @export
+row_ungroup.dual_grouped_ms <- function(.ms, ...)
+  row_ungroup.row_grouped_ms(.ms, ...)
+
 
 
 
 #' @rdname group_by
 #' @export
-column_ungroup <- function(.ms, ...)
+column_ungroup <- function(.ms, ...) UseMethod("column_ungroup")
+#' @export
+column_ungroup.matrixset <- function(.ms, ...) .ms
+#' @export
+column_ungroup.row_grouped_ms <- function(.ms, ...) .ms
+
+#' @export
+column_ungroup.col_grouped_ms <- function(.ms, ...)
 {
   cl <- sys.call()
   cash_status$set(cl)
@@ -346,6 +381,10 @@ column_ungroup <- function(.ms, ...)
 
   .ms
 }
+
+#' @export
+column_ungroup.dual_grouped_ms <- function(.ms, ...)
+  column_ungroup.col_grouped_ms(.ms, ...)
 
 
 

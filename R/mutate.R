@@ -297,7 +297,10 @@ remove_matrix.matrixset <- function(.ms, matrix)
 #' # matrix_elm(ms, "FC")
 #'
 #' @export
-mutate_matrix <- function(.ms, ...)
+mutate_matrix <- function(.ms, ...) UseMethod("mutate_matrix")
+
+#' @export
+mutate_matrix.matrixset <- function(.ms, ...)
 {
   cl <- sys.call()
   cash_status$set(cl)

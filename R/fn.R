@@ -1292,165 +1292,6 @@ eval_fun_matrix_dgms_mult <- function(ms, ..., matidx, as_list_mat, .simplify,
 
 
 
-
-
-eval_fun_mrg <- function(ms, mrg, var_lab, ..., matidx, .simplify, env)
-  UseMethod("eval_fun_mrg")
-
-
-eval_fun_mrg.matrixset <- function(ms, mrg, var_lab, ..., matidx, .simplify,
-                                   env)
-  eval_fun_margin(ms, mrg, var_lab, ..., matidx = matidx, .simplify = .simplify,
-                  env = env)
-
-eval_fun_mrg.row_grouped_ms <- function(ms, mrg, var_lab, ..., matidx, .simplify,
-                                        env)
-{
-  if (mrg == "row") {
-    eval_fun_margin(ms, mrg, var_lab, ..., matidx = matidx,
-                    .simplify = .simplify, env = env)
-  } else {
-    eval_fun_margin_grp(ms, mrg, var_lab, ..., matidx = matidx,
-                        .simplify = .simplify, env = env)
-  }
-}
-
-
-eval_fun_mrg.col_grouped_ms <- function(ms, mrg, var_lab, ..., matidx, .simplify,
-                                        env)
-  if (mrg == "col") {
-    eval_fun_margin(ms, mrg, var_lab, ..., matidx = matidx,
-                    .simplify = .simplify, env = env)
-  } else {
-    eval_fun_margin_grp(ms, mrg, var_lab, ..., matidx = matidx,
-                        .simplify = .simplify, env = env)
-  }
-
-eval_fun_mrg.dual_grouped_ms <- function(ms, mrg, var_lab, ..., matidx,
-                                         .simplify, env)
-{
-  if (mrg == "row") {
-    eval_fun_mrg.col_grouped_ms(ms, mrg, var_lab, ..., matidx=matidx,
-                                .simplify=.simplify, env=env)
-  } else  {
-    eval_fun_mrg.row_grouped_ms(ms, mrg, var_lab, ..., matidx=matidx,
-                                .simplify=.simplify, env=env)
-  }
-}
-
-
-
-
-
-
-
-eval_fun_mrg_mlt <- function(ms, mrg, var_lab, ..., matidx, as_list_mat,
-                             .simplify, env)
-  UseMethod("eval_fun_mrg_mlt")
-
-
-eval_fun_mrg_mlt.matrixset <- function(ms, mrg, var_lab, ..., matidx,
-                                       as_list_mat, .simplify, env)
-  eval_fun_margin_mult(ms, mrg, var_lab, ..., matidx = matidx,
-                       as_list_mat = as_list_mat, .simplify = .simplify,
-                       env = env)
-
-eval_fun_mrg_mlt.row_grouped_ms <- function(ms, mrg, var_lab, ..., matidx,
-                                            as_list_mat, .simplify, env)
-{
-  if (mrg == "row") {
-    eval_fun_margin_mult(ms, mrg, var_lab, ..., matidx = matidx,
-                         as_list_mat = as_list_mat, .simplify = .simplify,
-                         env = env)
-  } else {
-    eval_fun_margin_grp_mult(ms, mrg, var_lab, ..., matidx = matidx,
-                             as_list_mat = as_list_mat, .simplify = .simplify,
-                             env = env)
-  }
-}
-
-
-eval_fun_mrg_mlt.col_grouped_ms <- function(ms, mrg, var_lab, ..., matidx,
-                                            as_list_mat, .simplify, env)
-  if (mrg == "col") {
-    eval_fun_margin_mult(ms, mrg, var_lab, ..., matidx = matidx,
-                         as_list_mat = as_list_mat, .simplify = .simplify,
-                         env = env)
-  } else {
-    eval_fun_margin_grp_mult(ms, mrg, var_lab, ..., matidx = matidx,
-                             as_list_mat = as_list_mat, .simplify = .simplify,
-                             env = env)
-  }
-
-
-eval_fun_mrg_mlt.dual_grouped_ms <- function(ms, mrg, var_lab, ..., matidx,
-                                             as_list_mat, .simplify, env)
-{
-  if (mrg == "row") {
-    eval_fun_mrg_mlt.col_grouped_ms(ms, mrg, var_lab, ..., matidx=matidx,
-                                    as_list_mat=as_list_mat,
-                                    .simplify=.simplify, env=env)
-  } else  {
-    eval_fun_mrg_mlt.row_grouped_ms(ms, mrg, var_lab, ..., matidx=matidx,
-                                    as_list_mat=as_list_mat,
-                                    .simplify=.simplify, env=env)
-  }
-}
-
-
-
-
-
-eval_fun_mtrx <- function(ms, ..., matidx, .simplify, env)
-  UseMethod("eval_fun_mtrx")
-
-
-eval_fun_mtrx.matrixset <- function(ms, ..., matidx, .simplify, env)
-  eval_fun_matrix(ms, ..., matidx = matidx, .simplify = .simplify,
-                  env = env)
-
-eval_fun_mtrx.row_grouped_ms <- function(ms, ..., matidx, .simplify, env)
-  eval_fun_matrix_sgms(ms, mrg="row", ..., matidx = matidx, .simplify = .simplify,
-                       env = env)
-
-eval_fun_mtrx.col_grouped_ms <- function(ms, ..., matidx, .simplify, env)
-  eval_fun_matrix_sgms(ms, mrg="col", ..., matidx = matidx, .simplify = .simplify,
-                       env = env)
-
-eval_fun_mtrx.dual_grouped_ms <- function(ms, ..., matidx, .simplify, env)
-  eval_fun_matrix_dgms(ms, ..., matidx = matidx, .simplify = .simplify,
-                       env = env)
-
-
-
-
-eval_fun_mtrx_mlt <- function(ms, ..., matidx, as_list_mat, .simplify, env)
-  UseMethod("eval_fun_mtrx_mlt")
-
-eval_fun_mtrx_mlt.matrixset <- function(ms, ..., matidx, as_list_mat, .simplify, env)
-  eval_fun_matrix_mult(ms, ..., matidx=matidx, as_list_mat=as_list_mat,
-                       .simplify=.simplify, env=env)
-
-eval_fun_mtrx_mlt.row_grouped_ms <- function(ms, ..., matidx, as_list_mat,
-                                             .simplify, env)
-  eval_fun_matrix_sgms_mult(ms, "row", ..., matidx=matidx, as_list_mat=as_list_mat,
-                            .simplify=.simplify, env=env)
-
-eval_fun_mtrx_mlt.col_grouped_ms <- function(ms, ..., matidx, as_list_mat,
-                                             .simplify, env)
-  eval_fun_matrix_sgms_mult(ms, "col", ..., matidx=matidx, as_list_mat=as_list_mat,
-                            .simplify=.simplify, env=env)
-
-eval_fun_mtrx_mlt.dual_grouped_ms <- function(ms, ..., matidx, as_list_mat,
-                                              .simplify, env)
-  eval_fun_matrix_dgms_mult(ms, ..., matidx = matidx, as_list_mat=as_list_mat,
-                            .simplify = .simplify, env = env)
-
-
-
-
-
-
 make_longer_val <- function(.v, force_name)
 {
   tbls <- purrr::imap(.v,
@@ -1925,91 +1766,309 @@ NULL
 #' @export
 apply_row <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
                       .input_list = FALSE)
+  UseMethod("apply_row")
+
+#' @export
+apply_row.matrixset <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
+                      .input_list = FALSE)
+{
   if (.matrix_wise) {
     warn_if(.matrix_wise, .input_list)
-    eval_fun_mrg(.ms, mrg="row", var_lab=var_lab_row, ..., matidx=.matrix,
-                 .simplify=FALSE, env=rlang::caller_env())
+    eval_fun_margin(.ms, mrg="row", var_lab=var_lab_row, ..., matidx = .matrix,
+                    .simplify = FALSE, env = rlang::caller_env())
   } else {
-    eval_fun_mrg_mlt(.ms, mrg="row", var_lab=var_lab_row, ..., matidx = .matrix,
-                     as_list_mat = .input_list, .simplify = FALSE,
-                     env = rlang::caller_env())
+    eval_fun_margin_mult(.ms, mrg="row", var_lab=var_lab_row, ...,
+                         matidx = .matrix, as_list_mat = .input_list,
+                         .simplify = FALSE, env = rlang::caller_env())
   }
+}
+
+#' @export
+apply_row.row_grouped_ms <- function(.ms, ..., .matrix = NULL,
+                                     .matrix_wise = TRUE, .input_list = FALSE)
+{
+  NextMethod()
+}
+
+#' @export
+apply_row.col_grouped_ms <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
+                                .input_list = FALSE)
+{
+  if (.matrix_wise) {
+    warn_if(.matrix_wise, .input_list)
+    eval_fun_margin_grp(.ms, mrg="row", var_lab=var_lab_row, ...,
+                        matidx = .matrix, .simplify = FALSE,
+                        env = rlang::caller_env())
+  } else {
+    eval_fun_margin_grp_mult(.ms, mrg="row", var_lab=var_lab_row, ...,
+                             matidx = .matrix, as_list_mat = .input_list,
+                             .simplify = FALSE, env = rlang::caller_env())
+  }
+}
+
+#' @export
+apply_row.dual_grouped_ms <- function(.ms, ..., .matrix = NULL,
+                                     .matrix_wise = TRUE, .input_list = FALSE)
+{
+  apply_row.col_grouped_ms(.ms, ..., .matrix = .matrix,
+                           .matrix_wise = .matrix_wise,
+                           .input_list = .input_list)
+}
+
+
+
+
 
 #' @rdname loop
 #' @export
 apply_row_dfl <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
                           .input_list = FALSE, .force_name = FALSE)
-  if (.matrix_wise) {
-    warn_if(.matrix_wise, .input_list)
-    tblize_lg(eval_fun_mrg(.ms, mrg="row", var_lab=var_lab_row, ...,
-                           matidx=.matrix, .simplify=TRUE,
-                           env=rlang::caller_env()),
-              .rowtag(.ms),
-              .force_name)
+  UseMethod("apply_row_dfl")
+
+#' @export
+apply_row_dfl.matrixset <- function(.ms, ..., .matrix = NULL,
+                                    .matrix_wise = TRUE, .input_list = FALSE,
+                                    .force_name = FALSE)
+{
+  warn_if(.matrix_wise, .input_list)
+  appl <- if (.matrix_wise) {
+    eval_fun_margin(.ms, mrg="row", var_lab=var_lab_row, ..., matidx = .matrix,
+                    .simplify = TRUE, env = rlang::caller_env())
   } else {
-    tblize_lg(eval_fun_mrg_mlt(.ms, mrg="row", var_lab=var_lab_row, ...,
-                               matidx = .matrix, as_list_mat = .input_list,
-                               .simplify = TRUE, env = rlang::caller_env()),
-              .rowtag(.ms),
-              mult = TRUE,
-              force_name = .force_name)
+    eval_fun_margin_mult(.ms, mrg="row", var_lab=var_lab_row, ...,
+                         matidx = .matrix, as_list_mat = .input_list,
+                         .simplify = TRUE, env = rlang::caller_env())
   }
+  tblize_lg(appl, .rowtag(.ms), mult = !.matrix_wise, force_name = .force_name)
+}
+
+#' @export
+apply_row_dfl.row_grouped_ms <- function(.ms, ..., .matrix = NULL,
+                                         .matrix_wise = TRUE,
+                                         .input_list = FALSE,
+                                         .force_name = FALSE)
+{
+  NextMethod()
+}
+
+#' @export
+apply_row_dfl.col_grouped_ms <- function(.ms, ..., .matrix = NULL,
+                                         .matrix_wise = TRUE,
+                                         .input_list = FALSE,
+                                         .force_name = FALSE)
+{
+  warn_if(.matrix_wise, .input_list)
+  appl <- if (.matrix_wise) {
+    eval_fun_margin_grp(.ms, mrg="row", var_lab=var_lab_row, ...,
+                        matidx = .matrix, .simplify = TRUE,
+                        env = rlang::caller_env())
+  } else {
+    eval_fun_margin_grp_mult(.ms, mrg="row", var_lab=var_lab_row, ...,
+                             matidx = .matrix, as_list_mat = .input_list,
+                             .simplify = TRUE, env = rlang::caller_env())
+  }
+  tblize_lg(appl, .rowtag(.ms), mult = !.matrix_wise, force_name = .force_name)
+}
+
+#' @export
+apply_row_dfl.dual_grouped_ms <- function(.ms, ..., .matrix = NULL,
+                                          .matrix_wise = TRUE,
+                                          .input_list = FALSE,
+                                          .force_name = FALSE)
+{
+  apply_row_dfl.col_grouped_ms(.ms, ..., .matrix = .matrix,
+                           .matrix_wise = .matrix_wise,
+                           .input_list = .input_list)
+}
+
+
+
 
 
 #' @rdname loop
 #' @export
 apply_row_dfw <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
                           .input_list = FALSE, .force_name = FALSE)
-  if (.matrix_wise) {
-    warn_if(.matrix_wise, .input_list)
-    tblize_wd(eval_fun_mrg(.ms, mrg="row", var_lab=var_lab_row, ...,
-                           matidx=.matrix, .simplify=TRUE,
-                           env=rlang::caller_env()),
-              .rowtag(.ms),
-              .force_name)
+  UseMethod("apply_row_dfw")
+
+#' @export
+apply_row_dfw.matrixset <- function(.ms, ..., .matrix = NULL,
+                                    .matrix_wise = TRUE, .input_list = FALSE,
+                                    .force_name = FALSE)
+{
+  warn_if(.matrix_wise, .input_list)
+  appl <- if (.matrix_wise) {
+    eval_fun_margin(.ms, mrg="row", var_lab=var_lab_row, ..., matidx = .matrix,
+                    .simplify = TRUE, env = rlang::caller_env())
   } else {
-    tblize_wd(eval_fun_mrg_mlt(.ms, mrg="row", var_lab=var_lab_row, ...,
-                               matidx = .matrix, as_list_mat = .input_list,
-                               .simplify = TRUE, env = rlang::caller_env()),
-              .rowtag(.ms),
-              mult = TRUE,
-              force_name = .force_name)
+    eval_fun_margin_mult(.ms, mrg="row", var_lab=var_lab_row, ...,
+                         matidx = .matrix, as_list_mat = .input_list,
+                         .simplify = TRUE, env = rlang::caller_env())
   }
+  tblize_wd(appl, .rowtag(.ms), mult = !.matrix_wise, force_name = .force_name)
+}
+
+#' @export
+apply_row_dfw.row_grouped_ms <- function(.ms, ..., .matrix = NULL,
+                                         .matrix_wise = TRUE,
+                                         .input_list = FALSE,
+                                         .force_name = FALSE)
+{
+  NextMethod()
+}
+
+#' @export
+apply_row_dfw.col_grouped_ms <- function(.ms, ..., .matrix = NULL,
+                                         .matrix_wise = TRUE,
+                                         .input_list = FALSE,
+                                         .force_name = FALSE)
+{
+  warn_if(.matrix_wise, .input_list)
+  appl <- if (.matrix_wise) {
+    eval_fun_margin_grp(.ms, mrg="row", var_lab=var_lab_row, ...,
+                        matidx = .matrix, .simplify = TRUE,
+                        env = rlang::caller_env())
+  } else {
+    eval_fun_margin_grp_mult(.ms, mrg="row", var_lab=var_lab_row, ...,
+                             matidx = .matrix, as_list_mat = .input_list,
+                             .simplify = TRUE, env = rlang::caller_env())
+  }
+  tblize_wd(appl, .rowtag(.ms), mult = !.matrix_wise, force_name = .force_name)
+}
+
+#' @export
+apply_row_dfw.dual_grouped_ms <- function(.ms, ..., .matrix = NULL,
+                                          .matrix_wise = TRUE,
+                                          .input_list = FALSE,
+                                          .force_name = FALSE)
+{
+  apply_row_dfw.col_grouped_ms(.ms, ..., .matrix = .matrix,
+                               .matrix_wise = .matrix_wise,
+                               .input_list = .input_list)
+}
+
+
+
 
 
 #' @rdname loop
 #' @export
 apply_column <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
                          .input_list = FALSE)
+  UseMethod("apply_column")
+
+#' @export
+apply_column.matrixset <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
+                                   .input_list = FALSE)
+{
   if (.matrix_wise) {
     warn_if(.matrix_wise, .input_list)
-    eval_fun_mrg(.ms, mrg="col", var_lab=var_lab_col, ..., matidx=.matrix,
-                 .simplify=FALSE, env=rlang::caller_env())
+    eval_fun_margin(.ms, mrg="col", var_lab=var_lab_col, ..., matidx = .matrix,
+                    .simplify = FALSE, env = rlang::caller_env())
   } else {
-    eval_fun_mrg_mlt(.ms, mrg="col", var_lab=var_lab_col, ..., matidx = .matrix,
-                     as_list_mat = .input_list, .simplify = FALSE,
-                     env = rlang::caller_env())
+    eval_fun_margin_mult(.ms, mrg="col", var_lab=var_lab_col, ...,
+                         matidx = .matrix, as_list_mat = .input_list,
+                         .simplify = FALSE, env = rlang::caller_env())
   }
+}
+
+#' @export
+apply_column.row_grouped_ms <- function(.ms, ..., .matrix = NULL,
+                                        .matrix_wise = TRUE, .input_list = FALSE)
+{
+  if (.matrix_wise) {
+    warn_if(.matrix_wise, .input_list)
+    eval_fun_margin_grp(.ms, mrg="col", var_lab=var_lab_col, ...,
+                        matidx = .matrix, .simplify = FALSE,
+                        env = rlang::caller_env())
+  } else {
+    eval_fun_margin_grp_mult(.ms, mrg="col", var_lab=var_lab_col, ...,
+                             matidx = .matrix, as_list_mat = .input_list,
+                             .simplify = FALSE, env = rlang::caller_env())
+  }
+}
+
+#' @export
+apply_column.col_grouped_ms <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
+                                        .input_list = FALSE)
+{
+  NextMethod()
+}
+
+#' @export
+apply_column.dual_grouped_ms <- function(.ms, ..., .matrix = NULL,
+                                         .matrix_wise = TRUE, .input_list = FALSE)
+{
+  apply_column.row_grouped_ms(.ms, ..., .matrix = .matrix,
+                              .matrix_wise = .matrix_wise,
+                              .input_list = .input_list)
+}
+
+
 
 
 #' @rdname loop
 #' @export
 apply_column_dfl <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
                              .input_list = FALSE, .force_name = FALSE)
-  if (.matrix_wise) {
-    warn_if(.matrix_wise, .input_list)
-    tblize_lg(eval_fun_mrg(.ms, mrg="col", var_lab=var_lab_col, ..., matidx=.matrix,
-                           .simplify=TRUE, env=rlang::caller_env()),
-              .coltag(.ms),
-              .force_name)
+  UseMethod("apply_column_dfl")
+
+#' @export
+apply_column_dfl.matrixset <- function(.ms, ..., .matrix = NULL,
+                                       .matrix_wise = TRUE, .input_list = FALSE,
+                                       .force_name = FALSE)
+{
+  warn_if(.matrix_wise, .input_list)
+  appl <- if (.matrix_wise) {
+    eval_fun_margin(.ms, mrg="col", var_lab=var_lab_col, ..., matidx = .matrix,
+                    .simplify = TRUE, env = rlang::caller_env())
   } else {
-    tblize_lg(eval_fun_mrg_mlt(.ms, mrg="col", var_lab=var_lab_col, ...,
-                               matidx = .matrix, as_list_mat = .input_list,
-                               .simplify = TRUE, env = rlang::caller_env()),
-              .coltag(.ms),
-              mult = TRUE,
-              force_name = .force_name)
+    eval_fun_margin_mult(.ms, mrg="col", var_lab=var_lab_col, ...,
+                         matidx = .matrix, as_list_mat = .input_list,
+                         .simplify = TRUE, env = rlang::caller_env())
   }
+  tblize_lg(appl, .coltag(.ms), mult = !.matrix_wise, force_name = .force_name)
+}
+
+#' @export
+apply_column_dfl.row_grouped_ms <- function(.ms, ..., .matrix = NULL,
+                                            .matrix_wise = TRUE,
+                                            .input_list = FALSE,
+                                            .force_name = FALSE)
+{
+  warn_if(.matrix_wise, .input_list)
+  appl <- if (.matrix_wise) {
+    eval_fun_margin_grp(.ms, mrg="col", var_lab=var_lab_col, ...,
+                        matidx = .matrix, .simplify = TRUE,
+                        env = rlang::caller_env())
+  } else {
+    eval_fun_margin_grp_mult(.ms, mrg="col", var_lab=var_lab_col, ...,
+                             matidx = .matrix, as_list_mat = .input_list,
+                             .simplify = TRUE, env = rlang::caller_env())
+  }
+  tblize_lg(appl, .coltag(.ms), mult = !.matrix_wise, force_name = .force_name)
+}
+
+#' @export
+apply_column_dfl.col_grouped_ms <- function(.ms, ..., .matrix = NULL,
+                                            .matrix_wise = TRUE,
+                                            .input_list = FALSE,
+                                            .force_name = FALSE)
+{
+  NextMethod()
+}
+
+#' @export
+apply_column_dfl.dual_grouped_ms <- function(.ms, ..., .matrix = NULL,
+                                             .matrix_wise = TRUE,
+                                             .input_list = FALSE,
+                                             .force_name = FALSE)
+{
+  apply_column_dfl.row_grouped_ms(.ms, ..., .matrix = .matrix,
+                                  .matrix_wise = .matrix_wise,
+                                  .input_list = .input_list)
+}
+
 
 
 
@@ -2017,20 +2076,64 @@ apply_column_dfl <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
 #' @export
 apply_column_dfw <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
                              .input_list = FALSE, .force_name = FALSE)
-  if (.matrix_wise) {
-    warn_if(.matrix_wise, .input_list)
-    tblize_wd(eval_fun_mrg(.ms, mrg="col", var_lab=var_lab_col, ..., matidx=.matrix,
-                           .simplify=TRUE, env=rlang::caller_env()),
-              .coltag(.ms),
-              .force_name)
+  UseMethod("apply_column_dfw")
+
+#' @export
+apply_column_dfw.matrixset <- function(.ms, ..., .matrix = NULL,
+                                       .matrix_wise = TRUE, .input_list = FALSE,
+                                       .force_name = FALSE)
+{
+  warn_if(.matrix_wise, .input_list)
+  appl <- if (.matrix_wise) {
+    eval_fun_margin(.ms, mrg="col", var_lab=var_lab_col, ..., matidx = .matrix,
+                    .simplify = TRUE, env = rlang::caller_env())
   } else {
-    tblize_wd(eval_fun_mrg_mlt(.ms, mrg="col", var_lab=var_lab_col, ...,
-                               matidx = .matrix, as_list_mat = .input_list,
-                               .simplify = TRUE, env = rlang::caller_env()),
-              .coltag(.ms),
-              mult = TRUE,
-              force_name = .force_name)
+    eval_fun_margin_mult(.ms, mrg="col", var_lab=var_lab_col, ...,
+                         matidx = .matrix, as_list_mat = .input_list,
+                         .simplify = TRUE, env = rlang::caller_env())
   }
+  tblize_wd(appl, .coltag(.ms), mult = !.matrix_wise, force_name = .force_name)
+}
+
+#' @export
+apply_column_dfw.row_grouped_ms <- function(.ms, ..., .matrix = NULL,
+                                            .matrix_wise = TRUE,
+                                            .input_list = FALSE,
+                                            .force_name = FALSE)
+{
+  warn_if(.matrix_wise, .input_list)
+  appl <- if (.matrix_wise) {
+    eval_fun_margin_grp(.ms, mrg="col", var_lab=var_lab_col, ...,
+                        matidx = .matrix, .simplify = TRUE,
+                        env = rlang::caller_env())
+  } else {
+    eval_fun_margin_grp_mult(.ms, mrg="col", var_lab=var_lab_col, ...,
+                             matidx = .matrix, as_list_mat = .input_list,
+                             .simplify = TRUE, env = rlang::caller_env())
+  }
+  tblize_wd(appl, .coltag(.ms), mult = !.matrix_wise, force_name = .force_name)
+}
+
+#' @export
+apply_column_dfw.col_grouped_ms <- function(.ms, ..., .matrix = NULL,
+                                            .matrix_wise = TRUE,
+                                            .input_list = FALSE,
+                                            .force_name = FALSE)
+{
+  NextMethod()
+}
+
+#' @export
+apply_column_dfw.dual_grouped_ms <- function(.ms, ..., .matrix = NULL,
+                                             .matrix_wise = TRUE,
+                                             .input_list = FALSE,
+                                             .force_name = FALSE)
+{
+  apply_column_dfw.row_grouped_ms(.ms, ..., .matrix = .matrix,
+                                  .matrix_wise = .matrix_wise,
+                                  .input_list = .input_list)
+}
+
 
 
 
@@ -2038,14 +2141,73 @@ apply_column_dfw <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
 #' @export
 apply_matrix <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
                          .input_list = FALSE)
+  UseMethod("apply_matrix")
+
+
+#' @export
+apply_matrix.matrixset <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
+                                   .input_list = FALSE)
+{
+  warn_if(.matrix_wise, .input_list)
   if (.matrix_wise) {
-    warn_if(.matrix_wise, .input_list)
-    eval_fun_mtrx(.ms, ..., matidx = .matrix, .simplify = FALSE,
-                  env = rlang::caller_env())
+    eval_fun_matrix(.ms, ..., matidx = .matrix, .simplify = FALSE,
+                    env = rlang::caller_env())
   } else {
-    eval_fun_mtrx_mlt(.ms, ..., matidx=.matrix, as_list_mat=.input_list,
-                      .simplify = FALSE, env=rlang::caller_env())
+    eval_fun_matrix_mult(.ms, ..., matidx=.matrix, as_list_mat=.input_list,
+                         .simplify=FALSE, env=rlang::caller_env())
   }
+}
+
+
+#' @export
+apply_matrix.row_grouped_ms <- function(.ms, ..., .matrix = NULL,
+                                        .matrix_wise = TRUE, .input_list = FALSE)
+{
+  warn_if(.matrix_wise, .input_list)
+  if (.matrix_wise) {
+    eval_fun_matrix_sgms(.ms, "row", ..., matidx = .matrix, .simplify = FALSE,
+                         env = rlang::caller_env())
+
+  } else {
+    eval_fun_matrix_sgms_mult(.ms, "row", ..., matidx=.matrix,
+                              as_list_mat=.input_list, .simplify=FALSE,
+                              env=rlang::caller_env())
+  }
+}
+
+
+#' @export
+apply_matrix.col_grouped_ms <- function(.ms, ..., .matrix = NULL,
+                                        .matrix_wise = TRUE, .input_list = FALSE)
+{
+  warn_if(.matrix_wise, .input_list)
+  if (.matrix_wise) {
+    eval_fun_matrix_sgms(.ms, "col", ..., matidx = .matrix, .simplify = FALSE,
+                         env = rlang::caller_env())
+
+  } else {
+    eval_fun_matrix_sgms_mult(.ms, "col", ..., matidx=.matrix,
+                              as_list_mat=.input_list, .simplify=FALSE,
+                              env=rlang::caller_env())
+  }
+}
+
+
+#' @export
+apply_matrix.dual_grouped_ms <- function(.ms, ..., .matrix = NULL,
+                                        .matrix_wise = TRUE, .input_list = FALSE)
+{
+  warn_if(.matrix_wise, .input_list)
+  if (.matrix_wise) {
+    eval_fun_matrix_dgms(.ms, ..., matidx = .matrix, .simplify = FALSE,
+                         env = rlang::caller_env())
+
+  } else {
+    eval_fun_matrix_dgms_mult(.ms, ..., matidx=.matrix, as_list_mat=.input_list,
+                              .simplify=FALSE, env=rlang::caller_env())
+  }
+}
+
 
 
 
@@ -2053,38 +2215,176 @@ apply_matrix <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
 #' @export
 apply_matrix_dfl <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
                              .input_list = FALSE, .force_name = FALSE)
-  if (.matrix_wise) {
-    warn_if(.matrix_wise, .input_list)
+  UseMethod("apply_matrix_dfl")
 
-    val <- eval_fun_mtrx(.ms, ..., matidx=.matrix, .simplify=TRUE,
-                         env=rlang::caller_env())
 
-    tblize_lg(val, "", matrix = TRUE, force_name = .force_name)
+#' @export
+apply_matrix_dfl.matrixset <- function(.ms, ..., .matrix = NULL,
+                                       .matrix_wise = TRUE, .input_list = FALSE,
+                                       .force_name = FALSE)
+{
+  warn_if(.matrix_wise, .input_list)
+  appl <- if (.matrix_wise) {
+    eval_fun_matrix(.ms, ..., matidx = .matrix, .simplify = TRUE,
+                    env = rlang::caller_env())
+  } else {
+    eval_fun_matrix_mult(.ms, ..., matidx=.matrix, as_list_mat=.input_list,
+                         .simplify=TRUE, env=rlang::caller_env())
+  }
+  tblize_lg(appl, "", matrix = TRUE, mult = !.matrix_wise,
+            force_name = .force_name)
+}
 
+
+#' @export
+apply_matrix_dfl.row_grouped_ms <- function(.ms, ..., .matrix = NULL,
+                                            .matrix_wise = TRUE,
+                                            .input_list = FALSE,
+                                            .force_name = FALSE)
+{
+  warn_if(.matrix_wise, .input_list)
+  appl <- if (.matrix_wise) {
+    eval_fun_matrix_sgms(.ms, "row", ..., matidx = .matrix, .simplify = TRUE,
+                         env = rlang::caller_env())
 
   } else {
-    tblize_lg(eval_fun_mtrx_mlt(.ms, ..., matidx = .matrix,
-                                as_list_mat = .input_list, .simplify = TRUE,
-                                env = rlang::caller_env()),
-              matrix = TRUE, mult = TRUE, force_name = .force_name)
+    eval_fun_matrix_sgms_mult(.ms, "row", ..., matidx=.matrix,
+                              as_list_mat=.input_list, .simplify=TRUE,
+                              env=rlang::caller_env())
   }
+  tblize_lg(appl, "", matrix = TRUE, mult = !.matrix_wise,
+            force_name = .force_name)
+}
+
+
+#' @export
+apply_matrix_dfl.col_grouped_ms <- function(.ms, ..., .matrix = NULL,
+                                            .matrix_wise = TRUE,
+                                            .input_list = FALSE,
+                                            .force_name = FALSE)
+{
+  warn_if(.matrix_wise, .input_list)
+  appl <- if (.matrix_wise) {
+    eval_fun_matrix_sgms(.ms, "col", ..., matidx = .matrix, .simplify = TRUE,
+                         env = rlang::caller_env())
+
+  } else {
+    eval_fun_matrix_sgms_mult(.ms, "col", ..., matidx=.matrix,
+                              as_list_mat=.input_list, .simplify=TRUE,
+                              env=rlang::caller_env())
+  }
+  tblize_lg(appl, "", matrix = TRUE, mult = !.matrix_wise,
+            force_name = .force_name)
+}
+
+
+#' @export
+apply_matrix_dfl.dual_grouped_ms <- function(.ms, ..., .matrix = NULL,
+                                             .matrix_wise = TRUE,
+                                             .input_list = FALSE,
+                                             .force_name = FALSE)
+{
+  warn_if(.matrix_wise, .input_list)
+  appl <- if (.matrix_wise) {
+    eval_fun_matrix_dgms(.ms, ..., matidx = .matrix, .simplify = TRUE,
+                         env = rlang::caller_env())
+
+  } else {
+    eval_fun_matrix_dgms_mult(.ms, ..., matidx=.matrix, as_list_mat=.input_list,
+                              .simplify=TRUE, env=rlang::caller_env())
+  }
+  tblize_lg(appl, "", matrix = TRUE, mult = !.matrix_wise,
+            force_name = .force_name)
+}
+
+
+
 
 #' @rdname loop
 #' @export
 apply_matrix_dfw <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
                              .input_list = FALSE, .force_name = FALSE)
-  if (.matrix_wise) {
-    warn_if(.matrix_wise, .input_list)
-    val <- eval_fun_mtrx(.ms, ..., matidx=.matrix, .simplify=TRUE,
-                         env=rlang::caller_env())
+  UseMethod("apply_matrix_dfw")
 
-    tblize_wd(val, "", matrix = TRUE, force_name = .force_name)
+
+#' @export
+apply_matrix_dfw.matrixset <- function(.ms, ..., .matrix = NULL,
+                                       .matrix_wise = TRUE, .input_list = FALSE,
+                                       .force_name = FALSE)
+{
+  warn_if(.matrix_wise, .input_list)
+  appl <- if (.matrix_wise) {
+    eval_fun_matrix(.ms, ..., matidx = .matrix, .simplify = TRUE,
+                    env = rlang::caller_env())
   } else {
-    tblize_wd(eval_fun_mtrx_mlt(.ms, ..., matidx = .matrix,
-                                as_list_mat = .input_list,
-                                .simplify = TRUE, env = rlang::caller_env()),
-              matrix = TRUE, mult = TRUE, force_name = .force_name)
+    eval_fun_matrix_mult(.ms, ..., matidx=.matrix, as_list_mat=.input_list,
+                         .simplify=TRUE, env=rlang::caller_env())
   }
+  tblize_wd(appl, "", matrix = TRUE, mult = !.matrix_wise,
+            force_name = .force_name)
+}
+
+
+#' @export
+apply_matrix_dfw.row_grouped_ms <- function(.ms, ..., .matrix = NULL,
+                                            .matrix_wise = TRUE,
+                                            .input_list = FALSE,
+                                            .force_name = FALSE)
+{
+  warn_if(.matrix_wise, .input_list)
+  appl <- if (.matrix_wise) {
+    eval_fun_matrix_sgms(.ms, "row", ..., matidx = .matrix, .simplify = TRUE,
+                         env = rlang::caller_env())
+
+  } else {
+    eval_fun_matrix_sgms_mult(.ms, "row", ..., matidx=.matrix,
+                              as_list_mat=.input_list, .simplify=TRUE,
+                              env=rlang::caller_env())
+  }
+  tblize_wd(appl, "", matrix = TRUE, mult = !.matrix_wise,
+            force_name = .force_name)
+}
+
+
+#' @export
+apply_matrix_dfw.col_grouped_ms <- function(.ms, ..., .matrix = NULL,
+                                            .matrix_wise = TRUE,
+                                            .input_list = FALSE,
+                                            .force_name = FALSE)
+{
+  warn_if(.matrix_wise, .input_list)
+  appl <- if (.matrix_wise) {
+    eval_fun_matrix_sgms(.ms, "col", ..., matidx = .matrix, .simplify = TRUE,
+                         env = rlang::caller_env())
+
+  } else {
+    eval_fun_matrix_sgms_mult(.ms, "col", ..., matidx=.matrix,
+                              as_list_mat=.input_list, .simplify=TRUE,
+                              env=rlang::caller_env())
+  }
+  tblize_wd(appl, "", matrix = TRUE, mult = !.matrix_wise,
+            force_name = .force_name)
+}
+
+
+#' @export
+apply_matrix_dfw.dual_grouped_ms <- function(.ms, ..., .matrix = NULL,
+                                             .matrix_wise = TRUE,
+                                             .input_list = FALSE,
+                                             .force_name = FALSE)
+{
+  warn_if(.matrix_wise, .input_list)
+  appl <- if (.matrix_wise) {
+    eval_fun_matrix_dgms(.ms, ..., matidx = .matrix, .simplify = TRUE,
+                         env = rlang::caller_env())
+
+  } else {
+    eval_fun_matrix_dgms_mult(.ms, ..., matidx=.matrix, as_list_mat=.input_list,
+                              .simplify=TRUE, env=rlang::caller_env())
+  }
+  tblize_wd(appl, "", matrix = TRUE, mult = !.matrix_wise,
+            force_name = .force_name)
+}
 
 
 

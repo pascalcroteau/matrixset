@@ -11,7 +11,8 @@ some bugs (see below).
 
 ## Improved functionality
 
-* The `mutate_matrix()` function now has access to context functions.
+* The `mutate_matrix()` function now has access to context functions. This
+  implements [#09](https://github.com/pascalcroteau/matrixset/issues/9).
 * The `apply_` function family gained a new `.force_name` argument, available
   for the `dfl/dfw` versions. This allows better control in getting meaningful
   IDs to the outcomes.
@@ -20,7 +21,8 @@ some bugs (see below).
   [#12](https://github.com/pascalcroteau/matrixset/issues/12)
 * Functions `join_row_info()` and `join_column_info()` now have more `adjust`
   possibilities to expand matrix sizes when the join operation results in matrix
-  expansion.
+  expansion. This implements 
+  [#10](https://github.com/pascalcroteau/matrixset/issues/10).
 
 ## Bug correction
 

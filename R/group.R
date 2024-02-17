@@ -13,9 +13,9 @@ get_group_info <- function(info, class, dim)
     level_drop <- dplyr::group_by_drop_default(info)
 
     if (dim == "row") {
-      new_class <- if ("col_grouped_ms" %in% class) "dual_grouped_ms" else "row_grouped_ms"
+      new_class <- if (any(c("dual_grouped_ms", "col_grouped_ms") %in% class)) "dual_grouped_ms" else "row_grouped_ms"
     } else {
-      new_class <- if ("row_grouped_ms" %in% class) "dual_grouped_ms" else "col_grouped_ms"
+      new_class <- if (any(c("dual_grouped_ms", "row_grouped_ms") %in% class)) "dual_grouped_ms" else "col_grouped_ms"
     }
 
     new_class <- c(new_class, "matrixset")

@@ -1739,7 +1739,8 @@ test_that("matrixset matrix loop works", {
                        tidyr::unnest(c(FC, FC_rob)) %>%
                        tidyr::unnest_longer(c(FC, FC_rob)) %>%
                        dplyr::left_join(column_info(student_results) %>%
-                                          dplyr::select(FC_id=.colname, program)) %>%
+                                          dplyr::select(FC_id=.colname, program),
+                                        by = "FC_id") %>%
                        dplyr::select(teacher, program, FC.name=FC_id, FC,
                                      FC_rob.name=FC_rob_id, FC_rob) %>%
                        dplyr::mutate(FC=unname(FC), FC_rob=unname(FC_rob))

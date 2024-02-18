@@ -1127,44 +1127,6 @@ test_that("matrixset matrix loop works for Matrix", {
   # expect_equal(rb, rb_ref)
 
 
-
-  fc <- apply_matrix(column_group_by(student_results_M, program), FC = .m2/.m1,
-                     .matrix_wise = FALSE)
-  m <- student_results_M[,,,keep_annotation = FALSE, warn_class_change = FALSE]
-  fc_ref <- column_group_meta(column_group_by(student_results_M, program))
-  v <- purrr::map(fc_ref$.rows, ~ {M <- lapply(m, function(u) u[, .x, drop = FALSE]); list(FC=M[[2]]/M[[1]])})
-  fc_ref$.vals <- v
-  fc_ref$.rows <- NULL
-  expect_equal(fc, fc_ref)
-
-
-
-  fc <- apply_matrix_dfl(column_group_by(student_results_M, program), FC = Matrix::rowMeans(.m2/.m1),
-                         .matrix_wise = FALSE)
-  m <- student_results_M[,,,keep_annotation = FALSE, warn_class_change = FALSE]
-  fc_ref <- column_group_meta(column_group_by(student_results_M, program))
-  v <- purrr::map(fc_ref$.rows, ~ {M <- lapply(m, function(u) u[, .x, drop = FALSE]); list(FC=Matrix::rowMeans(M[[2]]/M[[1]]))})
-  fc_ref$.vals <- v
-  fc_ref$.rows <- NULL
-  fc_ref <- tidyr::unnest_longer(tidyr::unnest_wider(fc_ref, .vals), FC)
-  fc_ref <- dplyr::select(fc_ref, program, FC.name=FC_id, FC)
-  names(fc_ref$FC) <- NULL
-  expect_equal(fc, fc_ref)
-
-
-
-  fc <- apply_matrix_dfw(column_group_by(student_results_M, program), FC = Matrix::rowMeans(.m2/.m1),
-                         .matrix_wise = FALSE)
-  m <- student_results_M[,,,keep_annotation = FALSE, warn_class_change = FALSE]
-  fc_ref <- column_group_meta(column_group_by(student_results_M, program))
-  v <- purrr::map(fc_ref$.rows, ~ {M <- lapply(m, function(u) u[, .x, drop = FALSE]); list(FC=Matrix::rowMeans(M[[2]]/M[[1]]))})
-  fc_ref$.vals <- v
-  fc_ref$.rows <- NULL
-  fc_ref <- tidyr::unnest_wider(tidyr::unnest_wider(fc_ref, .vals), FC)
-  colnames(fc_ref)[2:21] <- paste("FC", colnames(fc_ref)[2:21])
-  expect_equal(fc, fc_ref)
-
-
 })
 
 

@@ -46,6 +46,16 @@ round2.numeric <- function(x) round(x, 2)
 enclose <- function(str, pre = "<", end = ">") paste0(pre, str, end)
 
 
+`%OR%` <- function(x, y) {
+  if (is.character(x) && is.character(y)) {
+    if (any(x == "")) {
+      x[x == ""] <- y[x == ""]
+      x
+    } else x
+  } else rlang::`%||%`(x, y)
+}
+
+
 
 #' @importFrom rlang .data
 # make_unique <- function(names)

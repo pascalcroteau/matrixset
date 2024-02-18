@@ -50,7 +50,8 @@ set_by_vars <- function(by, x_nms, y_nms)
 
     by <- unlist(by)
 
-    by_x <- rlang::`%||%`(by_nms, by)
+    # by_x <- rlang::`%||%`(by_nms, by)
+    by_x <- by_nms %OR% by
     by_y <- by
 
   } else {

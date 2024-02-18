@@ -38,7 +38,7 @@ of data frames - one for row information and one for column. The annotation
 names are referred to as traits.
 
 This latter feature makes `matrixset` especially attractive even if it stores
-only a single matrix, because several methods have been developped to manipulate
+only a single matrix, because several methods have been developed to manipulate
 `matrixset`s, accounting for annotations.
 
 ## Why a matrixset?

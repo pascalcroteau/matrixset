@@ -671,26 +671,26 @@ test_that("matrixset 'long' loop works", {
 
 
   # grouped
-  # grfc <- apply_row_dfl(column_group_by(student_results, program), ~ .i2/.i1,
-  #                       .matrix_wise = FALSE, .force_name = TRUE)
-  # grs <- column_group_meta(column_group_by(student_results, program))
-  # fc_ref <- grs
-  # fc_ref_tmp <- lapply(grs$.rows, function(gr) {
-  #   tmp <- lapply(setNames(seq(nrow(student_results)), rownames(student_results)), function(r) {
-  #     M <- student_results[r,gr,,keep_annotation=FALSE, warn_class_change=FALSE]
-  #     M <- lapply(M, function(m) m[1,])
-  #     M <- unname(M)
-  #     tbl <- tibble::enframe(M[[2]]/M[[1]], name = "~.i2/.i1.name", value = "~.i2/.i1")
-  #     tbl[["~.i2/.i1.name"]] <- ifelse(as.character(tbl[["~.i2/.i1.name"]]) == "1", "English", tbl[["~.i2/.i1.name"]])
-  #     tbl
-  #   })
-  #   dplyr::bind_rows(tmp, .id = ".rowname")
-  # })
-  # fc_ref$.rows <- NULL
-  # fc_ref$.vals <- fc_ref_tmp
-  # fc_ref <- tidyr::unnest(fc_ref, cols=c(.vals))
-  #
-  # expect_equal(grfc, fc_ref)
+  grfc <- apply_row_dfl(column_group_by(student_results, program), ~ .i2/.i1,
+                        .matrix_wise = FALSE, .force_name = TRUE)
+  grs <- column_group_meta(column_group_by(student_results, program))
+  fc_ref <- grs
+  fc_ref_tmp <- lapply(grs$.rows, function(gr) {
+    tmp <- lapply(setNames(seq(nrow(student_results)), rownames(student_results)), function(r) {
+      M <- student_results[r,gr,,keep_annotation=FALSE, warn_class_change=FALSE]
+      M <- lapply(M, function(m) m[1,])
+      M <- unname(M)
+      tbl <- tibble::enframe(M[[2]]/M[[1]], name = "~.i2/.i1.name", value = "~.i2/.i1")
+      tbl[["~.i2/.i1.name"]] <- ifelse(as.character(tbl[["~.i2/.i1.name"]]) == "1", "English", tbl[["~.i2/.i1.name"]])
+      tbl
+    })
+    dplyr::bind_rows(tmp, .id = ".rowname")
+  })
+  fc_ref$.rows <- NULL
+  fc_ref$.vals <- fc_ref_tmp
+  fc_ref <- tidyr::unnest(fc_ref, cols=c(.vals))
+
+  expect_equal(grfc, fc_ref)
 
 
 
@@ -1029,25 +1029,25 @@ test_that("matrixset 'wide' loop works", {
   expect_identical(grfc, fc_ref)
 
 
-  # grfc <- apply_row_dfw(column_group_by(student_results, program), FC = ~.i2/.i1,
-  #                       .matrix_wise = FALSE, .force_name = TRUE)
-  # grs <- column_group_meta(column_group_by(student_results, program))
-  # fc_ref_tmp <- lapply(grs$.rows, function(gr) {
-  #   tmp <- lapply(setNames(seq(nrow(student_results)), rownames(student_results)), function(r) {
-  #     M <- student_results[r,gr,,keep_annotation=FALSE, warn_class_change=FALSE]
-  #     nms <- unlist(unique(lapply(M, colnames)))
-  #     M <- lapply(M, function(m) {mm <- m[1,]; names(mm) <- nms; mm})
-  #     M <- unname(M)
-  #     tbl <- tibble::enframe(M[[2]]/M[[1]])
-  #     tbl <- tidyr::pivot_wider(tbl, names_from = "name", values_from = "value", names_sep = " ")
-  #     colnames(tbl) <- paste("FC", colnames(tbl))
-  #     tbl
-  #   })
-  #   dplyr::bind_rows(tmp, .id = ".rowname")
-  # })
-  # names(fc_ref_tmp) <- grs$program
-  # fc_ref <- dplyr::bind_rows(fc_ref_tmp, .id = "program")
-  # expect_identical(grfc, fc_ref)
+  grfc <- apply_row_dfw(column_group_by(student_results, program), FC = ~.i2/.i1,
+                        .matrix_wise = FALSE, .force_name = TRUE)
+  grs <- column_group_meta(column_group_by(student_results, program))
+  fc_ref_tmp <- lapply(grs$.rows, function(gr) {
+    tmp <- lapply(setNames(seq(nrow(student_results)), rownames(student_results)), function(r) {
+      M <- student_results[r,gr,,keep_annotation=FALSE, warn_class_change=FALSE]
+      nms <- unlist(unique(lapply(M, colnames)))
+      M <- lapply(M, function(m) {mm <- m[1,]; names(mm) <- nms; mm})
+      M <- unname(M)
+      tbl <- tibble::enframe(M[[2]]/M[[1]])
+      tbl <- tidyr::pivot_wider(tbl, names_from = "name", values_from = "value", names_sep = " ")
+      colnames(tbl) <- paste("FC", colnames(tbl))
+      tbl
+    })
+    dplyr::bind_rows(tmp, .id = ".rowname")
+  })
+  names(fc_ref_tmp) <- grs$program
+  fc_ref <- dplyr::bind_rows(fc_ref_tmp, .id = "program")
+  expect_identical(grfc, fc_ref)
 
 
 

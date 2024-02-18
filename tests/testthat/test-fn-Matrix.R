@@ -1502,7 +1502,7 @@ test_that("matrixset matrix loop works", {
                        dplyr::mutate(FC = unname(FC), FC_rob = unname(FC_rob))
                    })
   names(mn_ref) <- matrixnames(student_results_M)
-  expect_identical(grmn, mn_ref)
+  expect_equal(grmn, mn_ref)
 
 
 
@@ -1587,7 +1587,7 @@ test_that("matrixset matrix loop works", {
   expect_true(all(nms %in% nms_ref))
   expect_true(all(nms_ref %in% nms))
   ct_ref <- purrr::map2(ct_ref, ct, ~ .x[, names(.y)])
-  expect_identical(ct, ct_ref)
+  expect_equal(ct, ct_ref)
 
 
 

@@ -6,7 +6,7 @@ test_that("matrixset row info join works for Matrix", {
 
 
   ms1 <- remove_row_annotation(student_results_M, class, teacher)
-  ms <- join_row_info(ms1, student_results_M)
+  suppressWarnings(ms <- join_row_info(ms1, student_results_M))
   ms_ref <- student_results_M
   ri <- row_info(ms_ref)
   ri <- dplyr::mutate(ri, previous_year_score.y = previous_year_score)
@@ -33,7 +33,7 @@ test_that("matrixset row info join works for Matrix", {
 
   ms1 <- remove_row_annotation(filter_row(student_results_M, class %in% c("classA", "classC")),
                                class, teacher)
-  ms <- join_row_info(ms1, student_results_M)
+  suppressWarnings(ms <- join_row_info(ms1, student_results_M))
   ms_ref <- filter_row(student_results_M, class %in% c("classA", "classC"))
   ri <- row_info(ms_ref)
   ri <- dplyr::mutate(ri, previous_year_score.y = previous_year_score)
@@ -88,7 +88,7 @@ test_that("matrixset row info join works for Matrix", {
 
 
   ms3 <- remove_row_annotation(student_results_M, class)
-  ms <- join_row_info(row_group_by(ms3, teacher), student_results_M, by = c(".rowname", "previous_year_score"))
+  suppressWarnings(ms <- join_row_info(row_group_by(ms3, teacher), student_results_M, by = c(".rowname", "previous_year_score")))
   ms_ref <- student_results_M
   ri <- row_info(ms_ref)
   ri$teacher.x <- ri$teacher

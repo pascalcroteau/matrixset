@@ -12,6 +12,7 @@ join_row_info(
   type = "left",
   by = NULL,
   adjust = FALSE,
+  names_glue = NULL,
   suffix = c(".x", ".y"),
   na_matches = c("na", "never")
 )
@@ -22,6 +23,7 @@ join_column_info(
   type = "left",
   by = NULL,
   adjust = FALSE,
+  names_glue = NULL,
   suffix = c(".x", ".y"),
   na_matches = c("na", "never")
 )
@@ -68,6 +70,25 @@ values. The same logic is applied when padding columns.
 
 Other values are padded with \code{NA}.}
 
+\item{names_glue}{a parameter that may allow multiple matches. By default,
+(\code{NULL}), no multiple matches are allowed since the
+resulting tag names will no longer be unique.
+
+The value of \code{names_glue} can be \code{logical}, with the value \code{FALSE} being
+equivalent to \code{NULL}. If \code{TRUE}, then the resulting new tag names will be
+enforced to be unique by adding a number index, i.e. a number index will
+be glued to the tag names (hence the argument name).
+
+Finally, \code{names_glue} can be a string, where you supply a glue
+specification that uses the variable names found in \code{y} (columns for data
+frames, traits for matrixsets) columns to create a custom new tag name. A
+special value \code{.tag} allows you to access the original tag name. Note that
+currently only the curly brackets ({}) can be used in the glue
+specification.
+
+When making the unique tag names, \emph{only} the non-unique names are modified.
+Also, \code{adjust = TRUE} must be enforced for \code{names_glue} to work.}
+
 \item{suffix}{Suffixes added to disambiguate trait variables. See
 \code{dplyr}'s \code{\link[dplyr:mutate-joins]{dplyr::join()}}.}
 
@@ -93,8 +114,10 @@ The default join operation is a left join
 joins are available ('left', 'inner', 'right', 'full', 'semi' or 'anti').
 
 The \code{matrixset} paradigm of unique row/column names is enforced so if a
-\code{.ms} data.frame row matches multiple ones in \code{y}, this results in an
-error.
+\code{.ms} data.frame row matches multiple ones in \code{y}, the default behavior is
+to issue a condition error.
+
+This can be modified by setting new tag names via the argument \code{names_glue}.
 }
 \section{Groups}{
 
@@ -111,8 +134,8 @@ ms <- join_row_info(ms1, student_results, by = c(".rowname", "previous_year_scor
 # This will throw an error
 ms2 <- remove_row_annotation(filter_row(student_results, class \%in\% c("classA", "classC")),
                              class, teacher, previous_year_score)
-ms <- ms <- tryCatch(join_row_info(ms2, student_results, type = "full"),
-                     error = function(e) e)
+ms <- tryCatch(join_row_info(ms2, student_results, type = "full"),
+               error = function(e) e)
 is(ms, "error") # TRUE
 ms$message
 
@@ -121,5 +144,74 @@ ms <- join_row_info(ms2, student_results, type = "full", adjust = TRUE)
 dim(ms2)
 dim(ms)
 matrix_elm(ms, 1)
+
+# Similarly, this will fail because tag names are no longer unique
+meta <- tibble::tibble(sample = c("student 2", "student 2"),
+                      msr = c("height", "weight"),
+                      value = c(145, 32))
+ms <- tryCatch(join_row_info(student_results, meta, by = c(".rowname"="sample")),
+               error = function(e) e)
+is(ms, "error") # TRUE
+ms$message
+
+# This works, by forcing the tag names to be unique. Notice that we suppress
+# the warning for now. We'll come back to it.
+suppressWarnings(
+   join_row_info(student_results, meta, by = c(".rowname"="sample"),
+                 adjust = TRUE, names_glue = TRUE)
+)
+# Here's the warning: we're being told there was a change in tag names
+(purrr::quietly(join_row_info)(student_results, meta,
+                               by = c(".rowname"="sample"), adjust = TRUE,
+                               names_glue = TRUE))$warnings
+
+# You can have better control on how the tag change occurs, for instance by
+# appending the msr value to the name
+suppressWarnings(
+   join_row_info(student_results, meta, by = c(".rowname"="sample"),
+                 adjust = TRUE, names_glue = "{.tag}_{msr}")
+)
+# In this specific example, the {.tag} was superfluous, since the default is
+# to append after the tag name
+suppressWarnings(
+   join_row_info(student_results, meta, by = c(".rowname"="sample"),
+                 adjust = TRUE, names_glue = "{msr}")
+)
+# But the keyword is useful if you want to shuffle order
+suppressWarnings(
+   join_row_info(student_results, meta, by = c(".rowname"="sample"),
+                 adjust = TRUE, names_glue = "{msr}.{.tag}")
+)
+
+# You are warned when there is a change in traits
+meta <- tibble::tibble(sample = c("student 2", "student 2"),
+                       class = c("classA", "classA"),
+                       msr = c("height", "weight"),
+                       value = c(145, 32))
+(purrr::quietly(join_row_info)(student_results, meta,
+                               by = c(".rowname"="sample"), adjust = TRUE,
+                               names_glue = TRUE))$warnings[2]
+
+# Groups are automatically adjusted
+sr_gr <- row_group_by(student_results, class)
+gr_orig <- row_group_meta(row_group_by(student_results, class)) |> tidyr::unnest(.rows)
+suppressWarnings(
+  new_gr <- join_row_info(sr_gr, meta, by = c(".rowname" = "sample", "class"),
+                          adjust = TRUE, names_glue = TRUE) |>
+   row_group_meta() |> tidyr::unnest(.rows)
+)
+list(gr_orig, new_gr)
+
+# In the example above, the join operation changed the class of 'class',
+# which in turn changed the grouping meta info. You are warned of both.
+(purrr::quietly(join_row_info)(sr_gr, meta,
+                               by = c(".rowname"="sample", "class"),
+                               adjust = TRUE,  names_glue = TRUE))$warnings
+
+# A change in trait name that was used for grouping will result in losing the
+# grouping. You are warning of the change in grouping structure.
+(purrr::quietly(join_row_info)(sr_gr, meta,
+                               by = c(".rowname"="sample"),
+                               adjust = TRUE,  names_glue = TRUE))$warnings
 
 }

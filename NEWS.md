@@ -1,5 +1,26 @@
 # matrixset (development version)
 
+## Improved functionality
+
+It is now possible to expand `matrixset` objects following a join operation even
+if the resulting tag names are no longer unique. 
+
+This is achieved by the introduction of the `names_glue` argument, which when 
+`NULL` (the default), the old behavior of preventing such join is enforced - 
+thus keeping back-compatibility. 
+
+Otherwise, the `names_glue` will provide instructions to the join functions on 
+how to make the resulting tag names unique.
+
+## Bug correction
+
+* Class adjustment now works for dual grouping.
+* Joining now works when the `by` argument is not named for every variable.
+
+## Internal change
+
+New tests implemented for applying functions.
+
 # matrixset 0.3.0
 
 ## Improved performance

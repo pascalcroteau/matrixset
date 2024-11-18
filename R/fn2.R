@@ -316,6 +316,7 @@ Applyer <- R6::R6Class(
         private$._row_groups_for_loop <- private$._row_group_df$.rows
 
       }
+
     },
 
 
@@ -379,10 +380,14 @@ Applyer <- R6::R6Class(
     ._fns = list(function(x) x),
     ._fns_n = 0,
     ._fn_names = NULL,
+
     ._fns_outcome = NULL,
     ._fns_outcome_formatted = NULL,
     ._fns_outcome_names = NULL,
     ._fn_out_lens = NULL,
+
+    ._row_outcome = NULL,
+    ._col_outcome = NULL,
 
     ._wide_order = NULL,
 
@@ -468,12 +473,30 @@ Applyer <- R6::R6Class(
 
       private$._fn_out_lens <- integer(length(fns))
 
-      # private$._fns_outcome_names <- vector('list', length(fns))
       private$._reset_fns_outcome_names()
 
       n <- private$._fns_n
       rder <- as.vector(rbind(1:n, n+(1:n)))
       private$._wide_order <- rder
+    },
+
+
+
+    ._reset_row_outcome = function() {
+
+      private$._row_outcome <- vector('list', length(private$._row_groups_for_loop))
+      names(private$._row_outcome) <- names(private$._row_groups_for_loop)
+
+    },
+
+
+
+
+    ._reset_col_outcome = function() {
+
+      private$._col_outcome <- vector('list', length(private$._col_groups_for_loop))
+      names(private$._col_outcome) <- names(private$._col_groups_for_loop)
+
     },
 
 
@@ -507,10 +530,15 @@ Applyer <- R6::R6Class(
 
                if (!private$._row_grouped &&
                    (private$._col_grouped || is.null(private$._row_groups_for_loop))) {
-                 return(private$._eval_by_col_groups(inner = FALSE))
+                 # return(private$._eval_by_col_groups(inner = FALSE))
+                 private$._eval_by_col_groups(inner = FALSE)
+                 mat_outcomes <- private$._col_outcome
+                 return(mat_outcomes)
                }
 
-               mat_outcomes <- private$._eval_by_row_groups(inner = FALSE)
+               # mat_outcomes <- private$._eval_by_row_groups(inner = FALSE)
+               private$._eval_by_row_groups(inner = FALSE)
+               mat_outcomes <- private$._row_outcome
 
                if (private$._margin == 0 && private$._row_grouped &&
                    private$._col_grouped && private$._simplify == "no") {
@@ -528,26 +556,26 @@ Applyer <- R6::R6Class(
 
     ._eval_by_row_groups = function(inner = FALSE) {
 
-      row_outcome <- lapply(
-        private$._row_groups_for_loop,
-        function(idxs) {
+      private$._reset_row_outcome()
 
-          # if (private$._row_grouped) private$._fns_outcome_names <- vector('list', private$._fns_n)
-          if (private$._row_grouped) private$._reset_fns_outcome_names()
+      for (ridx in seq_along(private$._row_groups_for_loop)) {
 
-          private$._scope$i <- idxs
+        if (private$._row_grouped) private$._reset_fns_outcome_names()
 
-          if (inner || is.null(private$._col_groups_for_loop)) {
-            private$._eval_fns(private$._row_grouped)
-            return(private$._fns_outcome_formatted)
-            # return(private$._eval_fns(private$._row_grouped))
-          }
+        private$._scope$i <- private$._row_groups_for_loop[[ridx]]
 
-          private$._eval_by_col_groups(!inner)
+        if (inner ||is.null(private$._col_groups_for_loop)) {
+          private$._eval_fns(private$._row_grouped)
+          private$._row_outcome[[ridx]] <- private$._fns_outcome_formatted
+          next
         }
-      )
 
-      private$._format_margin_outcome(row_outcome, "row")
+        private$._eval_by_col_groups(!inner)
+        private$._row_outcome[[ridx]] <- private$._col_outcome
+
+      }
+
+      private$._format_margin_outcome("row")
 
     },
 
@@ -555,54 +583,54 @@ Applyer <- R6::R6Class(
 
     ._eval_by_col_groups = function(inner = TRUE) {
 
-      col_outcome <- lapply(
-        private$._col_groups_for_loop,
-        function(idxs) {
+      private$._reset_col_outcome()
 
-          # if (private$._col_grouped) private$._fns_outcome_names <- vector('list', private$._fns_n)
-          if (private$._col_grouped) private$._reset_fns_outcome_names()
+      for (cidx in seq_along(private$._col_groups_for_loop)) {
 
-          private$._scope$j <- idxs
+        if (private$._col_grouped) private$._reset_fns_outcome_names()
 
-          if (inner || is.null(private$._row_groups_for_loop)) {
-            private$._eval_fns(private$._col_grouped)
-            return(private$._fns_outcome_formatted)
-            # return(private$._eval_fns(private$._col_grouped))
-          }
+        private$._scope$j <- private$._col_groups_for_loop[[cidx]]
 
-          private$._eval_by_row_groups(!inner)
+        if (inner || is.null(private$._row_groups_for_loop)) {
+          private$._eval_fns(private$._col_grouped)
+          private$._col_outcome[[cidx]] <- private$._fns_outcome_formatted
+          next
         }
-      )
 
-      private$._format_margin_outcome(col_outcome, "col")
+        private$._eval_by_row_groups(!inner)
+        private$._col_outcome[[cidx]] <- private$._row_outcome
+      }
+
+
+      private$._format_margin_outcome("col")
 
     },
 
 
 
 
-    ._format_margin_outcome = function(outcome, margin) {
+    ._format_margin_outcome = function(margin) {
 
 
       grouped <- private[[paste(".", margin, "grouped", sep = "_")]]
+      outcome_id <- paste(".", margin, "outcome", sep = "_")
 
       if (grouped) {
         outcome_tmp <- private[[paste(".", margin, "group_df", sep = "_")]]
 
-        outcome_tmp$.rows <- lapply(outcome, function(o) {
+        outcome_tmp$.rows <- lapply(private[[outcome_id]], function(o) {
           private$._format_list_of_evals(o, grouped = TRUE)
         })
 
-        outcome <- dplyr::rename(outcome_tmp, .vals = .rows)
+        private[[outcome_id]] <- dplyr::rename(outcome_tmp, .vals = .rows)
         if (private$._simplify != "no") {
-          outcome <- tidyr::unnest(outcome, cols = .vals)
+          private[[outcome_id]] <- tidyr::unnest(private[[outcome_id]], cols = .vals)
         }
-        return(outcome)
+        return()
 
       }
 
-      private$._format_list_of_evals(outcome, FALSE)
-
+      private[[outcome_id]] <- private$._format_list_of_evals(private[[outcome_id]], FALSE)
 
     },
 
@@ -622,6 +650,7 @@ Applyer <- R6::R6Class(
 
 
 
+
     ._eval_fns = function(grouped = FALSE) {
 
       for (fidx in seq_len(private$._fns_n)) {
@@ -636,15 +665,6 @@ Applyer <- R6::R6Class(
       }
 
       private$._format_list_of_fns(grouped)
-
-
-
-      # outcomes <- lapply(private$._fns, function(fn) {
-      #   private$._scope$register_function(fn)
-      #   private$._format_fn_outcome(private$._scope$eval())
-      # })
-
-      # private$._format_list_of_fns(outcomes, grouped)
 
     },
 
@@ -685,11 +705,6 @@ Applyer <- R6::R6Class(
         return()
       }
 
-      # if (is.null(out_names <- private$._fns_outcome_names[[idx]])) {
-      #   out_names <- make_names(private$._fns_outcome[[idx]], .name = "")
-      #   private$._fns_outcome_names[[idx]] <- out_names
-      # }
-
 
       if (private$._simplify == "long") {
         private$._fns_outcome[[idx]] <- unname(private$._fns_outcome[[idx]])
@@ -700,20 +715,6 @@ Applyer <- R6::R6Class(
       # wide
       invisible()
 
-
-      # if (private$._simplify == "no") return(res)
-      #
-      # len <- length(res)
-      # if (len == 1L && !private$._force_name) {
-      #   return(list(len, list(res)))
-      # }
-      #
-      # if (private$._simplify == "long") {
-      #   return(list(len, list(name=make_names(res, .name = ""), unname(res))))
-      # }
-      #
-      # # wide
-      # list(len, list_row(setNames(res, make_names(res, .name = ""))))
     },
 
 
@@ -748,15 +749,6 @@ Applyer <- R6::R6Class(
       }
 
       private$._assess_length()
-      # lens <- private$._fn_out_lens
-      #
-      # any0 <- any(l0 <- lens == 0L)
-      # if (any0) lens <- lens[-l0]
-      # multi <- if (length(lens) > 0) {
-      #   length(unique(lens)) > 1
-      # } else FALSE
-      #
-      # if (multi) stop("vectors must be of the same length", call. = FALSE)
 
 
       if (private$._simplify == "long") {
@@ -781,42 +773,6 @@ Applyer <- R6::R6Class(
       if (grouped) {
         private$._fns_outcome_formatted <- list(private$._fns_outcome_formatted)
       }
-
-
-
-
-
-
-      # if (private$._simplify == "no") return(fn_list)
-      #
-      # lens <- lapply(fn_list, function(x) x[[1]])
-      #
-      # any0 <- any(l0 <- lens == 0L)
-      # if (any0) lens <- lens[-l0]
-      # multi <- if (length(lens) > 0) {
-      #   length(unique(lens)) > 1
-      # } else FALSE
-      #
-      # if (multi) stop("vectors must be of the same length", call. = FALSE)
-      #
-      # fn_list <- lapply(fn_list, function(x) x[[2]])
-      #
-      # if (private$._simplify == "long") {
-      #   outcomes <- purrr::list_flatten(fn_list, name_spec = "{outer}.{inner}")
-      #   nms <- names(outcomes)
-      #   nms <- stringr::str_remove(nms, "\\.$")
-      #
-      #   if (grouped) return(list(setNames(outcomes, nms)))
-      #   return(setNames(outcomes, nms))
-      # }
-      #
-      # # wide
-      # if (grouped) {
-      #   return(
-      #     list(purrr::list_flatten(fn_list, name_spec = "{outer} {inner}"))
-      #   )
-      # }
-      # purrr::list_flatten(fn_list, name_spec = "{outer} {inner}")
 
     }
 

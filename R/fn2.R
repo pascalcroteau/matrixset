@@ -34,7 +34,7 @@ EvalScope <- R6::R6Class(
 
   public = list(
 
-    initialize = function(.ms, margin, env) {
+    initialize = function(.ms, margin, multi, as_list, env) {
 
       private$._enclos_env <- new.env()
       private$._enclos_env$.data <- new.env()
@@ -44,13 +44,29 @@ EvalScope <- R6::R6Class(
       private$._row_inf <- .subset2(.ms, "row_info")
       private$._col_inf <- .subset2(.ms, "column_info")
 
-      private$._set_bindings(margin)
+      private$._row_names <- rownames(.ms)
+      private$._col_names <- colnames(.ms)
+
+      private$._margin <- margin
+      private$._matrix_wise <- !multi
+      private$._matrix_list <- as_list
+
+      # private$._set_bindings(margin, multi, as_list)
+      private$._set_bindings()
     },
 
 
 
     register_function = function(fn) {
       private$._fn <- fn
+    },
+
+
+
+    update_binding = function() {
+
+      private$._set_bindings_from_multi_mat_sep()
+
     },
 
 
@@ -85,10 +101,16 @@ EvalScope <- R6::R6Class(
     j_ = NULL,
     k_ = NULL,
 
-    ._reshape = NULL,
+    ._margin = NULL,
+    ._reshape = FALSE,
+    ._matrix_wise = TRUE,
+    ._matrix_list = FALSE,
 
     ._row_inf = NULL,
     ._col_inf = NULL,
+
+    ._row_names = NULL,
+    ._col_names = NULL,
 
     ._fn = NULL,
 
@@ -104,12 +126,70 @@ EvalScope <- R6::R6Class(
 
 
 
+    ._row_subset_multi_expr = quote(
+      {
+        mk <- private$k_
+        if (!is.null(mk)) mk <- setNames(mk, names(private$._mats)[mk])
+
+        if (is.null(private$j_)) {
+
+          if (is.null(mk)) {
+            return(lapply(private$._mats, function(m) m[private$i_, ]))
+          }
+
+          return(
+            lapply(mk, function(k) private$._mats[[k]][private$i_, ])
+          )
+        }
+
+        if (is.null(mk)) {
+          return(
+            # lapply(private$._mats, function(m) m[private$i_, private$j_])
+            lapply(private$._mats, function(m) m[private$i_, ][private$j_])
+          )
+        }
+
+        # lapply(mk, function(k) private$._mats[[k]][private$i_, private$j_])
+        lapply(mk, function(k) private$._mats[[k]][private$i_, ][private$j_])
+      }
+    ),
+
+
+
     ._col_subset_expr = quote(
       {
         if (is.null(private$i_)) {
           return(private$._mats[[private$k_]][, private$j_])
         }
         private$._mats[[private$k_]][private$i_, private$j_]
+      }
+    ),
+
+
+
+    ._col_subset_multi_expr = quote(
+      {
+        mk <- private$k_
+        if (!is.null(mk)) mk <- setNames(mk, names(private$._mats)[mk])
+
+
+        if (is.null(private$i_)) {
+
+          if (is.null(mk)) {
+            return(lapply(private$._mats, function(k) m[, private$j_]))
+          }
+
+          return(lapply(mk, function(k) private$._mats[[k]][, private$j_]))
+        }
+
+        if (is.null(mk)) {
+          # return(lapply(private$._mats, function(k) m[private$i_, private$j_]))
+          return(lapply(private$._mats, function(k) m[, private$j_][private$i_]))
+        }
+
+        lapply(private$k_,
+               # function(k) private$._mats[[k]][private$i_, private$j_])
+               function(k) private$._mats[[k]][, private$j_][private$i_])
       }
     ),
 
@@ -137,60 +217,88 @@ EvalScope <- R6::R6Class(
 
 
 
+    ._mat_subset_multi_expr = quote(
+      {
+        mk <- private$k_
+        if (!is.null(mk)) mk <- setNames(mk, names(private$._mats)[mk])
 
-    ._set_bindings_from_single_mat = function(info) {
+        if (is.null(private$i_)) {
 
-      active_name <- if (info == 1) {
+          if (is.null(private$j_)) {
+            if (is.null(mk)) return(private$._mats)
+
+            return(
+              lapply(mk, function(k) private$._mats[[k]])
+            )
+          }
+
+
+          if (is.null(mk)) {
+            return(
+              lapply(private$._mats, function(m) m[, private$j_, drop = FALSE])
+            )
+          }
+
+          return(
+            lapply(mk,
+                   function(k) private$._mats[[k]][, private$j_, drop = FALSE])
+          )
+        }
+
+        if (is.null(private$j_)) {
+
+          if (is.null(mk)) {
+            return(
+              lapply(private$._mats, function(m) m[private$i_, , drop = FALSE])
+            )
+          }
+
+          return(
+            lapply(mk,
+                   function(k) private$._mats[[k]][private$i_, , drop = FALSE])
+          )
+        }
+
+
+        if (is.null(mk)) {
+          return(
+            lapply(private$._mats,
+                   function(m) m[private$i_, private$j_, drop = FALSE])
+          )
+        }
+
+
+        return(
+          lapply(mk,
+                 function(k) private$._mats[[k]][private$i_, private$j_, drop = FALSE])
+        )
+      }
+    ),
+
+
+
+
+
+    # ._set_bindings_from_single_mat = function(info) {
+    ._set_bindings_from_single_mat = function() {
+
+      # active_name <- if (info == 1) {
+      #   var_lab_row
+      # } else if (info == 2) {
+      #   var_lab_col
+      # } else var_lab_mat
+      active_name <- if (private$._margin == 1) {
         var_lab_row
-      } else if (info == 2) {
+      } else if (private$._margin == 2) {
         var_lab_col
       } else var_lab_mat
       not_active_name <- setdiff(c(var_lab_row, var_lab_col, var_lab_mat),
                                  active_name)
 
 
-      # fn_body <- if (info == 1) {
-      #   quote(
-      #     {
-      #       if (is.null(private$j_)) {
-      #         return(private$._mats[[private$k_]][private$i_, ])
-      #       }
-      #       private$._mats[[private$k_]][private$i_, private$j_]
-      #     }
-      #   )
-      # } else if (info == 2) {
-      #   quote(
-      #     {
-      #       if (is.null(private$i_)) {
-      #         return(private$._mats[[private$k_]][, private$j_])
-      #       }
-      #       private$._mats[[private$k_]][private$i_, private$j_]
-      #     }
-      #   )
-      # } else {
-      #
-      #   quote(
-      #     {
-      #       if (is.null(private$i_)) {
-      #
-      #         if (is.null(private$j_)) {
-      #           return(private$._mats[[private$k_]])
-      #         }
-      #
-      #         return(private$._mats[[private$k_]][, private$j_, drop = FALSE])
-      #       }
-      #
-      #       if (is.null(private$j_)) {
-      #         return(private$._mats[[private$k_]][private$i_, , drop = FALSE])
-      #       }
-      #
-      #       return(private$._mats[[private$k_]][private$i_, private$j_, drop = FALSE])
-      #     }
-      #   )
-      # }
-      fn_body <- if (info == 1) {
+      fn_body <- if (private$._margin == 1) {
         private$._row_subset_expr
-      } else if (info == 2) {
+      } else if (private$._margin == 2) {
         private$._col_subset_expr
       } else {
         private$._mat_subset_expr
@@ -209,6 +317,144 @@ EvalScope <- R6::R6Class(
         makeActiveBinding(v, fn, env = private$._enclos_env)
       }
     },
+
+
+
+
+    ._set_bindings_from_multi_mat_sep = function() {
+
+      active_name <- if (private$._margin == 1) {
+        var_lab_row
+      } else if (private$._margin == 2) {
+        var_lab_col
+      } else var_lab_mat
+
+      not_active_name <- setdiff(c(var_lab_row, var_lab_col, var_lab_mat),
+                                 active_name)
+
+      idx <- if (is.null(private$k_)) seq_along(private$._mats) else private$k_
+      fields <- names(private$._mats)[idx]
+
+
+      fn <- function() {}
+
+      # for (mi in idx) {
+      for (mi in seq_along(idx)) {
+
+        field <- paste0(active_name, mi)
+
+        fn_body <- substitute(
+          {
+            if (is.null(private$i_)) {
+
+              if (is.null(private$j_)) {
+                return(private$._mats[[m]])
+              }
+
+              return(
+                private$._mats[[m]][, private$j_, drop = dr]
+              )
+            }
+
+            if (is.null(private$j_)) {
+              return(
+                private$._mats[[m]][private$i_, , drop = dr]
+              )
+            }
+
+
+            if (dr) {
+
+              if (private$._margin == 1) {
+                return(
+                  private$._mats[[m]][private$i_, ][private$j_]
+                )
+              }
+
+
+              if (private$._margin == 2) {
+                return(
+                  private$._mats[[m]][, private$j_][private$i_]
+                )
+              }
+
+
+              return(
+                private$._mats[[m]][private$i_, private$j_]
+              )
+
+            }
+
+            return(
+              private$._mats[[m]][private$i_, private$j_, drop = FALSE]
+            )
+
+            # return(
+            #   private$._mats[[m]][private$i_, private$j_, drop = dr]
+            # )
+          },
+
+          list(m = idx[mi],
+               dr = private$._margin > 0)
+        )
+
+
+        body(fn) <- fn_body
+
+        makeActiveBinding(field, fn, env = private$._enclos_env)
+        makeActiveBinding(field, fn, env = private$._enclos_env$.data)
+
+
+        # for (v in not_active_name) {
+        #   msg <- glue::glue("object {OBJ} not found", OBJ = v)
+        #   fn <- function() {}
+        #   fn_body <- substitute(stop(MSG, call. = FALSE), list(MSG=msg))
+        #   body(fn) <- fn_body
+        #   makeActiveBinding(v, fn, env = private$._enclos_env)
+        # }
+      }
+    },
+
+
+
+
+    # ._set_bindings_from_multi_mat = function(margin, as_list) {
+    ._set_bindings_from_multi_mat = function() {
+
+      active_name <- if (private$._margin == 1) {
+        var_lab_row
+      } else if (private$._margin == 2) {
+        var_lab_col
+      } else var_lab_mat
+      not_active_name <- setdiff(c(var_lab_row, var_lab_col, var_lab_mat),
+                                 active_name)
+
+      # if (!as_list) {
+      if (!private$._matrix_list) {
+        return()
+        # return(
+        #   private$._set_bindings_from_multi_mat_sep(active_name,
+        #                                             .drop = margin > 0)
+        # )
+      }
+
+
+      fn_body <- if (private$._margin == 1) {
+        private$._row_subset_multi_expr
+      } else if (private$._margin == 2) {
+        private$._col_subset_multi_expr
+      } else {
+        private$._mat_subset_multi_expr
+      }
+
+      fn <- function() {}
+      body(fn) <- fn_body
+
+      makeActiveBinding(active_name, fn, env = private$._enclos_env)
+
+
+    },
+
 
 
 
@@ -244,12 +490,22 @@ EvalScope <- R6::R6Class(
 
 
 
-    ._set_bindings = function(margin) {
-
-      private$._set_bindings_from_single_mat(margin)
+    # ._set_bindings = function(margin, multi, as_list) {
+    ._set_bindings = function() {
 
       private$._set_bindings_from_inf("row")
       private$._set_bindings_from_inf("col")
+
+      # if (multi) {
+      if (!private$._matrix_wise) {
+
+        # private$._set_bindings_from_multi_mat(margin, as_list)
+        private$._set_bindings_from_multi_mat()
+        return()
+
+      }
+
+      private$._set_bindings_from_single_mat()
 
     }
 
@@ -275,10 +531,12 @@ Applyer <- R6::R6Class(
 
   public = list(
 
-    initialize = function(.ms, matidx, margin, fns, simplify, force_name, env) {
-      private$._scope <- EvalScope$new(.ms, margin, env)
+    initialize = function(.ms, matidx, margin, fns, multi, as_list, simplify,
+                          force_name, env) {
+      private$._scope <- EvalScope$new(.ms, margin, multi, as_list, env)
 
       private$._margin <- margin
+      private$._multi_mat <- multi
 
       private$._set_matrix_meta(.ms, matidx)
 
@@ -353,7 +611,7 @@ Applyer <- R6::R6Class(
     ._scope = NULL,
 
     ._margin = NULL,
-
+    ._multi_mat = NULL,
 
     ._mat_n = NULL,
     ._mat_idx = NULL,
@@ -386,6 +644,7 @@ Applyer <- R6::R6Class(
     ._fns_outcome_names = NULL,
     ._fn_out_lens = NULL,
 
+    ._mat_outcome = NULL,
     ._row_outcome = NULL,
     ._col_outcome = NULL,
 
@@ -418,6 +677,8 @@ Applyer <- R6::R6Class(
       private$._mat_idx <- matidx
       private$._mat_seq <- seq_mats
       private$._mat_names <- matnms
+
+      private$._reset_mat_outcome()
 
     },
 
@@ -482,6 +743,14 @@ Applyer <- R6::R6Class(
 
 
 
+    ._reset_mat_outcome = function() {
+
+      private$._mat_outcome <- vector('list', private$._mat_n)
+      names(private$._mat_outcome) <- private$._mat_names
+
+    },
+
+
     ._reset_row_outcome = function() {
 
       private$._row_outcome <- vector('list', length(private$._row_groups_for_loop))
@@ -507,50 +776,144 @@ Applyer <- R6::R6Class(
 
 
     eval_ = function() {
+      if (private$._multi_mat) {
+        return(private$._eval_multi())
+        # return()
+      }
+
       private$._eval_by_matrix()
+      private$._mat_outcome
     },
 
 
 
     ._eval_by_matrix = function() {
 
-      lapply(private$._mat_idx,
-             function(mat_idx) {
+      for (midx in seq_len(private$._mat_n)) {
 
-               private$._scope$k <- mat_idx
+        private$._scope$k <- private$._mat_idx[midx]
 
-               if (is.null(private$._row_groups_for_loop) &&
-                   is.null(private$._col_groups_for_loop)) {
+        if (is.null(private$._row_groups_for_loop) &&
+            is.null(private$._col_groups_for_loop)) {
 
-                 # mat_outcomes <- private$._eval_fns()
-                 private$._eval_fns()
-                 mat_outcomes <- private$._fns_outcome_formatted
-                 return(private$._format_list_of_evals(mat_outcomes, FALSE))
-               }
-
-               if (!private$._row_grouped &&
-                   (private$._col_grouped || is.null(private$._row_groups_for_loop))) {
-                 # return(private$._eval_by_col_groups(inner = FALSE))
-                 private$._eval_by_col_groups(inner = FALSE)
-                 mat_outcomes <- private$._col_outcome
-                 return(mat_outcomes)
-               }
-
-               # mat_outcomes <- private$._eval_by_row_groups(inner = FALSE)
-               private$._eval_by_row_groups(inner = FALSE)
-               mat_outcomes <- private$._row_outcome
-
-               if (private$._margin == 0 && private$._row_grouped &&
-                   private$._col_grouped && private$._simplify == "no") {
-
-                 mat_outcomes <- tidyr::unnest(mat_outcomes, cols = .vals)
-                 }
+          private$._eval_fns()
+          private$._mat_outcome[[midx]] <- private$._format_list_of_evals(private$._fns_outcome_formatted, FALSE)
+          next
+        }
 
 
-               mat_outcomes
-             })
+        if (!private$._row_grouped &&
+            (private$._col_grouped || is.null(private$._row_groups_for_loop))) {
+
+          private$._eval_by_col_groups(inner = FALSE)
+          private$._mat_outcome[[midx]] <- private$._col_outcome
+          next
+        }
+
+        private$._eval_by_row_groups(inner = FALSE)
+        private$._mat_outcome[[midx]] <- private$._row_outcome
+
+        if (private$._margin == 0 && private$._row_grouped &&
+            private$._col_grouped && private$._simplify == "no") {
+
+          private$._mat_outcome[[midx]] <- tidyr::unnest(private$._mat_outcome[[midx]],
+                                                         cols = .vals)
+        }
+
+      }
+
+
+
+
+
+
+
+
+
+
+      # lapply(private$._mat_idx,
+      #        function(mat_idx) {
+      #
+      #          private$._scope$k <- mat_idx
+      #
+      #          if (is.null(private$._row_groups_for_loop) &&
+      #              is.null(private$._col_groups_for_loop)) {
+      #
+      #            # mat_outcomes <- private$._eval_fns()
+      #            private$._eval_fns()
+      #            mat_outcomes <- private$._fns_outcome_formatted
+      #            return(private$._format_list_of_evals(mat_outcomes, FALSE))
+      #          }
+      #
+      #          if (!private$._row_grouped &&
+      #              (private$._col_grouped || is.null(private$._row_groups_for_loop))) {
+      #            # return(private$._eval_by_col_groups(inner = FALSE))
+      #            private$._eval_by_col_groups(inner = FALSE)
+      #            mat_outcomes <- private$._col_outcome
+      #            return(mat_outcomes)
+      #          }
+      #
+      #          # mat_outcomes <- private$._eval_by_row_groups(inner = FALSE)
+      #          private$._eval_by_row_groups(inner = FALSE)
+      #          mat_outcomes <- private$._row_outcome
+      #
+      #          if (private$._margin == 0 && private$._row_grouped &&
+      #              private$._col_grouped && private$._simplify == "no") {
+      #
+      #            mat_outcomes <- tidyr::unnest(mat_outcomes, cols = .vals)
+      #            }
+      #
+      #
+      #          mat_outcomes
+      #        })
 
     },
+
+
+
+
+
+    ._eval_multi = function() {
+
+      private$._scope$k <- private$._mat_idx
+      private$._scope$update_binding()
+
+      if (is.null(private$._row_groups_for_loop) &&
+          is.null(private$._col_groups_for_loop)) {
+
+        private$._eval_fns()
+        return(
+          private$._format_list_of_evals(private$._fns_outcome_formatted, FALSE)
+        )
+        # private$._mat_outcome[[midx]] <- private$._format_list_of_evals(private$._fns_outcome_formatted, FALSE)
+        # return()
+      }
+
+
+      if (!private$._row_grouped &&
+          (private$._col_grouped || is.null(private$._row_groups_for_loop))) {
+
+        private$._eval_by_col_groups(inner = FALSE)
+        # private$._mat_outcome[[midx]] <- private$._col_outcome
+        return(private$._col_outcome)
+      }
+
+      private$._eval_by_row_groups(inner = FALSE)
+      # private$._mat_outcome[[midx]] <- private$._row_outcome
+
+      if (private$._margin == 0 && private$._row_grouped &&
+          private$._col_grouped && private$._simplify == "no") {
+
+        # private$._mat_outcome[[midx]] <- tidyr::unnest(private$._mat_outcome[[midx]],
+        #                                                cols = .vals)
+        return(tidyr::unnest(private$._row_outcome, cols = .vals))
+      }
+
+      private$._row_outcome
+
+    },
+
+
 
 
 
@@ -658,8 +1021,6 @@ Applyer <- R6::R6Class(
         fn <- private$._fns[[fidx]]
         private$._scope$register_function(fn)
         private$._fns_outcome[[fidx]] <- private$._scope$eval()
-        private$._set_out_lens(fidx)
-        private$._set_fns_names(fidx)
         private$._format_fn_outcome(fidx)
 
       }
@@ -682,6 +1043,8 @@ Applyer <- R6::R6Class(
 
     ._set_fns_names = function(idx) {
 
+      private$._set_out_lens(idx)
+
       if ((!private$._fn_out_lens[idx] == 1L || private$._force_name) &&
           is.null(out_names <- private$._fns_outcome_names[[idx]])) {
 
@@ -696,6 +1059,8 @@ Applyer <- R6::R6Class(
 
     # ._format_fn_outcome = function(res) {
     ._format_fn_outcome = function(idx) {
+
+      private$._set_fns_names(idx)
 
       if (private$._simplify == "no") return()
 
@@ -751,12 +1116,16 @@ Applyer <- R6::R6Class(
       private$._assess_length()
 
 
+      # with length == 1 and no name forcing, it long/wide format is irrelevant
+      if (unique(private$._fn_out_lens) == 1L && !private$._force_name) {
+        private$._fns_outcome_formatted <- private$._fns_outcome
+        return()
+      }
+
+
       if (private$._simplify == "long") {
         nms <- setNames(private$._fns_outcome_names,
                         paste0(names(private$._fns_outcome), ".name"))
-        # n <- private$._fns_n
-        # rder <- as.vector(rbind(1:n, n+(1:n))) # PUT THIS ELSEWHERE AS IT IS DONE FOR EVERY LOOP
-        # private$._fns_outcome_formatted <- c(nms, private$._fns_outcome)[rder]
         private$._fns_outcome_formatted <- c(nms, private$._fns_outcome)[private$._wide_order]
 
         if (grouped) {
@@ -914,8 +1283,10 @@ assess_fun_names <- function(nms, tag, simplify)
 #          0: whole matrix
 #          1: rowwise
 #          2: colwise
-eval_function <- function(.ms, ..., margin = NULL, matidx = NULL, .simplify = "no",
-                          .force_name = FALSE, env = rlang::caller_env(2))
+eval_function <- function(.ms, ..., margin = NULL, matidx = NULL,
+                          .matrix_wise = TRUE, .input_list = FALSE,
+                          .simplify = "no", .force_name = FALSE,
+                          env = rlang::caller_env(2))
 {
   var_tag <- get_var_tag(margin)
 
@@ -941,8 +1312,8 @@ eval_function <- function(.ms, ..., margin = NULL, matidx = NULL, .simplify = "n
   }
 
 
-  applyer <- Applyer$new(.ms, matidx, margin, fns, .simplify,
-                         .force_name, env)
+  applyer <- Applyer$new(.ms, matidx, margin, fns, !.matrix_wise, .input_list,
+                         .simplify, .force_name, env)
 
 
   # group_meta <- get_group_meta(margin, .ms)
@@ -973,10 +1344,13 @@ apply_row <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
 apply_row.matrixset <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
                                 .input_list = FALSE)
 {
-  if (.matrix_wise) {
-    # warn_if(.matrix_wise, .input_list)
-    eval_function(.ms, ..., margin = 1, matidx = .matrix)
-  } #else {
+  warn_if(.matrix_wise, .input_list)
+  eval_function(.ms, ..., margin = 1, matidx = .matrix,
+                .matrix_wise = .matrix_wise, .input_list = .input_list)
+  # if (.matrix_wise) {
+  #   # warn_if(.matrix_wise, .input_list)
+  #   eval_function(.ms, ..., margin = 1, matidx = .matrix)
+  # } #else {
   #   eval_fun_margin_mult(.ms, mrg="row", var_lab=var_lab_row, ...,
   #                        matidx = .matrix, as_list_mat = .input_list,
   #                        .simplify = FALSE, env = rlang::caller_env())
@@ -997,15 +1371,18 @@ apply_row_dfl.matrixset <- function(.ms, ..., .matrix = NULL,
                                     .force_name = FALSE)
 {
   warn_if(.matrix_wise, .input_list)
-  appl <- if (.matrix_wise) {
-    eval_function(.ms, ..., margin=1, matidx = .matrix, .simplify = "long",
-                  .force_name = .force_name)
-  } #else {
+  eval_function(.ms, ..., margin=1, matidx = .matrix, .simplify = "long",
+                .force_name = .force_name, .matrix_wise = .matrix_wise,
+                .input_list = .input_list)
+  # appl <- if (.matrix_wise) {
+  #   eval_function(.ms, ..., margin=1, matidx = .matrix, .simplify = "long",
+  #                 .force_name = .force_name)
+  # } #else {
   #   eval_fun_margin_mult(.ms, mrg="row", var_lab=var_lab_row, ...,
   #                        matidx = .matrix, as_list_mat = .input_list,
   #                        .simplify = TRUE, env = rlang::caller_env())
   # }
-  appl
+  # appl
   # tblize_lg(appl, .rowtag(.ms), mult = !.matrix_wise, force_name = .force_name)
 }
 
@@ -1023,18 +1400,21 @@ apply_row_dfw.matrixset <- function(.ms, ..., .matrix = NULL,
                                     .force_name = FALSE)
 {
   warn_if(.matrix_wise, .input_list)
-  appl <- if (.matrix_wise) {
-    eval_function(.ms, ..., margin = 1, matidx = .matrix, .simplify = "wide",
-                  .force_name = .force_name)
+  eval_function(.ms, ..., margin = 1, matidx = .matrix, .simplify = "wide",
+                .force_name = .force_name, .matrix_wise = .matrix_wise,
+                .input_list = .input_list)
+  # appl <- if (.matrix_wise) {
+  #   eval_function(.ms, ..., margin = 1, matidx = .matrix, .simplify = "wide",
+  #                 .force_name = .force_name)
     # eval_fun_margin(.ms, mrg="row", var_lab=var_lab_row, ..., matidx = .matrix,
     #                 .simplify = TRUE, env = rlang::caller_env())
-  } #else {
+  # } #else {
   #   eval_fun_margin_mult(.ms, mrg="row", var_lab=var_lab_row, ...,
   #                        matidx = .matrix, as_list_mat = .input_list,
   #                        .simplify = TRUE, env = rlang::caller_env())
   # }
   # tblize_wd(appl, .rowtag(.ms), mult = !.matrix_wise, force_name = .force_name)
-  appl
+  # appl
 }
 
 
@@ -1051,12 +1431,15 @@ apply_column <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
 apply_column.matrixset <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
                                    .input_list = FALSE)
 {
-  if (.matrix_wise) {
-    warn_if(.matrix_wise, .input_list)
-    eval_function(.ms, ..., margin=2, matidx = .matrix)
-    # eval_fun_margin(.ms, mrg="col", var_lab=var_lab_col, ..., matidx = .matrix,
-    #                 .simplify = FALSE, env = rlang::caller_env())
-  } #else {
+  warn_if(.matrix_wise, .input_list)
+  eval_function(.ms, ..., margin=2, matidx = .matrix,
+                .matrix_wise = .matrix_wise, .input_list = .input_list)
+  # if (.matrix_wise) {
+  #   warn_if(.matrix_wise, .input_list)
+  #   eval_function(.ms, ..., margin=2, matidx = .matrix)
+  #   # eval_fun_margin(.ms, mrg="col", var_lab=var_lab_col, ..., matidx = .matrix,
+  #   #                 .simplify = FALSE, env = rlang::caller_env())
+  # } #else {
   #   eval_fun_margin_mult(.ms, mrg="col", var_lab=var_lab_col, ...,
   #                        matidx = .matrix, as_list_mat = .input_list,
   #                        .simplify = FALSE, env = rlang::caller_env())
@@ -1077,13 +1460,16 @@ apply_column_dfl.matrixset <- function(.ms, ..., .matrix = NULL,
                                        .force_name = FALSE)
 {
   warn_if(.matrix_wise, .input_list)
-  appl <- if (.matrix_wise) {
-    eval_function(.ms, ..., margin=2, matidx = .matrix, .simplify = "long",
-                  .force_name = .force_name)
-    # eval_fun_margin(.ms, mrg="col", var_lab=var_lab_col, ..., matidx = .matrix,
-    #                 .simplify = TRUE, env = rlang::caller_env())
-  }
-  appl
+  eval_function(.ms, ..., margin=2, matidx = .matrix, .simplify = "long",
+                .force_name = .force_name, .matrix_wise = .matrix_wise,
+                .input_list = .input_list)
+  # appl <- if (.matrix_wise) {
+  #   eval_function(.ms, ..., margin=2, matidx = .matrix, .simplify = "long",
+  #                 .force_name = .force_name)
+  #   # eval_fun_margin(.ms, mrg="col", var_lab=var_lab_col, ..., matidx = .matrix,
+  #   #                 .simplify = TRUE, env = rlang::caller_env())
+  # }
+  # appl
   #else {
   #   eval_fun_margin_mult(.ms, mrg="col", var_lab=var_lab_col, ...,
   #                        matidx = .matrix, as_list_mat = .input_list,
@@ -1107,13 +1493,16 @@ apply_column_dfw.matrixset <- function(.ms, ..., .matrix = NULL,
                                        .force_name = FALSE)
 {
   warn_if(.matrix_wise, .input_list)
-  appl <- if (.matrix_wise) {
-    eval_function(.ms, ..., margin=2, matidx = .matrix, .simplify = "wide",
-                  .force_name = .force_name)
-    # eval_fun_margin(.ms, mrg="col", var_lab=var_lab_col, ..., matidx = .matrix,
-    #                 .simplify = TRUE, env = rlang::caller_env())
-  }
-  appl
+  eval_function(.ms, ..., margin=2, matidx = .matrix, .simplify = "wide",
+                .force_name = .force_name, .matrix_wise = .matrix_wise,
+                .input_list = .input_list)
+  # appl <- if (.matrix_wise) {
+  #   eval_function(.ms, ..., margin=2, matidx = .matrix, .simplify = "wide",
+  #                 .force_name = .force_name)
+  #   # eval_fun_margin(.ms, mrg="col", var_lab=var_lab_col, ..., matidx = .matrix,
+  #   #                 .simplify = TRUE, env = rlang::caller_env())
+  # }
+  # appl
   #else {
   #   eval_fun_margin_mult(.ms, mrg="col", var_lab=var_lab_col, ...,
   #                        matidx = .matrix, as_list_mat = .input_list,
@@ -1137,11 +1526,13 @@ apply_matrix.matrixset <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE
                                    .input_list = FALSE)
 {
   warn_if(.matrix_wise, .input_list)
-  if (.matrix_wise) {
-    # eval_fun_matrix(.ms, ..., matidx = .matrix, .simplify = FALSE,
-    #                 env = rlang::caller_env())
-    eval_function(.ms, ..., margin = 0, matidx = .matrix)
-  } #else {
+  eval_function(.ms, ..., margin = 0, matidx = .matrix,
+                .matrix_wise = .matrix_wise, .input_list = .input_list)
+  # if (.matrix_wise) {
+  #   # eval_fun_matrix(.ms, ..., matidx = .matrix, .simplify = FALSE,
+  #   #                 env = rlang::caller_env())
+  #   eval_function(.ms, ..., margin = 0, matidx = .matrix)
+  # } #else {
   #   eval_fun_matrix_mult(.ms, ..., matidx=.matrix, as_list_mat=.input_list,
   #                        .simplify=FALSE, env=rlang::caller_env())
   # }
@@ -1164,18 +1555,21 @@ apply_matrix_dfl.matrixset <- function(.ms, ..., .matrix = NULL,
                                        .force_name = FALSE)
 {
   warn_if(.matrix_wise, .input_list)
-  appl <- if (.matrix_wise) {
-    # eval_fun_matrix(.ms, ..., matidx = .matrix, .simplify = TRUE,
-    #                 env = rlang::caller_env())
-    eval_function(.ms, ..., margin = 0, matidx = .matrix, .simplify = "long",
-                  .force_name = .force_name)
-  } #else {
+  eval_function(.ms, ..., margin = 0, matidx = .matrix, .simplify = "long",
+                .force_name = .force_name, .matrix_wise = .matrix_wise,
+                .input_list = .input_list)
+  # appl <- if (.matrix_wise) {
+  #   # eval_fun_matrix(.ms, ..., matidx = .matrix, .simplify = TRUE,
+  #   #                 env = rlang::caller_env())
+  #   eval_function(.ms, ..., margin = 0, matidx = .matrix, .simplify = "long",
+  #                 .force_name = .force_name)
+  # } #else {
   #   eval_fun_matrix_mult(.ms, ..., matidx=.matrix, as_list_mat=.input_list,
   #                        .simplify=TRUE, env=rlang::caller_env())
   # }
   # tblize_lg(appl, "", matrix = TRUE, mult = !.matrix_wise,
   #           force_name = .force_name)
-  appl
+  # appl
 }
 
 
@@ -1196,18 +1590,21 @@ apply_matrix_dfw.matrixset <- function(.ms, ..., .matrix = NULL,
                                        .force_name = FALSE)
 {
   warn_if(.matrix_wise, .input_list)
-  appl <- if (.matrix_wise) {
-    # eval_fun_matrix(.ms, ..., matidx = .matrix, .simplify = TRUE,
-    #                 env = rlang::caller_env())
-    eval_function(.ms, ..., margin = 0, matidx = .matrix, .simplify = "wide",
-                  .force_name = .force_name)
-  } #else {
-  #   eval_fun_matrix_mult(.ms, ..., matidx=.matrix, as_list_mat=.input_list,
-  #                        .simplify=TRUE, env=rlang::caller_env())
-  # }
-  # tblize_wd(appl, "", matrix = TRUE, mult = !.matrix_wise,
-  #           force_name = .force_name)
-  appl
+  eval_function(.ms, ..., margin = 0, matidx = .matrix, .simplify = "wide",
+                .force_name = .force_name, .matrix_wise = .matrix_wise,
+                .input_list = .input_list)
+  # appl <- if (.matrix_wise) {
+  #   # eval_fun_matrix(.ms, ..., matidx = .matrix, .simplify = TRUE,
+  #   #                 env = rlang::caller_env())
+  #   eval_function(.ms, ..., margin = 0, matidx = .matrix, .simplify = "wide",
+  #                 .force_name = .force_name)
+  # } #else {
+  # #   eval_fun_matrix_mult(.ms, ..., matidx=.matrix, as_list_mat=.input_list,
+  # #                        .simplify=TRUE, env=rlang::caller_env())
+  # # }
+  # # tblize_wd(appl, "", matrix = TRUE, mult = !.matrix_wise,
+  # #           force_name = .force_name)
+  # appl
 }
 
 

@@ -178,10 +178,15 @@ EvalScope <- R6::R6Class(
 
     initialize = function(.ms, margin, multi, as_list, loop_struct, env) {
 
-      private$._enclos_env <- new.env()
+
+      private$._context_env <- new.env()
+      private$._enclos_env <- new.env(parent = private$._context_env)
       private$._enclos_env$.data <- new.env()
       private$._enclos_env$.env <- env
 
+      private$._set_context()
+
+      private$._ms <- .ms
       private$._mats <- .subset2(.ms, "matrix_set")
       private$._row_inf <- .subset2(.ms, "row_info")
       private$._col_inf <- .subset2(.ms, "column_info")
@@ -225,8 +230,10 @@ EvalScope <- R6::R6Class(
 
   private = list(
 
+    ._context_env = NULL,
     ._enclos_env = NULL,
 
+    ._ms = NULL,
     ._mats = NULL,
     i_ = NULL,
     j_ = NULL,
@@ -256,6 +263,87 @@ EvalScope <- R6::R6Class(
     ._M_subset_j_no_drop = quote(._M_[, private$j_, drop = FALSE]),
     ._M_subset_j_then_i = quote(._M_[, private$j_][private$i_]),
     ._M_subset_ij = quote(._M_[private$i_, private$j_, drop = FALSE]),
+
+
+
+    ._set_context = function() {
+
+      private$._context_env$current_n_row <- function() {
+        if (is.null(private$i_)) nrow(private$._ms) else length(private$i_)
+      }
+
+      private$._context_env$current_n_column <- function() {
+        if (is.null(private$j_)) ncol(private$._ms) else length(private$j_)
+      }
+
+
+
+      private$._context_env$current_row_name <- function() {
+        if (is.null(private$i_)) {
+          rownames(private$._ms)
+        } else {
+          rownames(private$._ms)[private$i_]
+        }
+      }
+
+      private$._context_env$current_column_name <- function() {
+        if (is.null(private$j_)) {
+          colnames(private$._ms)
+        } else {
+          colnames(private$._ms)[private$i_]
+        }
+      }
+
+
+
+      private$._context_env$current_row_info <- function() {
+        if (is.null(private$i_)) {
+          .subset2(student_results, "row_info")
+        } else {
+          .subset2(student_results, "row_info")[private$i_, ]
+        }
+      }
+
+      private$._context_env$current_column_info <- function() {
+        if (is.null(private$j_)) {
+          .subset2(student_results, "column_info")
+        } else {
+          .subset2(student_results, "column_info")[private$j_, ]
+        }
+      }
+
+
+
+      private$._context_env$row_pos <- function() {
+        if (is.null(private$i_)) {
+          seq_len(nrow(private$._ms))
+        } else {
+          private$i_
+        }
+      }
+
+      private$._context_env$column_pos <- function() {
+        if (is.null(private$j_)) {
+          seq_len(ncol(private$._ms))
+        } else {
+          private$j_
+        }
+      }
+
+
+
+      private$._context_env$row_rel_pos <- function() {
+        cnr <- if (is.null(private$i_)) nrow(private$._ms) else length(private$i_)
+        seq_len(cnr)
+      }
+
+      private$._context_env$column_rel_pos <- function() {
+        cnc <- if (is.null(private$j_)) ncol(private$._ms) else length(private$j_)
+        seq_len(cnc)
+      }
+
+
+    },
 
 
 
@@ -702,13 +790,8 @@ Applyer <- R6::R6Class(
     ._multi_mat = NULL,
 
     ._mat_n = NULL,
-    ._mat_seq = NULL,
     ._mat_names = NULL,
 
-    ._nr = NULL,
-    ._nc = NULL,
-    ._row_names = NULL,
-    ._col_names = NULL,
     ._tag = NULL,
 
     ._loop_struct = NULL,
@@ -1151,45 +1234,27 @@ quo_is_function <- function(quo)
 
 
 
-get_fn_meta <- function(q)
+get_fn_names <- function(quos)
 {
-  nmfn <- names(q)
-  nfn <- length(q)
-  seq_fn <- stats::setNames(seq_len(nfn), nmfn)
-
-  list(fn_names = nmfn, fn_n = nfn, fn_seq = seq_fn)
+  nmfn <- names(quos)
+  is_a_formula <- vapply(quos, quo_is_formula, FALSE)
+  if (any(form_idx <- is_a_formula)) {
+    nmfn[form_idx] <- gsub("^~", "", nmfn[form_idx])
+  }
+  nmfn
 }
 
 
 
-
-
-# get_group_meta <- function(margin, .ms)
+# get_fn_meta <- function(q)
 # {
-#   row_wise <- margin %.==.% 1
-#   col_wise <- margin %.==.% 2
+#   nmfn <- names(q)
+#   nfn <- length(q)
+#   seq_fn <- stats::setNames(seq_len(nfn), nmfn)
 #
-#   row_grp_meta <- attr(.ms, "row_group_meta")
-#   col_grp_meta <- attr(.ms, "col_group_meta")
-#
-#   row_grouped <- !is.null(row_grp_meta) && !row_wise
-#   col_grouped <- !is.null(col_grp_meta) && !col_wise
-#
-#   if (!row_grouped) row_grp_meta <- NULL
-#   if (!col_grouped) col_grp_meta <- NULL
-#
-#   n_group_row <- if (row_grouped) nrow(row_grp_meta) else NULL
-#   n_group_col <- if (col_grouped) nrow(col_grp_meta) else NULL
-#
-#   list(row_wise = row_wise,
-#        col_wise = col_wise,
-#        row_group_df = row_grp_meta,
-#        col_group_df = col_grp_meta,
-#        row_grouped = row_grouped,
-#        col_grouped = col_grouped,
-#        n_group_row = n_group_row,
-#        n_group_col =  n_group_col)
+#   list(fn_names = nmfn, fn_n = nfn, fn_seq = seq_fn)
 # }
+
 
 
 
@@ -1273,7 +1338,8 @@ eval_function <- function(.ms, ..., margin = NULL, matidx = NULL,
   var_tag <- get_var_tag(margin)
 
   quosures <- rlang::enquos(..., .named = TRUE, .ignore_empty = "all")
-  fn_meta <- get_fn_meta(quosures)
+  # fn_meta <- get_fn_meta(quosures)
+  fn_names <- get_fn_names(quosures)
 
 
   fns <- lapply(quosures, function(q) {
@@ -1286,12 +1352,16 @@ eval_function <- function(.ms, ..., margin = NULL, matidx = NULL,
   # make sure the result tibble in dfl/dfw have column name conflict.
   if (!is.null(margin) && (margin == 0 || margin == 1)) {
     # assess_fun_names(nmfn, .rowtag(.ms), simplify_bool)
-    assess_fun_names(fn_meta$fn_names, .rowtag(.ms), .simplify != "no")
+    # assess_fun_names(fn_meta$fn_names, .rowtag(.ms), .simplify != "no")
+    assess_fun_names(fn_names, .rowtag(.ms), .simplify != "no")
   }
   if (!is.null(margin) && (margin == 0 || margin == 2)) {
     # assess_fun_names(nmfn, .coltag(.ms), simplify_bool)
-    assess_fun_names(fn_meta$fn_names, .coltag(.ms), .simplify != "no")
+    # assess_fun_names(fn_meta$fn_names, .coltag(.ms), .simplify != "no")
+    assess_fun_names(fn_names, .coltag(.ms), .simplify != "no")
   }
+
+  names(fns) <- fn_names
 
 
   applyer <- Applyer$new(.ms, matidx, margin, fns, !.matrix_wise, .input_list,

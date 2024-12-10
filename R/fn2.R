@@ -38,6 +38,7 @@ LoopStruct <- R6::R6Class(
     {
       private$matrix_subset_ <- !is.null(mat_subset)
       private$._set_matrix_idx(.ms, mat_subset)
+      private$._set_matrix_eval_status(.ms)
 
       row_wise <- margin %.==.% 1
       col_wise <- margin %.==.% 2
@@ -76,8 +77,11 @@ LoopStruct <- R6::R6Class(
     col_grouped = function() private$col_grouped_,
     row_groups_for_loop = function() private$row_groups_for_loop_,
     col_groups_for_loop = function() private$col_groups_for_loop_,
+
     matrix_subsetting = function() private$matrix_subset_,
     matrix_idx = function() private$matrix_idx_,
+    matrix_eval = function() private$matrix_eval_,
+
     looping = function() {
       !is.null(private$row_groups_for_loop_) ||
         !is.null(private$col_groups_for_loop_)
@@ -96,6 +100,7 @@ LoopStruct <- R6::R6Class(
 
     matrix_subset_ = FALSE,
     matrix_idx_ = NULL,
+    matrix_eval_ = NULL,
     row_wise_ = NULL,
     col_wise_ = NULL,
     row_group_df_ = NULL,
@@ -123,6 +128,15 @@ LoopStruct <- R6::R6Class(
       matidx <- stats::setNames(matidx, matnms)
       private$matrix_idx_ <- matidx
 
+    },
+
+
+
+    ._set_matrix_eval_status = function(.ms)
+    {
+      mats <- .subset2(.ms, "matrix_set")
+      mat_eval <- !vapply(mats, is.null, FALSE)
+      private$matrix_eval_ <- mat_eval[private$matrix_idx_]
     },
 
 
@@ -179,7 +193,7 @@ EvalScope <- R6::R6Class(
     initialize = function(.ms, margin, multi, as_list, loop_struct, env) {
 
 
-      private$._context_env <- new.env()
+      private$._context_env <- new.env(parent = env)
       private$._enclos_env <- new.env(parent = private$._context_env)
       private$._enclos_env$.data <- new.env()
       private$._enclos_env$.env <- env
@@ -866,8 +880,10 @@ Applyer <- R6::R6Class(
 
     ._reset_mat_outcome = function() {
 
-      private$._mat_outcome <- vector('list', private$._mat_n)
-      names(private$._mat_outcome) <- private$._mat_names
+      if (private$._mat_n > 0L) {
+        private$._mat_outcome <- vector('list', private$._mat_n)
+        names(private$._mat_outcome) <- private$._mat_names
+      }
 
     },
 
@@ -909,7 +925,11 @@ Applyer <- R6::R6Class(
 
     ._eval_by_matrix = function() {
 
+      if (private$._mat_n == 0L) return(invisible())
+
       for (midx in seq_len(private$._mat_n)) {
+
+        if (!private$._loop_struct$matrix_eval[midx]) return(NULL)
 
         private$._scope$k <- private$._loop_struct$matrix_idx[midx]
 
@@ -950,6 +970,8 @@ Applyer <- R6::R6Class(
 
 
     ._eval_multi = function() {
+
+      if (private$._mat_n == 0L) return(invisible())
 
       private$._scope$k <- private$._loop_struct$matrix_idx
 

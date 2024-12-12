@@ -28,17 +28,89 @@ flatten_and_name <- function(x, y) {
 
 
 
-
+#' LoopStruct: Class to handle apply-implied looping structure
+#'
+#' This class determines the looping structure behind the apply_* calls.
+#'
+#' The looping structure consists of:
+#'
+#' * Information on if function(s) are evaluated on each matrix sequentially, or
+#'   if the whole matrix set is used as input
+#' * Information on when the whole matrix set is the function input, if it is in
+#'   list form, or if each matrix is to be accessed individually
+#' * The index of of the matrices of the matrix set to use as input (regardless
+#'   of _how_ they they are accessed by the function(s) to be evaluated)
+#' * Information on margins that are looped upon and why:
+#'
+#'     - Information on whether looping is even needed. Available globally and
+#'       for each margin.
+#'     - There is a distinction made on whether a margin loop is due to an
+#'       explicit request (e.g., there will be row looping for apply_row) vs.
+#'       grouping induced (e.g., there will be row looping involved in
+#'       apply_column(row_group_by(object, ...))). This information is handled
+#'       by LoopStruct
+#'     - The margin indexes to use in a loop iteration.
+#'     - In the case of grouping, the grouping basis tibble that contains the
+#'       group IDs.
+#'     - Which margin is looped on first. Typically it will be row margin, but
+#'       it will be column margin if:
+#'
+#'       - There is column looping but no row looping
+#'       - There is column grouping but no row grouping
+#'
+#'       THe purpose of deciding loop order is for optimization purposes.
+#'
+#' @docType class
+#' @name LoopStruct
+#' @noRd
 LoopStruct <- R6::R6Class(
   "LoopStruct",
 
   public = list(
 
-    initialize = function(.ms, margin, mat_subset)
+
+    #' Constructor for LoopStruct
+    #'
+    #' @param .ms          The matrix_set object to which the apply_* function
+    #'                     is applied to and thus, to which the LoopStruct
+    #'                     class is assigned to
+    #' @param margin       The margin to loop upon. This refers to the apply_*
+    #'                     call. A margin of 0 corresponds to apply_matrix, 1
+    #'                     to apply_row and 2 to apply_column.
+    #' @param mat_subset   matrix indices of which matrix to apply functions
+    #'                     to. It can be `NULL` (use all matrices), a `numeric`
+    #'                     vector, a `character` vector, or a `logical` vector.
+    #'
+    #'                     Via a call to ._set_matrix_idx(), the following will
+    #'                     happen, based on `mat_subset` type:
+    #'
+    #'                     *  Numeric values are coerced to integer, the same
+    #'                        way `as.integer()` does,  and hence truncation
+    #'                        towards zero occurs.
+    #'                     *  Negative integers are allowed, indicating
+    #'                        elements to leave out.
+    #'                     *  Character vectors are matched to the matrix names
+    #'                        of the object, thus turned into integers.
+    #'                     * logical vectors are _NOT_ recycled, which is an
+    #'                       important difference with usual indexing. It means
+    #'                       that the `logical` vector must match the number of
+    #'                       matrices in length.
+    #' @param mat_wise     single logical value, indicating if matrices are
+    #'                     looped upon sequentially, or available all at once as
+    #'                     input to the functions to evaluate.
+    #' @param mats_as_list relevant only if mat_wise is FALSE. Single logical
+    #'                     value, indicating if the matrices are provided as a
+    #'                     single list (TRUE), or as individual objects.
+    #'
+    #' @noRd
+    initialize = function(.ms, margin, mat_subset, mat_wise, mats_as_list)
     {
+      private$matrix_wise_ <- mat_wise
+      private$mats_as_list_ <- mats_as_list
+
       private$matrix_subset_ <- !is.null(mat_subset)
       private$._set_matrix_idx(.ms, mat_subset)
-      private$._set_matrix_eval_status(.ms)
+      if (mat_wise) private$._set_matrix_eval_status(.ms)
 
       row_wise <- margin %.==.% 1
       col_wise <- margin %.==.% 2
@@ -55,8 +127,8 @@ LoopStruct <- R6::R6Class(
       n_group_row <- if (row_grouped) nrow(row_grp_meta) else NULL
       n_group_col <- if (col_grouped) nrow(col_grp_meta) else NULL
 
-      private$row_wise_ <- row_wise
-      private$col_wise_ <- col_wise
+      private$._row_wise <- row_wise
+      private$._col_wise <- col_wise
       private$row_group_df_ <- row_grp_meta
       private$col_group_df_ <- col_grp_meta
       private$row_grouped_ <- row_grouped
@@ -69,7 +141,79 @@ LoopStruct <- R6::R6Class(
 
   ),
 
+
   active = list(
+
+
+    #' @field row_group_df        tibble with a column for each row grouping
+    #'                            trait (variable) and a row for each group.
+    #'                            This is used to format the results in the
+    #'                            context of row grouping.
+    #'                            There is also a `.rows` column that stores the
+    #'                            group indexes, but it is used as a placeholder
+    #'                            for storing the function results
+    #' @field col_group_df        tibble with a column for each column grouping
+    #'                            trait (variable) and a row for each group.
+    #'                            This is used to format the results in the
+    #'                            context of column grouping.
+    #'                            There is also a `.rows` column that stores the
+    #'                            group indexes, but it is used as a placeholder
+    #'                            for storing the function results
+    #' @field row_grouped         bool that is TRUE if the matrixset object is
+    #'                            row-grouped
+    #' @field col_grouped         bool that is TRUE if the matrixset object is
+    #'                            column-grouped
+    #' @field row_groups_for_loop In the context of looping, the row groups are
+    #'                            either the rows themselves (e.g., apply_row),
+    #'                            or the groups defined by `row_group_by()`.
+    #'                            Note that the rows are the groups in the case
+    #'                            of apply_row, even if there is a row_group_by
+    #'                            in place.
+    #'                            `row_groups_for_loop` holds, for each of these
+    #'                            groups, the row indexes that correspond to
+    #'                            them.
+    #' @field col_groups_for_loop In the context of looping, the column groups
+    #'                            are either the columns themselves (e.g.,
+    #'                            apply_column), or the groups defined by
+    #'                            `column_group_by()`.
+    #'                            Note that the columns are the groups in the
+    #'                            case of apply_column, even if there is a
+    #'                            column_group_by in place.
+    #'                            `col_groups_for_loop` holds, for each of these
+    #'                            groups, the row indexes that correspond to
+    #'                            them.
+    #'
+    #' @field matrix_subsetting   bool that is TRUE if only a subset of the
+    #'                            matrices of the matrixset object are to be
+    #'                            used.
+    #' @field matrix_idx          integer indexes of the matrices to use.
+    #' @field matrix_wise         single logical value, indicating if matrices
+    #'                            are looped upon sequentially, or available all
+    #'                            at once as input to the functions to evaluate.
+    #' @field mats_as_list        relevant only if `matrix_wise` is FALSE.
+    #'                            Single logical value, indicating if the
+    #'                            matrices are provided as a single list (TRUE),
+    #'                            or as individual objects.
+    #' @field matrix_eval         logical vector, indicating for each matrix to
+    #'                            be used if an evaluation is to be performed.
+    #'                            The status is TRUE, unless the matrix is
+    #'                            `NULL`.
+    #'
+    #' @field looping             bool that is TRUE if looping - either on rows,
+    #'                            columns or both - is required. There is no
+    #'                            distinction based on the reason for looping
+    #'                            (grouping or per margin evaluation).
+    #' @field row_looping         bool that is TRUE if row looping is required.
+    #'                            There is no distinction based on the reason
+    #'                            for looping (grouping or per row evaluation).
+    #' @field col_looping         bool that is TRUE if column looping is
+    #'                            required. There is no distinction based on the
+    #'                            reason for looping (grouping or per column
+    #'                            evaluation).
+    #' @field col_looping_first   bool that is TRUE when column needs to happen
+    #'                            before row looping. Will be TRUE only if
+    #'                            1) There is column looping but no row looping
+    #'                            2) There is column grouping but no row grouping
 
     row_group_df = function() private$row_group_df_,
     col_group_df = function() private$col_group_df_,
@@ -80,6 +224,8 @@ LoopStruct <- R6::R6Class(
 
     matrix_subsetting = function() private$matrix_subset_,
     matrix_idx = function() private$matrix_idx_,
+    matrix_wise = function() private$matrix_wise_,
+    mats_as_list = function() private$mats_as_list_,
     matrix_eval = function() private$matrix_eval_,
 
     looping = function() {
@@ -96,13 +242,22 @@ LoopStruct <- R6::R6Class(
 
   ),
 
+
+
+
   private = list(
 
     matrix_subset_ = FALSE,
     matrix_idx_ = NULL,
     matrix_eval_ = NULL,
-    row_wise_ = NULL,
-    col_wise_ = NULL,
+    matrix_wise_ = NULL,
+    mats_as_list_ = NULL,
+    ._row_wise = NULL,               # TRUE only when row looping was explicitly
+                                     # requested and not the result of row
+                                     # grouping
+    ._col_wise = NULL,               # TRUE only when column looping was
+                                     # explicitly requested and not the result
+                                     # of column grouping
     row_group_df_ = NULL,
     col_group_df_ = NULL,
     row_grouped_ = NULL,
@@ -112,7 +267,36 @@ LoopStruct <- R6::R6Class(
 
 
 
-
+    #' Private method
+    #'
+    #' Sets the `matrix_idx_` variable (and by extension, the active binding
+    #' field `matrix_idx`).
+    #'
+    #' Note how the elements are named with the matrix names. This is necessary
+    #' for latter formatting.
+    #'
+    #' @param .ms    matrix_set object. Used to obtain some meta info such as
+    #'               the number of matrices and their names.
+    #' @param matidx matrix indices of which matrix to apply functions to. It
+    #'               can be `NULL` (use all matrices), a `numeric` vector, a
+    #'               `character` vector, or a `logical` vector.
+    #'
+    #'               Via a call to index_to_integer(), the following will
+    #'               happen, based on `matidx` type:
+    #'
+    #'               *  Numeric values are coerced to integer, the same
+    #'                  way `as.integer()` does, and hence truncation
+    #'                  towards zero occurs.
+    #'               *  Negative integers are allowed, indicating
+    #'                  elements to leave out.
+    #'               *  Character vectors are matched to the matrix names
+    #'                  of the object, thus turned into integers.
+    #'               *  logical vectors are _NOT_ recycled, which is an
+    #'                  important difference with usual indexing. It means
+    #'                  that the `logical` vector must match the number of
+    #'                  matrices in length.
+    #'
+    #' @noRd
     ._set_matrix_idx = function(.ms, matidx)
     {
       if (is.null(matidx)) {
@@ -132,6 +316,15 @@ LoopStruct <- R6::R6Class(
 
 
 
+    #' Private method
+    #'
+    #' Sets the `matrix_eval_` variable (and by extension, the active binding
+    #' field `matrix_eval`).
+    #'
+    #' @param .ms matrix_set object. Used to determine for each matrix if it is
+    #'            `NULL` or not.
+    #'
+    #' @noRd
     ._set_matrix_eval_status = function(.ms)
     {
       mats <- .subset2(.ms, "matrix_set")
@@ -142,9 +335,19 @@ LoopStruct <- R6::R6Class(
 
 
 
+    #' Private method
+    #'
+    #' Sets the `row_groups_for_loop_` variable (and by extension, the active
+    #' binding field `row_groups_for_loop`).
+    #'
+    #' @param .ms matrix_set object. Used to determine the number of rows in the
+    #'            case where functions are to be evaluated for each row, and
+    #'            thus row looping is not the result of row grouping.
+    #'
+    #' @noRd
     set_row_groups = function(.ms) {
 
-      if (private$row_wise_) {
+      if (private$._row_wise) {
 
         row_grs <- as.list(seq_len(nrow(.ms)))
         names(row_grs) <- rownames(.ms)
@@ -160,9 +363,20 @@ LoopStruct <- R6::R6Class(
 
 
 
+
+    #' Private method
+    #'
+    #' Sets the `col_groups_for_loop_` variable (and by extension, the active
+    #' binding field `col_groups_for_loop`).
+    #'
+    #' @param .ms matrix_set object. Used to determine the number of columns in
+    #'            the case where functions are to be evaluated for each column,
+    #'            and thus column looping is not the result of column grouping.
+    #'
+    #' @noRd
     set_col_groups = function(.ms) {
 
-      if (private$col_wise_) {
+      if (private$._col_wise) {
 
         col_grs <- as.list(seq_len(ncol(.ms)))
         names(col_grs) <- colnames(.ms)
@@ -190,7 +404,8 @@ EvalScope <- R6::R6Class(
 
   public = list(
 
-    initialize = function(.ms, margin, multi, as_list, loop_struct, env) {
+    # initialize = function(.ms, margin, multi, as_list, loop_struct, env) {
+    initialize = function(.ms, margin, loop_struct, env) {
 
 
       private$._context_env <- new.env(parent = env)
@@ -206,8 +421,6 @@ EvalScope <- R6::R6Class(
       private$._col_inf <- .subset2(.ms, "column_info")
 
       private$._margin <- margin
-      private$._matrix_wise <- !multi
-      private$._matrix_list <- as_list
       private$._loop_struct <- loop_struct
 
       private$._set_bindings()
@@ -254,8 +467,6 @@ EvalScope <- R6::R6Class(
     k_ = NULL,
 
     ._margin = NULL,
-    ._matrix_wise = TRUE,
-    ._matrix_list = FALSE,
 
     ._loop_struct = NULL,
 
@@ -667,7 +878,7 @@ EvalScope <- R6::R6Class(
       not_active_name <- setdiff(c(var_lab_row, var_lab_col, var_lab_mat),
                                  active_name)
 
-      if (!private$._matrix_list) {
+      if (!private$._loop_struct$mats_as_list) {
         return(private$._set_bindings_from_multi_mat_sep())
       }
 
@@ -728,7 +939,7 @@ EvalScope <- R6::R6Class(
       private$._set_bindings_from_inf("row")
       private$._set_bindings_from_inf("col")
 
-      if (!private$._matrix_wise) {
+      if (!private$._loop_struct$matrix_wise) {
 
         private$._set_bindings_from_multi_mat()
         return()
@@ -764,13 +975,17 @@ Applyer <- R6::R6Class(
 
   public = list(
 
-    initialize = function(.ms, matidx, margin, fns, multi, as_list, simplify,
+    # initialize = function(.ms, matidx, margin, fns, multi, as_list, simplify,
+    #                       force_name, env) {
+    initialize = function(.ms, matidx, margin, fns, mat_wise, as_list, simplify,
                           force_name, env) {
 
-      private$._loop_struct <- LoopStruct$new(.ms, margin, matidx)
+      # private$._loop_struct <- LoopStruct$new(.ms, margin, matidx)
+      private$._loop_struct <- LoopStruct$new(.ms, margin, matidx, mat_wise,
+                                              as_list)
 
       private$._margin <- margin
-      private$._multi_mat <- multi
+      # private$._multi_mat <- multi
 
       private$._set_matrix_meta(.ms)
 
@@ -784,8 +999,9 @@ Applyer <- R6::R6Class(
       private$._simplify <- simplify
       private$._force_name <- force_name
 
-      private$._scope <- EvalScope$new(.ms, margin, multi, as_list,
-                                       private$._loop_struct, env)
+      # private$._scope <- EvalScope$new(.ms, margin, multi, as_list,
+      #                                  private$._loop_struct, env)
+      private$._scope <- EvalScope$new(.ms, margin, private$._loop_struct, env)
     },
 
 
@@ -801,7 +1017,7 @@ Applyer <- R6::R6Class(
     ._scope = NULL,
 
     ._margin = NULL,
-    ._multi_mat = NULL,
+    # ._multi_mat = NULL,
 
     ._mat_n = NULL,
     ._mat_names = NULL,
@@ -913,7 +1129,8 @@ Applyer <- R6::R6Class(
 
 
     eval_ = function() {
-      if (private$._multi_mat) {
+      # if (private$._multi_mat) {
+      if (!private$._loop_struct$matrix_wise) {
         return(private$._eval_multi())
       }
 
@@ -1386,7 +1603,9 @@ eval_function <- function(.ms, ..., margin = NULL, matidx = NULL,
   names(fns) <- fn_names
 
 
-  applyer <- Applyer$new(.ms, matidx, margin, fns, !.matrix_wise, .input_list,
+  # applyer <- Applyer$new(.ms, matidx, margin, fns, !.matrix_wise, .input_list,
+  #                        .simplify, .force_name, env)
+  applyer <- Applyer$new(.ms, matidx, margin, fns, .matrix_wise, .input_list,
                          .simplify, .force_name, env)
 
 

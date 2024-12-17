@@ -61,8 +61,8 @@ flatten_and_name <- function(x, y) {
 #'       THe purpose of deciding loop order is for optimization purposes.
 #'
 #' @docType class
-#' @name LoopStruct
 #' @noRd
+#' @name LoopStruct
 LoopStruct <- R6::R6Class(
   "LoopStruct",
 
@@ -295,8 +295,6 @@ LoopStruct <- R6::R6Class(
     #'                  important difference with usual indexing. It means
     #'                  that the `logical` vector must match the number of
     #'                  matrices in length.
-    #'
-    #' @noRd
     ._set_matrix_idx = function(.ms, matidx)
     {
       if (is.null(matidx)) {
@@ -323,8 +321,6 @@ LoopStruct <- R6::R6Class(
     #'
     #' @param .ms matrix_set object. Used to determine for each matrix if it is
     #'            `NULL` or not.
-    #'
-    #' @noRd
     ._set_matrix_eval_status = function(.ms)
     {
       mats <- .subset2(.ms, "matrix_set")
@@ -343,8 +339,6 @@ LoopStruct <- R6::R6Class(
     #' @param .ms matrix_set object. Used to determine the number of rows in the
     #'            case where functions are to be evaluated for each row, and
     #'            thus row looping is not the result of row grouping.
-    #'
-    #' @noRd
     set_row_groups = function(.ms) {
 
       if (private$._row_wise) {
@@ -374,6 +368,7 @@ LoopStruct <- R6::R6Class(
     #'            and thus column looping is not the result of column grouping.
     #'
     #' @noRd
+    #'
     set_col_groups = function(.ms) {
 
       if (private$._col_wise) {
@@ -399,19 +394,107 @@ LoopStruct <- R6::R6Class(
 
 
 
+
+#' EvalScope: Class to handle evaluation environment scope
+#'
+#' This class manages the environments in which expressions and active bindings
+#' are to be evaluated.
+#'
+#' The environment structure is as follow:
+#' ._context_env:
+#'   |           environment where the context functions are stored, thus
+#'   |           allowing them to be accessible from the apply/mutate functions
+#'   |
+#'   --- ._elms_env:
+#'      |           environment to store temporary elements, created during the
+#'      |           evaluation of apply/mutate
+#'      |
+#'      --- ._enclos_env:
+#'                       where the expressions are evaluated. Being a
+#'                       (grand-)child of ._context_env/._elms_env, it has
+#'                       access to the context functions as well as elements
+#'                       created during the evaluation.
+#'
+#'                       The ._enclos_env environment has two special elements:
+#'                       .data and .env. The former contains the same fields and
+#'                       active bindings as ._enclos_env do (see, for instance,
+#'                       the help of the apply_* functions for the purpose of
+#'                       this) while the latter points to the calling
+#'                       environment (again, see apply_* for a use case).
+#'
+#' @note
+#' The class has two private variables, `i_` and `j_`, that refer to current
+#' row and column indexes to use for sub-setting a matrix prior to function
+#' evaluation.
+#'
+#' But this super class is more general and creates scope environment that are
+#' not specific to apply_* evaluation. Therefore, `i_` and `j_` are set to
+#' `NULL` and the active binding functions that are defined in this class take
+#' that into account.
+#'
+#' The advantage is that child classes that inherits from `EvalScope` need only
+#' to worry about `i_` and `j_` if they need it (e.g., `EvalScopeOfApply`), but
+#' can ignore them otherwise (e.g., `EvalScopeOfMutate`).
+#'
+#' @section Context Functions:
+#' The following context functions are defined in the `._context_env`
+#' environment:
+#'
+#' * current_n_row
+#' * current_n_column
+#' * current_row_name
+#' * current_column_name
+#' * current_row_info
+#' * current_column_info
+#' * row_pos
+#' * column_pos
+#' * row_rel_pos
+#' * column_rel_pos
+#'
+#' Their definition is appropriate for situations that requires neither `i_` nor
+#' `j_`, as well as situations where either/both are needed.
+#'
+#' If more parameters would be needed for a specific case, consider creating a
+#' new child class that overloads the context functions.
+#'
+#' @section Individual Annotations as Active Bindings:
+#' Annotations, from both rows and columns, are made available as active
+#' bindings.
+#'
+#' As for the context functions, the bindings are defined appropriately for
+#' situations that requires neither `i_` nor `j_`, as well as situations where
+#' either/both are needed.
+#'
+#' If more parameters would be needed for a specific case, consider creating a
+#' new child class that overloads the use of annotations.
+#'
+#' @docType class
+#' @noRd
+#' @name EvalScope
 EvalScope <- R6::R6Class(
   "EvalScope",
 
   public = list(
 
-    # initialize = function(.ms, margin, multi, as_list, loop_struct, env) {
-    initialize = function(.ms, margin, loop_struct, env) {
 
+    #' Constructor for EvalScope
+    #'
+    #' @param .ms  The matrix_set object in which to find matrices to apply
+    #'             functions to (e.g., as from apply_* or mutate_matrix calls)
+    #'             and thus, to which the EvalScope class is assigned to
+    #' @param .env The calling environment of the function that needs to use
+    #'             EvalScope. This is typically the environment in which apply_*
+    #'             or mutate_matrix was called from.
+    #'
+    initialize = function(.ms, .env) {
 
-      private$._context_env <- new.env(parent = env)
-      private$._enclos_env <- new.env(parent = private$._context_env)
+      # by setting the calling env as the parent env, this gives access to the
+      # bindings of that environment.
+      private$._context_env <- new.env(parent = .env)
+      private$._elms_env <- new.env(parent = private$._context_env)
+      private$._enclos_env <- new.env(parent = private$._elms_env)
       private$._enclos_env$.data <- new.env()
-      private$._enclos_env$.env <- env
+      private$._enclos_env$.env <- .env
 
       private$._set_context()
 
@@ -420,21 +503,22 @@ EvalScope <- R6::R6Class(
       private$._row_inf <- .subset2(.ms, "row_info")
       private$._col_inf <- .subset2(.ms, "column_info")
 
-      private$._margin <- margin
-      private$._loop_struct <- loop_struct
-
-      private$._set_bindings()
+      private$._set_info_bindings()
     },
 
 
 
+    #' Registers a function to be evaluated.
+    #'
+    #' @param fn  function to be evaluated. It must be provided in the form of
+    #'            an expression.
     register_function = function(fn) {
       private$._fn <- fn
     },
 
 
 
-
+    #' Evaluate a function in the enclosing environment.
     eval = function() {
 
       eval(private$._fn, envir = private$._enclos_env)
@@ -446,51 +530,37 @@ EvalScope <- R6::R6Class(
   ),
 
 
-  active = list(
-
-    i = function(new_i) private$i_ <- new_i,
-    j = function(new_j) private$j_ <- new_j,
-    k = function(new_k) private$k_ <- new_k
-
-  ),
-
-
   private = list(
 
     ._context_env = NULL,
+    ._elms_env = NULL,
     ._enclos_env = NULL,
 
     ._ms = NULL,
     ._mats = NULL,
+
+    # integers; for a given matrix, what row (i_) and/or column (j_) subset to
+    # use?
     i_ = NULL,
     j_ = NULL,
-    k_ = NULL,
-
-    ._margin = NULL,
-
-    ._loop_struct = NULL,
 
     ._row_inf = NULL,
     ._col_inf = NULL,
 
+    # function to evaluate
     ._fn = NULL,
 
 
 
-    ._mat_whole = quote(private$._mats),
-    ._mat_subset_k = quote(private$._mats[[._k_]]),
-    ._mat_subset_k_lst = quote(private$._mats[._k_]),
-
-    ._M_subset_i_drop = quote(._M_[private$i_, ]),
-    ._M_subset_i_no_drop = quote(._M_[private$i_, , drop = FALSE]),
-    ._M_subset_i_then_j = quote(._M_[private$i_, ][private$j_]),
-    ._M_subset_j_drop = quote(._M_[, private$j_]),
-    ._M_subset_j_no_drop = quote(._M_[, private$j_, drop = FALSE]),
-    ._M_subset_j_then_i = quote(._M_[, private$j_][private$i_]),
-    ._M_subset_ij = quote(._M_[private$i_, private$j_, drop = FALSE]),
-
-
-
+    #' Private method
+    #'
+    #' Assigns context functions to the ._context_env environment.
+    #'
+    #' Their definition is appropriate for situations that requires neither `i_` nor
+    #' `j_`, as well as situations where either/both are needed.
+    #'
+    #' If more parameters would be needed for a specific case, consider creating
+    #' a new child class that overloads the context functions.
     ._set_context = function() {
 
       private$._context_env$current_n_row <- function() {
@@ -572,49 +642,304 @@ EvalScope <- R6::R6Class(
 
 
 
-    ._generate_mat_subset_expr = function(mat_expr, k_expr, sub_expr) {
+
+    #' Private method
+    #'
+    #' Assigns annotations from rows or columns, as determined by `info`, to the
+    #' ._enclos_env environment, as active bindings.
+    #'
+    #' Their definition is appropriate for situations that requires neither `i_` nor
+    #' `j_`, as well as situations where either/both are needed.
+    #'
+    #' If more parameters would be needed for a specific case, consider creating
+    #' a new child class that overloads the context functions.
+    #'
+    #' @param info one of "row" or "col", determining where to take the
+    #'             annotations from
+    ._set_bindings_from_inf = function(info) {
+
+      info_name <- paste(".", info, "inf", sep = "_")
+      fields <- names(private[[info_name]])
+
+      inf_idx <- if (info == "row") quote(private$i_) else quote(private$j_)
+
+      fn <- function() {}
+
+      for (field in fields) {
+        fn_body <- substitute(
+          {
+            if (is.null(idx)) {
+              return(private[[info]][[fld]])
+            }
+            private[[info]][[fld]][idx]
+          },
+          list(info = info_name,
+               fld = field,
+               idx = inf_idx)
+        )
+        body(fn) <- fn_body
+
+        makeActiveBinding(field, fn, env = private$._enclos_env)
+        makeActiveBinding(field, fn, env = private$._enclos_env$.data)
+      }
+
+    },
+
+
+
+    #' Private method
+    #'
+    #' Assigns annotations from both rows and columns, by calling
+    #' `._set_bindings_from_inf()`.
+    #'
+    #' @noRd
+    #'
+    ._set_info_bindings = function() {
+
+      private$._set_bindings_from_inf("row")
+      private$._set_bindings_from_inf("col")
+
+    }
+
+  )
+
+)
+
+
+
+
+
+
+#' EvalScopeOfApply: Class to handle evaluation environment scope specific to
+#' apply_* functions.
+#'
+#' It is a child of EvalScope that makes use of the row/column sub-setting
+#' mechanism, to which it adds the following functionalities:
+#'
+#' * Has a mechanism for matrix selection/sub-setting
+#' * Uses a LoopStruct object to properly subset the matrices when needed
+#' * Provides a way to update `i_`, `j_` and `k_` (exclusive to EvalScopeOfApply)
+#' * Defines the apply_\* pronouns as active bindings. These pronouns are
+#'   typically `.i`, `.j` or `.m`, but they are defined by `var_lab_row`,
+#'   `var_lab_col` and `var_lab_mat`.
+#'
+#'
+#' @docType class
+#' @noRd
+#' @name EvalScope
+EvalScopeOfApply <- R6::R6Class(
+  "EvalScopeOfApply",
+
+  inherit = EvalScope,
+
+  public = list(
+
+
+    #' Constructor for EvalScopeOfApply
+    #'
+    #' @param .ms         The matrix_set object in which to find matrices to
+    #'                    apply functions to and thus, to which the
+    #'                    EvalScopeOfApply class is assigned to
+    #' @param margin      0, 1 or 2. 0 = `apply_matrix` has been called.
+    #'                    1 = `apply_row` and 2 = `apply_column`. The dfw/dfl
+    #'                    versions are covered as well.
+    #' @param loop_struct an instance of a LoopStruct object.
+    #' @param .env        The calling environment of the function that needs to
+    #'                    use EvalScopeOfApply This is typically the environment
+    #'                    in which apply_* was called from.
+    #'
+    initialize = function(.ms, margin, loop_struct, .env) {
+
+      super$initialize(.ms, .env)
+
+      private$._margin <- margin
+      private$._set_pronoun(margin)
+      private$._loop_struct <- loop_struct
+
+      private$._set_bindings()
+
+    }
+
+
+  ),
+
+
+  active = list(
+
+    #' Setters
+    #'
+    #' @field i, j, k    Active bindings to set the private fields `i_`, `j_`
+    #'                   and `k_`. This allows to evaluate functions on the
+    #'                   proper matrix subsets.
+    i = function(new_i) private$i_ <- new_i,
+    j = function(new_j) private$j_ <- new_j,
+    k = function(new_k) private$k_ <- new_k
+
+  ),
+
+
+  private = list(
+
+    # integer; which matrix or matrices to use
+    k_ = NULL,
+
+    ._margin = NULL,          # private holder of `margin`
+    ._pronoun = NULL,         # available pronoun, typically one of `.i`, `.j`
+                              # or `.m`, but they are defined by `var_lab_row`,
+                              # `var_lab_col` and `var_lab_mat`
+
+    ._loop_struct = NULL,     # an instance of a LoopStruct object, which stores
+                              # various necessary instructions on how to
+                              # loop/group
+
+
+    # Private expressions
+    #
+    # These are used to build active binding functions.
+    #
+    # The first batch corresponds to matrices (all, as a list, a single one, or
+    # a subset in list format)
+    #
+    # The second batch builds on the same concept but provides row/column
+    # subsetting flavors.
+    #
+    # Pseudo variables ._k_ (represents matrix index) and ._M_ (represents a
+    # matrix) are placeholders to be replaced when building the active binding
+    # functions. See ._generate_mat_subset_expr() and
+    # ._generate_mat_subset_within_loop_expr() below.
+    #
+    # Note: The use of ._M_[private$i_, ][private$j_] or
+    #       ._M_[, private$j_][private$i_], as opposed to
+    #       ._M_[private$i_, private$j_], is to keep rownames/colnames at all
+    #       times, something the construction ._M_[private$i_, private$j_]
+    #       doesn't guarantee.
+
+    ._mat_whole = quote(private$._mats),
+    ._mat_subset_k = quote(private$._mats[[._k_]]),
+    ._mat_subset_k_lst = quote(private$._mats[._k_]),
+
+    ._M_subset_i_drop = quote(._M_[private$i_, ]),
+    ._M_subset_i_no_drop = quote(._M_[private$i_, , drop = FALSE]),
+    ._M_subset_i_then_j = quote(._M_[private$i_, ][private$j_]),
+    ._M_subset_j_drop = quote(._M_[, private$j_]),
+    ._M_subset_j_no_drop = quote(._M_[, private$j_, drop = FALSE]),
+    ._M_subset_j_then_i = quote(._M_[, private$j_][private$i_]),
+    ._M_subset_ij = quote(._M_[private$i_, private$j_, drop = FALSE]),
+
+
+
+
+    #' Private method
+    #'
+    #' Sets the private$._pronoun variable, which is the pronoun available to
+    #' use in the apply* function.
+    ._set_pronoun = function(margin) {
+
+      private$._pronoun <- if (margin == 1) {
+        var_lab_row
+      } else if (margin == 2) {
+        var_lab_col
+      } else var_lab_mat
+
+    },
+
+
+
+    #' Private method
+    #'
+    #' Generates an expression to be used for building active binding functions.
+    #' The expression is for cases where a single matrix is evaluated at a time.
+    #'
+    #' @param k_expr   an expression, what to replace ._k_ with; an expression
+    #'                 that represents matrix index
+    #' @param sub_expr an expression, representing what row and/or column subset
+    #'                 of the matrix is of interest
+    #'
+    #' @examples
+    #' private$._generate_mat_subset_expr(quote(k), private$._M_subset_i_drop)
+    #' # gives: private$._mats[[k]][private$i_, ]
+    #'
+    ._generate_mat_subset_expr = function(k_expr, sub_expr) {
+
       do.call("substitute",
               list(sub_expr,
                    list(._M_ = do.call(substitute,
-                                       list(mat_expr,
+                                       list(private$._mat_subset_k,
                                             list(._k_ = k_expr))
-                                       )
-                        )
+                   )
                    )
               )
-    },
-
-
-    ._generate_mat_subset_within_loop_expr = function(seq_expr, mat_expr, k_expr,
-                                                      sub_expr) {
-      do.call(substitute, list(substitute(lapply(._ms_, function(m) ._m_expr_),
-                                          list(._ms_ = do.call(substitute,
-                                                               list(seq_expr,
-                                                                    list(._k_ = k_expr))
-                                          ),
-                                               ._m_expr_ = sub_expr)),
-                               list(._M_ = mat_expr)))
+      )
     },
 
 
 
 
+    #' Private method
+    #'
+    #' Generates an expression to be used for building active binding functions.
+    #' The expression is for cases where the function to be evaluated has access
+    #' to all matrices at once.
+    #'
+    #' @param seq_expr an expression, what to replace ._k_ with; an expression
+    #'                 that represents matrix index
+    #' @param sub_expr an expression, representing what row and/or column subset
+    #'                 of the matrix is of interest
+    #'
+    #' @examples
+    #' private$._generate_mat_subset_within_loop_expr(private$._mat_subset_k_lst,
+    #'                                                private$._M_subset_i_drop)
+    #' # gives: lapply(private$._mats[private$k_], function(m) m[private$i_, ])
+    ._generate_mat_subset_within_loop_expr = function(seq_expr, sub_expr) {
+      do.call(substitute,
+              list(substitute(lapply(._ms_, function(m) ._m_expr_),
+                              list(._ms_ = do.call(substitute,
+                                                   list(seq_expr,
+                                                        list(._k_ = quote(private$k_)))
+                              ),
+                              ._m_expr_ = sub_expr)),
+                   list(._M_ = quote(m))))
+    },
+
+
+
+
+    #' Private method
+    #'
+    #' Generates an expression to be used for building active binding functions.
+    #'
+    #' The expression is for cases where a single matrix is evaluated at a time,
+    #' from a call to `apply_row` (or dfw/dfl variant). It deals with cases
+    #' `.matrix_wise = TRUE` or  `.matrix_wise = FALSE` and `.input_list = FALSE`.
+    #' For `.matrix_wise = FALSE` and `.input_list = TRUE`, see
+    #' ._generate_row_subset_multi().
+    #'
+    #' If a column subset is also taken, then the row subset is taken first.
+    #'
+    #'
+    #' @param k    an integer or an expression, what to replace ._k_ with; the
+    #'             matrix index, or an expression that represents matrix index
     ._generate_row_subset = function(k) {
       if (private$._loop_struct$col_looping)
-        return(private$._generate_mat_subset_expr(private$._mat_subset_k,
-                                                  k,
+        return(private$._generate_mat_subset_expr(k,
                                                   private$._M_subset_i_then_j))
 
-      private$._generate_mat_subset_expr(private$._mat_subset_k,
-                                         k,
-                                         private$._M_subset_i_drop)
+      private$._generate_mat_subset_expr(k, private$._M_subset_i_drop)
     },
 
 
 
 
 
-
+    #' Private method
+    #'
+    #' Generates an expression to be used for building active binding functions.
+    #'
+    #' The expression is for cases where a list of matrix is evaluated, from a
+    #' call to `apply_row` (or dfw/dfl variant), with options
+    #' `.matrix_wise = FALSE` and `.input_list = TRUE`.
+    #'
+    #' If a column subset is also taken, then the row subset is taken first.
     ._generate_row_subset_multi = function() {
 
       if (private$._loop_struct$matrix_subsetting) {
@@ -622,15 +947,11 @@ EvalScope <- R6::R6Class(
         if (private$._loop_struct$col_looping)
           return(
             private$._generate_mat_subset_within_loop_expr(private$._mat_subset_k_lst,
-                                                           quote(m),
-                                                           quote(private$k_),
                                                            private$._M_subset_i_then_j)
           )
 
         return(
           private$._generate_mat_subset_within_loop_expr(private$._mat_subset_k_lst,
-                                                         quote(m),
-                                                         quote(private$k_),
                                                          private$._M_subset_i_drop)
         )
       }
@@ -638,14 +959,10 @@ EvalScope <- R6::R6Class(
       if (private$._loop_struct$col_looping)
         return(
           private$._generate_mat_subset_within_loop_expr(private$._mat_whole,
-                                                         quote(m),
-                                                         quote(private$k_),
                                                          private$._M_subset_i_then_j)
         )
 
       private$._generate_mat_subset_within_loop_expr(private$._mat_whole,
-                                                     quote(m),
-                                                     quote(private$k_),
                                                      private$._M_subset_i_drop)
 
     },
@@ -654,22 +971,41 @@ EvalScope <- R6::R6Class(
 
 
 
-
+    #' Private method
+    #'
+    #' Generates an expression to be used for building active binding functions.
+    #'
+    #' The expression is for cases where a single matrix is evaluated at a time,
+    #' from a call to `apply_column` (or dfw/dfl variant). It deals with cases
+    #' `.matrix_wise = TRUE` or  `.matrix_wise = FALSE` and `.input_list = FALSE`.
+    #' For `.matrix_wise = FALSE` and `.input_list = TRUE`, see
+    #' ._generate_col_subset_multi().
+    #'
+    #' If a row subset is also taken, then the column subset is taken first.
+    #'
+    #' @param k    an integer or an expression, what to replace ._k_ with; the
+    #'             matrix index, or an expression that represents matrix index
+    #'
     ._generate_col_subset = function(k) {
       if (private$._loop_struct$row_looping)
-        return(private$._generate_mat_subset_expr(private$._mat_subset_k,
-                                                  k,
+        return(private$._generate_mat_subset_expr(k,
                                                   private$._M_subset_j_then_i))
 
-      private$._generate_mat_subset_expr(private$._mat_subset_k,
-                                         k,
-                                         private$._M_subset_j_drop)
+      private$._generate_mat_subset_expr(k, private$._M_subset_j_drop)
     },
 
 
 
 
-
+    #' Private method
+    #'
+    #' Generates an expression to be used for building active binding functions.
+    #'
+    #' The expression is for cases where a list of matrix is evaluated, from a
+    #' call to `apply_column` (or dfw/dfl variant), with options
+    #' `.matrix_wise = FALSE` and `.input_list = TRUE`.
+    #'
+    #' If a row subset is also taken, then the column subset is taken first.
     ._generate_col_subset_multi = function() {
 
       if (private$._loop_struct$matrix_subsetting) {
@@ -677,15 +1013,11 @@ EvalScope <- R6::R6Class(
         if (private$._loop_struct$row_looping)
           return(
             private$._generate_mat_subset_within_loop_expr(private$._mat_subset_k_lst,
-                                                           quote(m),
-                                                           quote(private$k_),
                                                            private$._M_subset_j_then_i)
           )
 
         return(
           private$._generate_mat_subset_within_loop_expr(private$._mat_subset_k_lst,
-                                                         quote(m),
-                                                         quote(private$k_),
                                                          private$._M_subset_j_drop)
         )
       }
@@ -693,14 +1025,10 @@ EvalScope <- R6::R6Class(
       if (private$._loop_struct$row_looping)
         return(
           private$._generate_mat_subset_within_loop_expr(private$._mat_whole,
-                                                         quote(m),
-                                                         quote(private$k_),
                                                          private$._M_subset_j_then_i)
         )
 
       private$._generate_mat_subset_within_loop_expr(private$._mat_whole,
-                                                     quote(m),
-                                                     quote(private$k_),
                                                      private$._M_subset_j_drop)
 
     },
@@ -708,24 +1036,34 @@ EvalScope <- R6::R6Class(
 
 
 
+    #' Private method
+    #'
+    #' Generates an expression to be used for building active binding functions.
+    #'
+    #' The expression is for cases where a single matrix is evaluated at a time,
+    #' from a call to `apply_matrix` (or dfw/dfl variant). It deals with cases
+    #' `.matrix_wise = TRUE` or  `.matrix_wise = FALSE` and `.input_list = FALSE`.
+    #' For `.matrix_wise = FALSE` and `.input_list = TRUE`, see
+    #' ._generate_mat_subset_multi().
+    #'
+    #' @param k    an integer or an expression, what to replace ._k_ with; the
+    #'             matrix index, or an expression that represents matrix index
+    #'
     ._generate_mat_subset = function(k) {
 
       if (private$._loop_struct$row_looping) {
 
         if (private$._loop_struct$col_looping)
-          return(private$._generate_mat_subset_expr(private$._mat_subset_k,
-                                                    k,
+          return(private$._generate_mat_subset_expr(k,
                                                     private$._M_subset_ij))
 
-        return(private$._generate_mat_subset_expr(private$._mat_subset_k,
-                                                  k,
+        return(private$._generate_mat_subset_expr(k,
                                                   private$._M_subset_i_no_drop))
       }
 
 
       if (private$._loop_struct$col_looping)
-        return(private$._generate_mat_subset_expr(private$._mat_subset_k,
-                                                  k,
+        return(private$._generate_mat_subset_expr(k,
                                                   private$._M_subset_j_no_drop))
 
       do.call(substitute, list(private$._mat_subset_k,
@@ -735,7 +1073,15 @@ EvalScope <- R6::R6Class(
 
 
 
-
+    #' Private method
+    #'
+    #' Generates an expression to be used for building active binding functions.
+    #'
+    #' The expression is for cases where a list of matrix is evaluated, from a
+    #' call to `apply_matrix` (or dfw/dfl variant), with options
+    #' `.matrix_wise = FALSE` and `.input_list = TRUE`.
+    #'
+    #' @noRd
     ._generate_mat_subset_multi = function() {
 
       if (private$._loop_struct$matrix_subsetting) {
@@ -776,14 +1122,42 @@ EvalScope <- R6::R6Class(
 
 
 
+    #' Private method
+    #'
+    #' Generates an active binding.
+    #'
+    #' The expression is for cases where a single matrix is evaluated at a time,
+    #' from a call to `apply_matrix` (or dfw/dfl variant). It deals with cases
+    #' `.matrix_wise = TRUE` or  `.matrix_wise = FALSE` and `.input_list = FALSE`.
+    #' For `.matrix_wise = FALSE` and `.input_list = TRUE`, see
+    #' ._generate_mat_subset_multi().
+    #'
+    #' @param name       string, the name of the active binding
+    #' @param fn_body    expression, the body function of the active binding
+    #' @param in_data    bool. When TRUE, the binding is also created in the
+    #'                   .data environment
+    ._make_binding = function(name, fn_body, in_data = FALSE) {
 
+      fn <- function() {}
+      body(fn) <- fn_body
+
+      makeActiveBinding(name, fn, env = private$._enclos_env)
+      if (in_data) makeActiveBinding(name, fn, env = private$._enclos_env$.data)
+
+    },
+
+
+
+    #' Private method
+    #'
+    #' Generates the appropriate apply_* pronoun as an active binding.
+    #'
+    #' This is for the case where matrices are evaluated individually in turn.
+    #'
+    #' Also sets a custom message for trying to use an unavailable binding.
     ._set_bindings_from_single_mat = function() {
 
-      active_name <- if (private$._margin == 1) {
-        var_lab_row
-      } else if (private$._margin == 2) {
-        var_lab_col
-      } else var_lab_mat
+      active_name <- private$._pronoun
       not_active_name <- setdiff(c(var_lab_row, var_lab_col, var_lab_mat),
                                  active_name)
 
@@ -796,30 +1170,29 @@ EvalScope <- R6::R6Class(
         private$._generate_mat_subset(quote(private$k_))
       }
 
-      fn <- function() {}
-      body(fn) <- fn_body
-
-      makeActiveBinding(active_name, fn, env = private$._enclos_env)
+      private$._make_binding(active_name, fn_body)
 
       for (v in not_active_name) {
         msg <- glue::glue("object {OBJ} not found", OBJ = v)
-        fn <- function() {}
         fn_body <- substitute(stop(MSG, call. = FALSE), list(MSG=msg))
-        body(fn) <- fn_body
-        makeActiveBinding(v, fn, env = private$._enclos_env)
+        private$._make_binding(v, fn_body)
       }
     },
 
 
 
-
+    #' Private method
+    #'
+    #' Generates the appropriate apply_* pronoun as an active binding.
+    #'
+    #' This is for the case where matrices are all available for evaluation at
+    #' once, individually.
+    #'
+    #' TODO:
+    #' Also sets a custom message for trying to use an unavailable binding.
     ._set_bindings_from_multi_mat_sep = function() {
 
-      active_name <- if (private$._margin == 1) {
-        var_lab_row
-      } else if (private$._margin == 2) {
-        var_lab_col
-      } else var_lab_mat
+      active_name <- private$._pronoun
 
       not_active_name <- setdiff(c(var_lab_row, var_lab_col, var_lab_mat),
                                  active_name)
@@ -830,11 +1203,9 @@ EvalScope <- R6::R6Class(
       } else {
         seq_along(private$._mats)
       }
-      fields <- names(private$._mats)[idx]
+      fields <- private$._mat_names[idx]
 
 
-
-      fn <- function() {}
 
       for (mi in seq_along(idx)) {
 
@@ -848,12 +1219,7 @@ EvalScope <- R6::R6Class(
           private$._generate_mat_subset(idx[mi])
         }
 
-
-        body(fn) <- fn_body
-
-        makeActiveBinding(field, fn, env = private$._enclos_env)
-        makeActiveBinding(field, fn, env = private$._enclos_env$.data)
-
+        private$._make_binding(field, fn_body, in_data = TRUE)
 
         # for (v in not_active_name) {
         #   msg <- glue::glue("object {OBJ} not found", OBJ = v)
@@ -867,14 +1233,18 @@ EvalScope <- R6::R6Class(
 
 
 
-
+    #' Private method
+    #'
+    #' Generates the appropriate apply_* pronoun as an active binding.
+    #'
+    #' This is for the case where matrices are all available for evaluation at
+    #' once. If not as a list, it defers to ._set_bindings_from_multi_mat_sep().
+    #'
+    #' TODO:
+    #' Also sets a custom message for trying to use an unavailable binding.
     ._set_bindings_from_multi_mat = function() {
 
-      active_name <- if (private$._margin == 1) {
-        var_lab_row
-      } else if (private$._margin == 2) {
-        var_lab_col
-      } else var_lab_mat
+      active_name <- private$._pronoun
       not_active_name <- setdiff(c(var_lab_row, var_lab_col, var_lab_mat),
                                  active_name)
 
@@ -891,53 +1261,26 @@ EvalScope <- R6::R6Class(
         private$._generate_mat_subset_multi()
       }
 
-      fn <- function() {}
-      body(fn) <- fn_body
+      private$._make_binding(active_name, fn_body)
 
-      makeActiveBinding(active_name, fn, env = private$._enclos_env)
-
-
+      # for (v in not_active_name) {
+      #   msg <- glue::glue("object {OBJ} not found", OBJ = v)
+      #   fn <- function() {}
+      #   fn_body <- substitute(stop(MSG, call. = FALSE), list(MSG=msg))
+      #   body(fn) <- fn_body
+      #   makeActiveBinding(v, fn, env = private$._enclos_env)
+      # }
     },
 
 
 
+    #' Private method
+    #'
+    #' Generates the appropriate apply_* pronoun as an active binding.
 
-
-    ._set_bindings_from_inf = function(info) {
-
-      info_name <- paste(".", info, "inf", sep = "_")
-      fields <- names(private[[info_name]])
-
-      inf_idx <- if (info == "row") quote(private$i_) else quote(private$j_)
-
-      fn <- function() {}
-
-      for (field in fields) {
-        fn_body <- substitute(
-          {
-            if (is.null(idx)) {
-              return(private[[info]][[fld]])
-            }
-            private[[info]][[fld]][idx]
-          },
-          list(info = info_name,
-               fld = field,
-               idx = inf_idx)
-        )
-        body(fn) <- fn_body
-
-        makeActiveBinding(field, fn, env = private$._enclos_env)
-        makeActiveBinding(field, fn, env = private$._enclos_env$.data)
-      }
-
-    },
-
-
-
+    #' TODO:
+    #' Also sets a custom message for trying to use an unavailable binding.
     ._set_bindings = function() {
-
-      private$._set_bindings_from_inf("row")
-      private$._set_bindings_from_inf("col")
 
       if (!private$._loop_struct$matrix_wise) {
 
@@ -952,16 +1295,10 @@ EvalScope <- R6::R6Class(
 
   )
 
-  )
+)
 
 
-# for (v in vars) {
-#   EvalScope$set("active", v {
-#     f <- function() {}
-#     body(f) <- rlang::quo_get_expr(rlang::quo(private$))
-#     f
-#   })
-# }
+
 
 
 
@@ -975,18 +1312,13 @@ Applyer <- R6::R6Class(
 
   public = list(
 
-    # initialize = function(.ms, matidx, margin, fns, multi, as_list, simplify,
-    #                       force_name, env) {
     initialize = function(.ms, matidx, margin, fns, mat_wise, as_list, simplify,
                           force_name, env) {
 
-      # private$._loop_struct <- LoopStruct$new(.ms, margin, matidx)
       private$._loop_struct <- LoopStruct$new(.ms, margin, matidx, mat_wise,
                                               as_list)
 
       private$._margin <- margin
-      # private$._multi_mat <- multi
-
       private$._set_matrix_meta(.ms)
 
       private$._tag <- switch(margin,
@@ -999,9 +1331,7 @@ Applyer <- R6::R6Class(
       private$._simplify <- simplify
       private$._force_name <- force_name
 
-      # private$._scope <- EvalScope$new(.ms, margin, multi, as_list,
-      #                                  private$._loop_struct, env)
-      private$._scope <- EvalScope$new(.ms, margin, private$._loop_struct, env)
+      private$._scope <- EvalScopeOfApply$new(.ms, margin, private$._loop_struct, env)
     },
 
 
@@ -1017,7 +1347,6 @@ Applyer <- R6::R6Class(
     ._scope = NULL,
 
     ._margin = NULL,
-    # ._multi_mat = NULL,
 
     ._mat_n = NULL,
     ._mat_names = NULL,
@@ -1129,7 +1458,6 @@ Applyer <- R6::R6Class(
 
 
     eval_ = function() {
-      # if (private$._multi_mat) {
       if (!private$._loop_struct$matrix_wise) {
         return(private$._eval_multi())
       }
@@ -1485,17 +1813,6 @@ get_fn_names <- function(quos)
 
 
 
-# get_fn_meta <- function(q)
-# {
-#   nmfn <- names(q)
-#   nfn <- length(q)
-#   seq_fn <- stats::setNames(seq_len(nfn), nmfn)
-#
-#   list(fn_names = nmfn, fn_n = nfn, fn_seq = seq_fn)
-# }
-
-
-
 
 
 
@@ -1514,8 +1831,8 @@ get_var_tag <- function(margin)
 
 
 
-as_fn_expr <- function(x, dot_arg, env = globalenv(), arg = rlang::caller_arg(x),
-                       call = rlang::caller_env())
+as_fn_expr <- function(x, dot_arg, env = globalenv(),
+                       arg = rlang::caller_arg(x), call = rlang::caller_env())
 {
 
   if (quo_is_function(x)) {
@@ -1577,7 +1894,6 @@ eval_function <- function(.ms, ..., margin = NULL, matidx = NULL,
   var_tag <- get_var_tag(margin)
 
   quosures <- rlang::enquos(..., .named = TRUE, .ignore_empty = "all")
-  # fn_meta <- get_fn_meta(quosures)
   fn_names <- get_fn_names(quosures)
 
 
@@ -1590,37 +1906,282 @@ eval_function <- function(.ms, ..., margin = NULL, matidx = NULL,
   # simplify is FALSE (not dfl/dfw), as this restriction is necessary only to
   # make sure the result tibble in dfl/dfw have column name conflict.
   if (!is.null(margin) && (margin == 0 || margin == 1)) {
-    # assess_fun_names(nmfn, .rowtag(.ms), simplify_bool)
-    # assess_fun_names(fn_meta$fn_names, .rowtag(.ms), .simplify != "no")
     assess_fun_names(fn_names, .rowtag(.ms), .simplify != "no")
   }
   if (!is.null(margin) && (margin == 0 || margin == 2)) {
-    # assess_fun_names(nmfn, .coltag(.ms), simplify_bool)
-    # assess_fun_names(fn_meta$fn_names, .coltag(.ms), .simplify != "no")
     assess_fun_names(fn_names, .coltag(.ms), .simplify != "no")
   }
 
   names(fns) <- fn_names
 
 
-  # applyer <- Applyer$new(.ms, matidx, margin, fns, !.matrix_wise, .input_list,
-  #                        .simplify, .force_name, env)
   applyer <- Applyer$new(.ms, matidx, margin, fns, .matrix_wise, .input_list,
                          .simplify, .force_name, env)
-
-
-  # group_meta <- get_group_meta(margin, .ms)
-
-
-  # applyer$set_row_groups(group_meta$row_group_df$.rows)
-  # applyer$set_col_groups(group_meta$col_group_df$.rows)
-  # applyer$set_row_groups()
-  # applyer$set_col_groups()
 
   applyer$eval()
 
 }
 
+
+
+
+
+#' Apply functions to each matrix of a matrixset
+#'
+#' @description
+#' The `apply_matrix` function applies functions to each matrix of a `matrixset`.
+#' The `apply_row`/`apply_column` functions do the same but separately for each
+#' row/column. The functions can be applied to all matrices or only a subset.
+#'
+#' The `dfl`/`dfw` versions differ in their output format and when possible,
+#' always return a [tibble()].
+#'
+#' Empty matrices are simply left unevaluated. How that impacts the returned
+#' result depends on which flavor of apply_* has been used. See \sQuote{Value}
+#' for more details.
+#'
+#' If `.matrix_wise` is `FALSE`, the function (or expression) is multivariate in
+#' the sense that all matrices are accessible at once, as opposed to each of them
+#' in turn.
+#'
+#' See section "Multivariate".
+#'
+#' @section Pronouns:
+#' The `rlang` pronouns `.data` and `.env` are available. Two scenarios for
+#' which they can be useful are:
+#'  * The annotation names are stored in a character variable. You can make use
+#'      of the variable by using `.data[[var]]`. See the example for an
+#'      illustration of this.
+#'  * You want to make use of a global variable that has the same name as an
+#'      annotation. You can use `.env[[var]]` or `.env$var` to make sure to use
+#'      the proper variable.
+#'
+#' The matrixset package defines its own pronouns: `r var_lab_mat`, `r var_lab_row` and `r var_lab_col`, which
+#' are discussed in the function specification argument (`...`).
+#'
+#' It is not necessary to import any of the pronouns (or load `rlang` in the
+#' case of `.data` and `.env`) in a interactive session.
+#'
+#' It is useful however when writing a package to avoid the `R CMD check` notes.
+#' As needed, you can import `.data` and `.env` (from `rlang`) or any of `r var_lab_mat`,
+#' `r var_lab_row` or `r var_lab_col` from `matrixset`.
+#'
+#' @section Multivariate:
+#' The default behavior is to apply a function or expression to a single
+#' matrix and each matrices of the `matrixset` object are provided sequentially
+#' to the function/expression.
+#'
+#' If `.matrix_wise` is `FALSE`, all matrices are provided at once to the
+#' functions/expressions. They can be provided in two fashions:
+#'  * separately (default behavior). Each matrix can be referred by `.m1`, ...,
+#'      `.mn`, where `n` is the number of matrices. Note that this is the number
+#'       as determined by `.matrix`.
+#'
+#'       For `apply_row` (and dfl/dfw variants), use `.i1`, `.i2` and so on
+#'       instead. What the functions/expressions have access to in this case is
+#'       the first row of the first matrix, the first row of the second matrix
+#'       and so on. Then, continuing the loop, the second row of each matrix
+#'       will be accessible, and so on
+#'
+#'       Similarly, use `.j1` and so on for the `apply_column` family.
+#'
+#'       Anonymous functions will be understood as a function with multiple
+#'       arguments. In the example `apply_row(ms, mean, .matrix_wise = FALSE)`,
+#'       if there are 3 matrices in the `ms` object, `mean` is understood as
+#'       `mean(.i1, .i2, .i3)`. Note that this would fail because of the `mean`
+#'       function.
+#'
+#'  * In a list (`.list_input = TRUE`). The list will have an element per matrix.
+#'     The list can be referred using the same pronouns (`.m`, `.i`, `.j`), and
+#'     the matrix, by the matrix names or position.
+#'
+#' For the multivariate setting, empty matrices are given as is, so it is
+#' important that provided functions can deal with such a scenario. An
+#' alternative is to skip the empty matrices with the `.matrix` argument.
+#'
+#' @section Grouped matrixsets:
+#' If groups have been defined, functions will be evaluated within them. When
+#' both row and column grouping has been registered, functions are evaluated at
+#' each cross-combination of row/column groups.
+#'
+#' The output format is different when the `.ms` matrixset object is grouped.
+#' A list for every matrix is still returned, but each of these lists now holds
+#' a tibble.
+#'
+#' Each tibble has a column called `.vals`, where the function results are
+#' stored. This column is a list, one element per group. The group labels are
+#' given by the other columns of the tibble. For a given group, things are like
+#' the ungrouped version: further sub-lists for rows/columns - if applicable -
+#' and function values.
+#'
+#' The dfl/dfw versions are more similar in their output format to their
+#' ungrouped version. The format is almost identical, except that additional
+#' columns are reported to identify the group labels.
+#'
+#' See the examples.
+#'
+#'
+#' @param .ms    `matrixset` object
+#' @param ...    expressions, separated by commas. They can be specified in one of
+#'     the following way:
+#'
+#'    * a function name, e.g., `mean`.
+#'    * a function call, where you can use `r var_lab_mat` to represent the current matrix
+#'       (for `apply_matrix`), `r var_lab_row` to represent the current row (for `apply_row`)
+#'       and `r var_lab_col` for the current column (`apply_column`). Bare names of object
+#'       traits can be used as well. For instance, `lm(.i ~ program)`.
+#'
+#'       The pronouns are also available for the multivariate version, under
+#'       certain circumstances, but they have a different meaning. See the
+#'       "Multivariate" section for more details.
+#'    * a formula expression. The pronouns `r var_lab_mat`, `r var_lab_row` and
+#'       `r var_lab_col` can be used as well. See examples to see the usefulness
+#'       of this.
+#'
+#'    The expressions can be named; these names will be used to provide names to
+#'    the results.
+#'
+#' @param .matrix   matrix indices of which matrix to apply functions to. The
+#'                  default, `NULL`, means all the matrices are used.
+#'
+#'    If not `NULL`, index is numeric or character vectors.
+#'
+#'    Numeric values are coerced to integer as by [as.integer()] (and hence
+#'    truncated towards zero).
+#'
+#'    Character vectors will be matched to the matrix names of the object.
+#'
+#'    Can also be logical vectors, indicating elements/slices to replace. Such
+#'    vectors are *NOT* recycled, which is an important difference with usual
+#'    matrix replacement. It means that the `logical` vector must match the
+#'    number of matrices in length.
+#'
+#'    Can also be negative integers, indicating elements/slices to leave out of
+#'    the replacement.
+#'
+#' @param .matrix_wise    `logical`. By default (`TRUE`), matrices are provided
+#'    one by one, in turn, to the functions/expressions. But if `.matrix_wise` is
+#'    `FALSE`, the functions/expressions have access to all matrices. See
+#'    "Multivariate" for details, including how to reference the matrices.
+#'
+#' @param .input_list    `logical`. If multivariate (`.matrix_wise ==  FALSE`),
+#'    the matrices are provided as a single list, where each element is a matrix
+#'    (or matrix row or column). The list elements are the matrix names.
+#'
+#' @param .force_name    `logical`. Used only for the simplified output versions
+#'    (dfl/dfw). By default (`FALSE`), function IDs will be provided only if the
+#'    function outcome is a vector of length 2 or more. If `.force_name` is
+#'    `TRUE` then function IDs are provided in all situations.
+#'
+#'    This can be useful in situation of grouping. As the functions are
+#'    evaluated independently within each group, there could be situations where
+#'    function outcomes are of length 1 for some groups and lenght 2 or more in
+#'    other groups.
+#'
+#'    See examples.
+#'
+#' @returns
+#' A list for every matrix in the matrixset object. Each list is itself a list.
+#' For `apply_matrix`, it is a list of the function values - `NULL` if the matrix
+#' was empty. Otherwise, it is a list with one element for each row/column -
+#' these elements will be `NULL` if the corresponding matrix was empty. And
+#' finally, for `apply_row`/`apply_column`, each of these sub-list is a list,
+#' the results of each function.
+#'
+#' If each function returns a `vector` of the same dimension, you can use either
+#' the `_dfl` or the `_dfw` version. What they do is to return a list of
+#' `tibble`s. The `dfl` version will stack the function results in a long format
+#' while the `dfw` version will put them side-by-side, in a wide format. An
+#' empty matrix will be returned for empty input matrices.
+#'
+#' If the functions returned vectors of more than one element, there will be a
+#' column to store the values and one for the function ID (dfl), or one column
+#' per combination of function/result (dfw)
+#'
+#' See the grouping section to learn about the result format in the grouping
+#' context.
+#'
+#' @examples
+#' # The firs example takes the whole matrix average, while the second takes
+#' # every row average
+#' (mn_mat <- apply_matrix(student_results, mean))
+#' (mn_row <- apply_row(student_results, mean))
+#'
+#' # More than one function can be provided. It's a good idea in this case to
+#' # name them
+#' (mn_col <- apply_column(student_results, avr=mean, med=median))
+#'
+#' # the dfl/dfw versions returns nice tibbles - if the functions return values
+#' # of the same length.
+#' (mn_l <- apply_column_dfl(student_results, avr=mean, med=median))
+#' (mn_w <- apply_column_dfw(student_results, avr=mean, med=median))
+#'
+#' # There is no difference between the two versions for length-1 vector results.
+#' # hese will differ, however
+#' (rg_l <- apply_column_dfl(student_results, rg=range))
+#' (rg_w <- apply_column_dfw(student_results, rg=range))
+#'
+#' # More complex examples can be used, by using pronouns and data annotation
+#' (vals <- apply_column(student_results, avr=mean, avr_trim=mean(.j, trim=.05),
+#'                                       reg=lm(.j ~ teacher)))
+#'
+#' # You can wrap complex function results, such as for lm, into a list, to use
+#' # the dfl/dfr version
+#' (vals_tidy <- apply_column_dfw(student_results, avr=mean, avr_trim=mean(.j, trim=.05),
+#'                                                reg=list(lm(.j ~ teacher))))
+#'
+#' # You can provide complex expressions by using formulas
+#' (r <- apply_column(student_results,
+#'                                   res= ~ {
+#'                                     log_score <- log(.j)
+#'                                     p <- predict(lm(log_score ~ teacher + class))
+#'                                     .j - exp(p)
+#'                                   }))
+#'
+#' # the .data pronoun can be useful to use names stored in variables
+#' fn <- function(nm) {
+#'   if (!is.character(nm) && length(nm) != 1) stop("this example won't work")
+#'   apply_column(student_results, lm(.j ~ .data[[nm]]))
+#' }
+#' fn("teacher")
+#'
+#' # You can use variables that are outside the scope of the matrixset object.
+#' # You don't need to do anything special if that variable is not named as an
+#' # annotation
+#' pass_grade <- 0.5
+#' (passed <- apply_row_dfw(student_results, pass = ~ .i >= pass_grade))
+#'
+#' # use .env if shares an annotation name
+#' previous_year_score <- 0.5
+#' (passed <- apply_row_dfw(student_results, pass = ~ .i >= .env$previous_year_score))
+#'
+#' # Grouping structure makes looping easy. Look at the output format
+#' cl_prof_gr <- row_group_by(student_results, class, teacher)
+#' (gr_summ <- apply_column(cl_prof_gr, avr=mean, med=median))
+#' (gr_summ_tidy <- apply_column_dfw(cl_prof_gr, avr=mean, med=median))
+#' # to showcase how we can play with format
+#' (gr_summ_tidy_long <- apply_column_dfl(cl_prof_gr, summ = ~ c(avr=mean(.j), med=median(.j))))
+#'
+#' # It is even possible to combine groupings
+#' cl_prof_program_gr <- column_group_by(cl_prof_gr, program)
+#' (mat_summ <- apply_matrix(cl_prof_program_gr, avr = mean, med = median, rg = range))
+#' # it doesn' make much sense, but this is to showcase format
+#' (summ_gr <- apply_matrix(cl_prof_program_gr, avr = mean, med = median, rg = range))
+#' (summ_gr_long <- apply_column_dfl(cl_prof_program_gr,
+#'                                  ct = ~ c(avr = mean(.j), med = median(.j)),
+#'                                  rg = range))
+#' (summ_gr_wide <- apply_column_dfw(cl_prof_program_gr,
+#'                                  ct = c(avr = mean(.j), med = median(.j)),
+#'                                  rg = range))
+#'
+#'
+#' # This is an example where you may want to use the .force_name argument
+#' (apply_matrix_dfl(column_group_by(student_results, program), FC = colMeans(.m)))
+#' (apply_matrix_dfl(column_group_by(student_results, program), FC = colMeans(.m),
+#'                   .force_name = TRUE))
+#'
+#' @name loop
+NULL
 
 
 
@@ -1640,14 +2201,6 @@ apply_row.matrixset <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
   warn_if(.matrix_wise, .input_list)
   eval_function(.ms, ..., margin = 1, matidx = .matrix,
                 .matrix_wise = .matrix_wise, .input_list = .input_list)
-  # if (.matrix_wise) {
-  #   # warn_if(.matrix_wise, .input_list)
-  #   eval_function(.ms, ..., margin = 1, matidx = .matrix)
-  # } #else {
-  #   eval_fun_margin_mult(.ms, mrg="row", var_lab=var_lab_row, ...,
-  #                        matidx = .matrix, as_list_mat = .input_list,
-  #                        .simplify = FALSE, env = rlang::caller_env())
-  # }
 }
 
 
@@ -1667,16 +2220,6 @@ apply_row_dfl.matrixset <- function(.ms, ..., .matrix = NULL,
   eval_function(.ms, ..., margin=1, matidx = .matrix, .simplify = "long",
                 .force_name = .force_name, .matrix_wise = .matrix_wise,
                 .input_list = .input_list)
-  # appl <- if (.matrix_wise) {
-  #   eval_function(.ms, ..., margin=1, matidx = .matrix, .simplify = "long",
-  #                 .force_name = .force_name)
-  # } #else {
-  #   eval_fun_margin_mult(.ms, mrg="row", var_lab=var_lab_row, ...,
-  #                        matidx = .matrix, as_list_mat = .input_list,
-  #                        .simplify = TRUE, env = rlang::caller_env())
-  # }
-  # appl
-  # tblize_lg(appl, .rowtag(.ms), mult = !.matrix_wise, force_name = .force_name)
 }
 
 
@@ -1696,18 +2239,6 @@ apply_row_dfw.matrixset <- function(.ms, ..., .matrix = NULL,
   eval_function(.ms, ..., margin = 1, matidx = .matrix, .simplify = "wide",
                 .force_name = .force_name, .matrix_wise = .matrix_wise,
                 .input_list = .input_list)
-  # appl <- if (.matrix_wise) {
-  #   eval_function(.ms, ..., margin = 1, matidx = .matrix, .simplify = "wide",
-  #                 .force_name = .force_name)
-    # eval_fun_margin(.ms, mrg="row", var_lab=var_lab_row, ..., matidx = .matrix,
-    #                 .simplify = TRUE, env = rlang::caller_env())
-  # } #else {
-  #   eval_fun_margin_mult(.ms, mrg="row", var_lab=var_lab_row, ...,
-  #                        matidx = .matrix, as_list_mat = .input_list,
-  #                        .simplify = TRUE, env = rlang::caller_env())
-  # }
-  # tblize_wd(appl, .rowtag(.ms), mult = !.matrix_wise, force_name = .force_name)
-  # appl
 }
 
 
@@ -1727,16 +2258,6 @@ apply_column.matrixset <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE
   warn_if(.matrix_wise, .input_list)
   eval_function(.ms, ..., margin=2, matidx = .matrix,
                 .matrix_wise = .matrix_wise, .input_list = .input_list)
-  # if (.matrix_wise) {
-  #   warn_if(.matrix_wise, .input_list)
-  #   eval_function(.ms, ..., margin=2, matidx = .matrix)
-  #   # eval_fun_margin(.ms, mrg="col", var_lab=var_lab_col, ..., matidx = .matrix,
-  #   #                 .simplify = FALSE, env = rlang::caller_env())
-  # } #else {
-  #   eval_fun_margin_mult(.ms, mrg="col", var_lab=var_lab_col, ...,
-  #                        matidx = .matrix, as_list_mat = .input_list,
-  #                        .simplify = FALSE, env = rlang::caller_env())
-  # }
 }
 
 
@@ -1756,19 +2277,6 @@ apply_column_dfl.matrixset <- function(.ms, ..., .matrix = NULL,
   eval_function(.ms, ..., margin=2, matidx = .matrix, .simplify = "long",
                 .force_name = .force_name, .matrix_wise = .matrix_wise,
                 .input_list = .input_list)
-  # appl <- if (.matrix_wise) {
-  #   eval_function(.ms, ..., margin=2, matidx = .matrix, .simplify = "long",
-  #                 .force_name = .force_name)
-  #   # eval_fun_margin(.ms, mrg="col", var_lab=var_lab_col, ..., matidx = .matrix,
-  #   #                 .simplify = TRUE, env = rlang::caller_env())
-  # }
-  # appl
-  #else {
-  #   eval_fun_margin_mult(.ms, mrg="col", var_lab=var_lab_col, ...,
-  #                        matidx = .matrix, as_list_mat = .input_list,
-  #                        .simplify = TRUE, env = rlang::caller_env())
-  # }
-  # tblize_lg(appl, .coltag(.ms), mult = !.matrix_wise, force_name = .force_name)
 }
 
 
@@ -1789,19 +2297,6 @@ apply_column_dfw.matrixset <- function(.ms, ..., .matrix = NULL,
   eval_function(.ms, ..., margin=2, matidx = .matrix, .simplify = "wide",
                 .force_name = .force_name, .matrix_wise = .matrix_wise,
                 .input_list = .input_list)
-  # appl <- if (.matrix_wise) {
-  #   eval_function(.ms, ..., margin=2, matidx = .matrix, .simplify = "wide",
-  #                 .force_name = .force_name)
-  #   # eval_fun_margin(.ms, mrg="col", var_lab=var_lab_col, ..., matidx = .matrix,
-  #   #                 .simplify = TRUE, env = rlang::caller_env())
-  # }
-  # appl
-  #else {
-  #   eval_fun_margin_mult(.ms, mrg="col", var_lab=var_lab_col, ...,
-  #                        matidx = .matrix, as_list_mat = .input_list,
-  #                        .simplify = TRUE, env = rlang::caller_env())
-  # }
-  # tblize_wd(appl, .coltag(.ms), mult = !.matrix_wise, force_name = .force_name)
 }
 
 
@@ -1821,14 +2316,6 @@ apply_matrix.matrixset <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE
   warn_if(.matrix_wise, .input_list)
   eval_function(.ms, ..., margin = 0, matidx = .matrix,
                 .matrix_wise = .matrix_wise, .input_list = .input_list)
-  # if (.matrix_wise) {
-  #   # eval_fun_matrix(.ms, ..., matidx = .matrix, .simplify = FALSE,
-  #   #                 env = rlang::caller_env())
-  #   eval_function(.ms, ..., margin = 0, matidx = .matrix)
-  # } #else {
-  #   eval_fun_matrix_mult(.ms, ..., matidx=.matrix, as_list_mat=.input_list,
-  #                        .simplify=FALSE, env=rlang::caller_env())
-  # }
 }
 
 
@@ -1851,18 +2338,6 @@ apply_matrix_dfl.matrixset <- function(.ms, ..., .matrix = NULL,
   eval_function(.ms, ..., margin = 0, matidx = .matrix, .simplify = "long",
                 .force_name = .force_name, .matrix_wise = .matrix_wise,
                 .input_list = .input_list)
-  # appl <- if (.matrix_wise) {
-  #   # eval_fun_matrix(.ms, ..., matidx = .matrix, .simplify = TRUE,
-  #   #                 env = rlang::caller_env())
-  #   eval_function(.ms, ..., margin = 0, matidx = .matrix, .simplify = "long",
-  #                 .force_name = .force_name)
-  # } #else {
-  #   eval_fun_matrix_mult(.ms, ..., matidx=.matrix, as_list_mat=.input_list,
-  #                        .simplify=TRUE, env=rlang::caller_env())
-  # }
-  # tblize_lg(appl, "", matrix = TRUE, mult = !.matrix_wise,
-  #           force_name = .force_name)
-  # appl
 }
 
 
@@ -1886,18 +2361,6 @@ apply_matrix_dfw.matrixset <- function(.ms, ..., .matrix = NULL,
   eval_function(.ms, ..., margin = 0, matidx = .matrix, .simplify = "wide",
                 .force_name = .force_name, .matrix_wise = .matrix_wise,
                 .input_list = .input_list)
-  # appl <- if (.matrix_wise) {
-  #   # eval_fun_matrix(.ms, ..., matidx = .matrix, .simplify = TRUE,
-  #   #                 env = rlang::caller_env())
-  #   eval_function(.ms, ..., margin = 0, matidx = .matrix, .simplify = "wide",
-  #                 .force_name = .force_name)
-  # } #else {
-  # #   eval_fun_matrix_mult(.ms, ..., matidx=.matrix, as_list_mat=.input_list,
-  # #                        .simplify=TRUE, env=rlang::caller_env())
-  # # }
-  # # tblize_wd(appl, "", matrix = TRUE, mult = !.matrix_wise,
-  # #           force_name = .force_name)
-  # appl
 }
 
 

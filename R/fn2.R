@@ -8,16 +8,51 @@
 
 
 
+#' Determines tag value
+#'
+#' Determines and return the pronoun available to use in the apply* function.
+#'
+#' @param margin    One of 0 (no margin; whole matrix), 1 (row) or 2 (column)
+#'
+#' @returns
+#' string, the pronoun
+#'
+#' @noRd
+get_var_tag <- function(margin)
+{
+  if (is.null(margin) || margin == 0) {
+    var_lab_mat
+  } else if (margin == 1) {
+    var_lab_row
+  } else {
+    var_lab_col
+  }
+}
 
 
 
-flatten_and_name <- function(x, y) {
+#' Flatten and set names of a list
+#'
+#' @description
+#' Removes a layer to a list. Once flattened, sets the names of the flattened
+#' list, possibly using the list/vector `nm` to do so.
+#'
+#' @details
+#' If provided, `nm` is used to concatenate its values to the original names of
+#' `x`.
+#'
+#' @param x    list to flatten
+#' @param nm   vector or list of names to set the names of the flattened list.
+#'
+#'
+#' @noRd
+flatten_and_name <- function(x, nm) {
 
   n <- length(x)
   nms <- names(x)
   r <- c()
   for (i in 1:n) {
-    nmsi <- if (is.null(y[[i]])) nms[i] else paste(nms[i], y[[i]])
+    nmsi <- if (is.null(nm[[i]])) nms[i] else paste(nms[i], nm[[i]])
     r <- c(r, setNames(x[[i]], nmsi))
   }
   r
@@ -30,7 +65,8 @@ flatten_and_name <- function(x, y) {
 
 #' LoopStruct: Class to handle apply-implied looping structure
 #'
-#' This class determines the looping structure behind the apply_* calls.
+#' This class determines the looping structure behind the apply_* calls. It
+#' provides the template of the loops to perform, but is not performing them.
 #'
 #' The looping structure consists of:
 #'
@@ -295,6 +331,9 @@ LoopStruct <- R6::R6Class(
     #'                  important difference with usual indexing. It means
     #'                  that the `logical` vector must match the number of
     #'                  matrices in length.
+    #'
+    #' @returns
+    #' Nothing; used for its side effects.
     ._set_matrix_idx = function(.ms, matidx)
     {
       if (is.null(matidx)) {
@@ -321,6 +360,9 @@ LoopStruct <- R6::R6Class(
     #'
     #' @param .ms matrix_set object. Used to determine for each matrix if it is
     #'            `NULL` or not.
+    #'
+    #' @returns
+    #' Nothing; used for its side effects.
     ._set_matrix_eval_status = function(.ms)
     {
       mats <- .subset2(.ms, "matrix_set")
@@ -339,6 +381,9 @@ LoopStruct <- R6::R6Class(
     #' @param .ms matrix_set object. Used to determine the number of rows in the
     #'            case where functions are to be evaluated for each row, and
     #'            thus row looping is not the result of row grouping.
+    #'
+    #' @returns
+    #' Nothing; used for its side effects.
     set_row_groups = function(.ms) {
 
       if (private$._row_wise) {
@@ -369,6 +414,8 @@ LoopStruct <- R6::R6Class(
     #'
     #' @noRd
     #'
+    #' @returns
+    #' Nothing; used for its side effects.
     set_col_groups = function(.ms) {
 
       if (private$._col_wise) {
@@ -512,6 +559,9 @@ EvalScope <- R6::R6Class(
     #'
     #' @param fn  function to be evaluated. It must be provided in the form of
     #'            an expression.
+    #'
+    #' @returns
+    #' Nothing; used for its side effects.
     register_function = function(fn) {
       private$._fn <- fn
     },
@@ -519,6 +569,9 @@ EvalScope <- R6::R6Class(
 
 
     #' Evaluate a function in the enclosing environment.
+    #'
+    #' @returns
+    #' The outcome of the evaluated functions.
     eval = function() {
 
       eval(private$._fn, envir = private$._enclos_env)
@@ -561,6 +614,9 @@ EvalScope <- R6::R6Class(
     #'
     #' If more parameters would be needed for a specific case, consider creating
     #' a new child class that overloads the context functions.
+    #'
+    #' @returns
+    #' Nothing; used for its side effects.
     ._set_context = function() {
 
       private$._context_env$current_n_row <- function() {
@@ -656,6 +712,9 @@ EvalScope <- R6::R6Class(
     #'
     #' @param info one of "row" or "col", determining where to take the
     #'             annotations from
+    #'
+    #' @returns
+    #' Nothing; used for its side effects.
     ._set_bindings_from_inf = function(info) {
 
       info_name <- paste(".", info, "inf", sep = "_")
@@ -694,6 +753,8 @@ EvalScope <- R6::R6Class(
     #'
     #' @noRd
     #'
+    #' @returns
+    #' Nothing; used for its side effects.
     ._set_info_bindings = function() {
 
       private$._set_bindings_from_inf("row")
@@ -833,13 +894,14 @@ EvalScopeOfApply <- R6::R6Class(
     #'
     #' Sets the private$._pronoun variable, which is the pronoun available to
     #' use in the apply* function.
+    #'
+    #' @param margin    One of 0 (no margin; whole matrix), 1 (row) or 2 (column)
+    #'
+    #' @returns
+    #' Nothing; used for its side effects.
     ._set_pronoun = function(margin) {
 
-      private$._pronoun <- if (margin == 1) {
-        var_lab_row
-      } else if (margin == 2) {
-        var_lab_col
-      } else var_lab_mat
+      private$._pronoun <- get_var_tag(margin)
 
     },
 
@@ -854,6 +916,9 @@ EvalScopeOfApply <- R6::R6Class(
     #'                 that represents matrix index
     #' @param sub_expr an expression, representing what row and/or column subset
     #'                 of the matrix is of interest
+    #'
+    #' @returns
+    #' an expression
     #'
     #' @examples
     #' private$._generate_mat_subset_expr(quote(k), private$._M_subset_i_drop)
@@ -885,6 +950,9 @@ EvalScopeOfApply <- R6::R6Class(
     #'                 that represents matrix index
     #' @param sub_expr an expression, representing what row and/or column subset
     #'                 of the matrix is of interest
+    #'
+    #' @returns
+    #' an expression
     #'
     #' @examples
     #' private$._generate_mat_subset_within_loop_expr(private$._mat_subset_k_lst,
@@ -919,6 +987,9 @@ EvalScopeOfApply <- R6::R6Class(
     #'
     #' @param k    an integer or an expression, what to replace ._k_ with; the
     #'             matrix index, or an expression that represents matrix index
+    #'
+    #' @returns
+    #' an expression
     ._generate_row_subset = function(k) {
       if (private$._loop_struct$col_looping)
         return(private$._generate_mat_subset_expr(k,
@@ -940,6 +1011,9 @@ EvalScopeOfApply <- R6::R6Class(
     #' `.matrix_wise = FALSE` and `.input_list = TRUE`.
     #'
     #' If a column subset is also taken, then the row subset is taken first.
+    #'
+    #' @returns
+    #' an expression
     ._generate_row_subset_multi = function() {
 
       if (private$._loop_struct$matrix_subsetting) {
@@ -986,6 +1060,8 @@ EvalScopeOfApply <- R6::R6Class(
     #' @param k    an integer or an expression, what to replace ._k_ with; the
     #'             matrix index, or an expression that represents matrix index
     #'
+    #' @returns
+    #' an expression
     ._generate_col_subset = function(k) {
       if (private$._loop_struct$row_looping)
         return(private$._generate_mat_subset_expr(k,
@@ -1006,6 +1082,9 @@ EvalScopeOfApply <- R6::R6Class(
     #' `.matrix_wise = FALSE` and `.input_list = TRUE`.
     #'
     #' If a row subset is also taken, then the column subset is taken first.
+    #'
+    #' @returns
+    #' an expression
     ._generate_col_subset_multi = function() {
 
       if (private$._loop_struct$matrix_subsetting) {
@@ -1049,6 +1128,8 @@ EvalScopeOfApply <- R6::R6Class(
     #' @param k    an integer or an expression, what to replace ._k_ with; the
     #'             matrix index, or an expression that represents matrix index
     #'
+    #' @returns
+    #' an expression
     ._generate_mat_subset = function(k) {
 
       if (private$._loop_struct$row_looping) {
@@ -1082,6 +1163,9 @@ EvalScopeOfApply <- R6::R6Class(
     #' `.matrix_wise = FALSE` and `.input_list = TRUE`.
     #'
     #' @noRd
+    #'
+    #' @returns
+    #' an expression
     ._generate_mat_subset_multi = function() {
 
       if (private$._loop_struct$matrix_subsetting) {
@@ -1136,6 +1220,9 @@ EvalScopeOfApply <- R6::R6Class(
     #' @param fn_body    expression, the body function of the active binding
     #' @param in_data    bool. When TRUE, the binding is also created in the
     #'                   .data environment
+    #'
+    #' @returns
+    #' Nothing; used for its side effects.
     ._make_binding = function(name, fn_body, in_data = FALSE) {
 
       fn <- function() {}
@@ -1155,6 +1242,9 @@ EvalScopeOfApply <- R6::R6Class(
     #' This is for the case where matrices are evaluated individually in turn.
     #'
     #' Also sets a custom message for trying to use an unavailable binding.
+    #'
+    #' @returns
+    #' Nothing; used for its side effects.
     ._set_bindings_from_single_mat = function() {
 
       active_name <- private$._pronoun
@@ -1187,6 +1277,9 @@ EvalScopeOfApply <- R6::R6Class(
     #'
     #' This is for the case where matrices are all available for evaluation at
     #' once, individually.
+    #'
+    #' @returns
+    #' Nothing; used for its side effects.
     #'
     #' TODO:
     #' Also sets a custom message for trying to use an unavailable binding.
@@ -1239,6 +1332,9 @@ EvalScopeOfApply <- R6::R6Class(
     #'
     #' This is for the case where matrices are all available for evaluation at
     #' once. If not as a list, it defers to ._set_bindings_from_multi_mat_sep().
+    #'
+    #' @returns
+    #' Nothing; used for its side effects.
     #'
     #' TODO:
     #' Also sets a custom message for trying to use an unavailable binding.
@@ -1306,15 +1402,93 @@ EvalScopeOfApply <- R6::R6Class(
 
 
 
-
+#' Applyer: applies function(s) to the matrices of a matrix_set object.
+#'
+#' Performs the loops as dictated by the loop template - determined by
+#' LoopStruct - and evaluate the functions.
+#'
+#' Formatting is applied as well, based on different parameters:
+#'
+#' * Simplification always yields a tibble output - per matrix when
+#'   `.matrix_wise` is TRUE. Simplification is triggered by the use of the
+#'   dfw/dfl variants of the apply functions.
+#'     * Information columns are created if long format has been selected.
+#'     * Proper column names are created if wide format has been selected.
+#' * In presence of relevant grouping, a tibble is always returned - per matrix
+#'   when `.matrix_wise` is TRUE. Without simplification, there is a tibble row
+#'   per group and a column per grouping variable. With simplification, the
+#'   columns are also provided.
+#'
+#' @docType class
+#' @noRd
+#' @name Applyer
 Applyer <- R6::R6Class(
   "Applyer",
 
   public = list(
 
+
+    #' Constructor for EvalScopeOfApply
+    #'
+    #' @param .ms         The matrix_set object in which to find matrices to
+    #'                    apply functions to and thus, to which the
+    #'                    Applyer class is assigned to
+    #' @param matidx      `NULL`, which means all matrices are used, or the
+    #'                    matrices to use, provided as:
+    #'
+    #'                    * Numeric values, coerced to integer through
+    #'                      [as.integer()] if not already integers. This means
+    #'                      potential truncation towards zero.
+    #'                      Negative values are allowed, interpreded as matrices
+    #'                      to leave out.
+    #'                    * Character vector, matched to the matrix names.
+    #'                    * Logival vector, stating for each element if it is
+    #'                      used (`TRUE`) or discarded (`FALSE`). Logical
+    #'                      vectors are *NOT* recycled, which means that the
+    #'                      `logical` vector must match the object dimension in
+    #'                      length.
+    #'                    Simply passed to LoopStruct which builds the looping
+    #'                    structure template.
+    #' @param margin      0, 1 or 2. 0 = `apply_matrix` has been called.
+    #'                    1 = `apply_row` and 2 = `apply_column`. The dfw/dfl
+    #'                    versions are covered as well.
+    #' @param fns         list of functions to evaluate. Each function must be
+    #'                    provided as an expression that can evaluated through
+    #'                    `eval`.
+    #' @param mat_wise    single logical value, indicating if matrices are
+    #'                    looped upon sequentially, or available all at once as
+    #'                    input to the functions to evaluate.
+    #'                    Simply passed to LoopStruct which builds the looping
+    #'                    structure template.
+    #' @param as_list     relevant only if mat_wise is FALSE. Single logical
+    #'                    value, indicating if the matrices are provided as a
+    #'                    single list (TRUE), or as individual objects.
+    #'                    Simply passed to LoopStruct which builds the looping
+    #'                    structure template.
+    #' @param simplify    single character, one of "no", "long" or "wide".
+    #'                    Refers to output format, relevant only if the output
+    #'                    is a vector of length > 1. In this case, long format
+    #'                    has a row per outcome, identified by an additional
+    #'                    column, while they are separate columns in wide format.
+    #' @param force_name  bool, used only for the simplified output versions
+    #'                    (dfl/dfw). If FALSE, function IDs will be provided
+    #'                    only if the function outcome is a vector of length 2
+    #'                    or more. If `force_name` is `TRUE` then function IDs
+    #'                    are provided in all situations.
+    #'
+    #'                    This can be useful in situation of grouping. As the
+    #'                    functions are evaluated independently within each
+    #'                    group, there could be situations where function
+    #'                    outcomes are of length 1 for some groups and lenght 2
+    #'                    or more in other groups.
+    #' @param env         The calling environment of the function that needs to
+    #'                    use EvalScopeOfApply This is typically the environment
+    #'                    in which apply_* was called from.
+    #'
     initialize = function(.ms, matidx, margin, fns, mat_wise, as_list, simplify,
                           force_name, env) {
 
+      # looping structure template
       private$._loop_struct <- LoopStruct$new(.ms, margin, matidx, mat_wise,
                                               as_list)
 
@@ -1326,15 +1500,53 @@ Applyer <- R6::R6Class(
                               "2" = .coltag(.ms),
                               NULL)
 
-      private$._set_fn_meta(fns)
-
       private$._simplify <- simplify
       private$._force_name <- force_name
 
+      private$._set_fn_meta(fns)
+      private$._set_long_col_order()
+
+
+      # where to eval the functions; pronouns are assigned too
       private$._scope <- EvalScopeOfApply$new(.ms, margin, private$._loop_struct, env)
     },
 
 
+    #' Evaluate the functions
+    #'
+    #' @returns
+    #' The outcome of the evaluated functions.
+    #'
+    #' A list for every matrix in the matrixset object. Each list is itself a
+    #' list, or `NULL` for `NULL` matrices. For `apply_matrix`, it is a list of
+    #' the function values. Otherwise, it is a list with one element for each
+    #' row/column. And finally, for `apply_row`/`apply_column`, each of these
+    #' sub-list is a list, the results of each function.
+    #'
+    #' When `.matrix_wise == FALSE`, the output format differs only in that
+    #' there is no list for matrices.
+    #'
+    #' For the dfl/dfw variants, if each function returns a `vector` of the same
+    #' dimension, returns a list of `tibble`s. The `dfl` version will stack the
+    #' function results in a long format while the `dfw` version will put them
+    #' side-by-side, in a wide format.
+    #'
+    #' If the functions returned vectors of more than one element, there will be
+    #' a column to store the values and one for the function ID (dfl), or one
+    #' column per combination of function/result (dfw)
+    #'
+    #' In grouping context, the output format is different. A list for every
+    #' matrix is still returned, but each of these lists now holds a tibble.
+    #'
+    #' Each tibble has a column called `.vals`, where the function results are
+    #' stored. This column is a list, one element per group. The group labels are
+    #' given by the other columns of the tibble. For a given group, things are like
+    #' the ungrouped version: further sub-lists for rows/columns - if applicable -
+    #' and function values.
+    #'
+    #' The dfl/dfw versions are more similar in their output format to their
+    #' ungrouped version. The format is almost identical, except that additional
+    #' columns are reported to identify the group labels..
     eval = function() private$eval_()
 
 
@@ -1344,39 +1556,53 @@ Applyer <- R6::R6Class(
 
   private = list(
 
-    ._scope = NULL,
+    ._scope = NULL,                  # an instance of class EvalScopeOfApply
 
-    ._margin = NULL,
+    ._margin = NULL,                 # margin provided as input to functions
 
-    ._mat_n = NULL,
-    ._mat_names = NULL,
+    ._mat_n = NULL,                  # number of matrices to use
+    ._mat_names = NULL,              # names of matrices to use
 
-    ._tag = NULL,
+    ._tag = NULL,                    # tag to refer to rownames/colnames
 
-    ._loop_struct = NULL,
+    ._loop_struct = NULL,            # an instance of class LoopStruct
 
-    ._fns = list(function(x) x),
-    ._fns_n = 0,
-    ._fn_names = NULL,
+    ._fns = list(function(x) x),     # list of functions to evaluate.
+    ._fns_n = 0,                     # number of functions to evaluate
 
-    ._fns_outcome = NULL,
-    ._fns_outcome_formatted = NULL,
-    ._fns_outcome_names = NULL,
-    ._fn_out_lens = NULL,
+    ._fns_outcome = NULL,            # vector of raw function outcomes
+    ._fns_outcome_formatted = NULL,  # vector of formatted function outcomes
+    ._fns_outcome_names = NULL,      # names associated to each function outcome
+    ._fn_out_lens = NULL,            # length of each function outcome
 
-    ._mat_outcome = NULL,
-    ._row_outcome = NULL,
-    ._col_outcome = NULL,
+    ._mat_outcome = NULL,            # stores function outcomes, on a matrix level
+    ._row_outcome = NULL,            # stores function outcomes, on a row level
+    ._col_outcome = NULL,            # stores function outcomes, on a column level
 
-    ._wide_order = NULL,
+    ._long_order = NULL,             # order of the columns in 'long' format
+                                     # simplification.
 
-    ._simplify = "no",
-    ._force_name = FALSE,
+    ._simplify = "no",               # "no", "wide" or "long", the
+                                     # simplification status
+    ._force_name = FALSE,            # bool; Are function IDs provided in all
+                                     # situations?
 
 
 
 
-
+    #' Private method
+    #'
+    #' Initialize private fields that relates to matrix info:
+    #'
+    #' * number of matrices, accounting for those to ignore
+    #' * matrix names
+    #' * ._mat_oucome, the list that will store the evaluation outcome per
+    #'   matrix
+    #'
+    #' @param .ms    matrix_set object, used to extract matrix names.
+    #'
+    #' @returns
+    #' nothing; used for its side effects.
     ._set_matrix_meta = function(.ms)
     {
       matidx <- private$._loop_struct$matrix_idx
@@ -1388,44 +1614,7 @@ Applyer <- R6::R6Class(
       private$._mat_n <- nmat
       private$._mat_names <- matnms
 
-      private$._reset_mat_outcome()
-
-    },
-
-
-
-
-    ._reset_fns_outcome_names = function() {
-
-      private$._fns_outcome_names <- vector('list', private$._fns_n)
-
-    },
-
-
-
-    ._set_fn_meta = function(fns) {
-
-      private$._fns <- fns
-      private$._fns_n <- length(fns)
-      private$._fn_names <- names(fns)
-
-      private$._fns_outcome <- vector('list', length(fns))
-      names(private$._fns_outcome) <- names(fns)
-
-      private$._fn_out_lens <- integer(length(fns))
-
-      private$._reset_fns_outcome_names()
-
-      n <- private$._fns_n
-      rder <- as.vector(rbind(1:n, n+(1:n)))
-      private$._wide_order <- rder
-    },
-
-
-
-    ._reset_mat_outcome = function() {
-
-      if (private$._mat_n > 0L) {
+      if (private$._loop_struct$matrix_wise && private$._mat_n > 0L) {
         private$._mat_outcome <- vector('list', private$._mat_n)
         names(private$._mat_outcome) <- private$._mat_names
       }
@@ -1433,31 +1622,151 @@ Applyer <- R6::R6Class(
     },
 
 
+
+
+    #' Private method
+    #'
+    #' Sets private field `._fns_outcome_names` (the names associated to each
+    #' function outcome) to an empty vector.
+    #'
+    #' Serves both at initializing the vector and resetting the vector,
+    #' something necessary when iterating from a group to another.
+    #'
+    #' This applies only in the context of outcome simplification.
+    #'
+    #' @returns
+    #' nothing; used for its side effects.
+    ._reset_fns_outcome_names = function() {
+
+      if (private$._simplify != "no")
+        private$._fns_outcome_names <- vector('list', private$._fns_n)
+
+    },
+
+
+
+    #' Private method
+    #'
+    #' Sets private fields that relates to the functions to be evaluated.
+    #'
+    #' - ._fns
+    #' - ._fns_n
+    #' - ._fns_outcome
+    #' - ._fn_out_lens (if applicable)
+    #' - ._fns_outcome_names (if applicable, via ._reset_fns_outcome_names())
+    #' - ._long_order (if applicable)
+    #'
+    #'
+    #' Serves both at initializing the vector and resetting the vector,
+    #' something necessary when iterating from a group to another.
+    #'
+    #' This applies only in the context of outcome simplification.
+    #'
+    #' @param fns    the functions, provided as elements of a list
+    #'
+    #' @returns
+    #' nothing; used for its side effects.
+    ._set_fn_meta = function(fns) {
+
+      private$._fns <- fns
+      private$._fns_n <- length(fns)
+
+      private$._fns_outcome <- vector('list', length(fns))
+      names(private$._fns_outcome) <- names(fns)
+
+      if (private$._simplify != "no")
+        private$._fn_out_lens <- integer(length(fns))
+
+      private$._reset_fns_outcome_names()
+
+    },
+
+
+    #' Private method
+    #'
+    #' order of the columns in 'long' format simplification. It makes sure the
+    #' column with the names are just before their respective outcome column,
+    #' and it keeps the original function order.
+    #'
+    #' For a given n, it generates a vector of length 2n: 1 (n+1) 2 (n+2)... 2*n
+    #'
+    #' @returns
+    #' nothing; used for its side effects.
+    #'
+    #' @examples
+    #' For n = 5, it generates the vector 1  6  2  7  3  8  4  9  5 10
+    ._set_long_col_order = function() {
+
+      if (private$._simplify == "long") {
+        n <- private$._fns_n
+        rder <- as.vector(rbind(1:n, n+(1:n)))
+        private$._long_order <- rder
+      }
+
+    },
+
+
+
+
+    #' Private method
+    #'
+    #' Sets private field `._row_outcome` (the vector that stores outcome on a
+    #' row level).
+    #'
+    #' Serves both at initializing the vector and resetting the vector,
+    #' something necessary when row groups is an inner loop to the column outer
+    #' loop, where a reset is necessary.
+    #'
+    #' @returns
+    #' nothing; used for its side effects.
     ._reset_row_outcome = function() {
 
-      private$._row_outcome <- vector('list', length(private$._loop_struct$row_groups_for_loop))
+      private$._row_outcome <- vector('list',
+                                      length(private$._loop_struct$row_groups_for_loop))
       names(private$._row_outcome) <- names(private$._loop_struct$row_groups_for_loop)
 
     },
 
 
 
-
+    #' Private method
+    #'
+    #' Sets private field `._col_outcome` (the vector that stores outcome on a
+    #' column level).
+    #'
+    #' Serves both at initializing the vector and resetting the vector,
+    #' something necessary when column groups is an inner loop to the row outer
+    #' loop, where a reset is necessary.
+    #'
+    #' @returns
+    #' nothing; used for its side effects.
     ._reset_col_outcome = function() {
 
-      private$._col_outcome <- vector('list', length(private$._loop_struct$col_groups_for_loop))
+      private$._col_outcome <- vector('list',
+                                      length(private$._loop_struct$col_groups_for_loop))
       names(private$._col_outcome) <- names(private$._loop_struct$col_groups_for_loop)
 
     },
 
 
 
-    # level 1 is almost always loop on row. Exception only if there is column
-    # grouping - but not row grouping (or not rowwise)
 
 
-
+    #' Private method
+    #'
+    #' Execute the function evaluation process and returns the formatted
+    #' outcome.
+    #'
+    #' This function "subcontracts" to the appropriate process, based on the
+    #' value of matrix_wise.
+    #'
+    #' @returns
+    #' The formatted outcome of the evaluated functions. See `eval` of this very
+    #' `Applyer` class for details of the format.
     eval_ = function() {
+
+      if (private$._mat_n == 0L) return(invisible())
+
       if (!private$._loop_struct$matrix_wise) {
         return(private$._eval_multi())
       }
@@ -1467,21 +1776,41 @@ Applyer <- R6::R6Class(
     },
 
 
-
+    #' Private method
+    #'
+    #' Execute the function evaluation process and creates the formatted
+    #' outcome.
+    #'
+    #' This function is a subcontractor and handles the loops across matrices.
+    #'
+    #' Based on the looping template structure, it will also perform the loops
+    #' across rows and/or across columns (in the order that is the most
+    #' efficient), by subcontracting the job to ._eval_by_row_groups() or
+    #' ._eval_by_col_groups().
+    #'
+    #' Note: The first loop (after the matrix loop) is almost always loop on
+    #' row. Exception only if there is column grouping - but not row grouping
+    #' (or not rowwise). But this is handled by loop_struct and ._eval_by_matrix
+    #' only needs to know what to call first, not why.
+    #'
+    #' @returns
+    #' nothing; used for its side effects.
     ._eval_by_matrix = function() {
-
-      if (private$._mat_n == 0L) return(invisible())
 
       for (midx in seq_len(private$._mat_n)) {
 
-        if (!private$._loop_struct$matrix_eval[midx]) return(NULL)
+        if (!private$._loop_struct$matrix_eval[midx]) {
+          private$._mat_outcome[midx] <- list(NULL)
+          next
+        }
+
 
         private$._scope$k <- private$._loop_struct$matrix_idx[midx]
 
         if (!private$._loop_struct$looping) {
 
           private$._eval_fns()
-          private$._mat_outcome[[midx]] <- private$._format_list_of_evals(private$._fns_outcome_formatted, FALSE)
+          private$._mat_outcome[[midx]] <- private$._format_list_of_evals(private$._fns_outcome_formatted)
           next
         }
 
@@ -1496,6 +1825,7 @@ Applyer <- R6::R6Class(
 
         private$._eval_by_row_groups(inner = FALSE)
         private$._mat_outcome[[midx]] <- private$._row_outcome
+
 
         if (private$._margin == 0 && private$._loop_struct$row_grouped &&
             private$._loop_struct$col_grouped && private$._simplify == "no") {
@@ -1514,9 +1844,28 @@ Applyer <- R6::R6Class(
 
 
 
+    #' Private method
+    #'
+    #' Execute the function evaluation process and creates the formatted
+    #' outcome.
+    #'
+    #' This function performs similar tasks to ._eval_by_matrix(), but does not
+    #' loop across matrices as it handles the calls (apply_matrix, apply_row,
+    #' apply_column and dfw/dfl variants) with .matrix_wise = FALSE, i.e., all
+    #' matrices are available for function input at once.
+    #'
+    #' This function is a subcontractor and handles loops across rows and
+    #' columns, if applicable, by subcontracting to ._eval_by_row_groups() and
+    #' ._eval_by_col_groups().
+    #'
+    #' Note: The first loop is almost always loop on row. Exception only if
+    #' there is column grouping - but not row grouping (or not rowwise). But
+    #' this is handled by loop_struct and ._eval_by_matrix only needs to know
+    #' what to call first, not why.
+    #'
+    #' @returns
+    #' nothing; used for its side effects.
     ._eval_multi = function() {
-
-      if (private$._mat_n == 0L) return(invisible())
 
       private$._scope$k <- private$._loop_struct$matrix_idx
 
@@ -1524,7 +1873,7 @@ Applyer <- R6::R6Class(
 
         private$._eval_fns()
         return(
-          private$._format_list_of_evals(private$._fns_outcome_formatted, FALSE)
+          private$._format_list_of_evals(private$._fns_outcome_formatted)
         )
       }
 
@@ -1550,7 +1899,27 @@ Applyer <- R6::R6Class(
 
 
 
-
+    #' Private method
+    #'
+    #' Execute the function evaluation process by looping across row groups
+    #' (which would mean looping across all rows for the case of apply_row and
+    #' dfw/dfl variants) and returns the formatted outcome.
+    #'
+    #' This function is a subcontractor and is called by either
+    #' 1. ._eval_by_matrix() or ._eval_multi(), with the former handling the
+    #'    loops upon matrices, when row looping is the outer loop (or second
+    #'    loop when there is also matrix looping.
+    #' 2. ._eval_by_col_groups(), when the row looping is the inner loop.
+    #'
+    #' Based on the looping template structure, it will also perform the loops
+    #' across columns , by subcontracting the job to ._eval_by_col_groups(),
+    #' when both loops are necessary and the row loop is the outer loop.
+    #'
+    #' @param inner    bool; is the row loop the outer loop (FALSE) or inner
+    #'                 loop (TRUE)?
+    #'
+    #' @returns
+    #' nothing; used for its side effects.
     ._eval_by_row_groups = function(inner = FALSE) {
 
       private$._reset_row_outcome()
@@ -1562,7 +1931,7 @@ Applyer <- R6::R6Class(
 
         private$._scope$i <- private$._loop_struct$row_groups_for_loop[[ridx]]
 
-        if (inner ||is.null(private$._loop_struct$col_groups_for_loop)) {
+        if (inner || is.null(private$._loop_struct$col_groups_for_loop)) {
           private$._eval_fns(private$._loop_struct$row_grouped)
           private$._row_outcome[[ridx]] <- private$._fns_outcome_formatted
           next
@@ -1579,6 +1948,27 @@ Applyer <- R6::R6Class(
 
 
 
+    #' Private method
+    #'
+    #' Execute the function evaluation process by looping across column groups
+    #' (which would mean looping across all columns for the case of
+    #' apply_column and dfw/dfl variants) and returns the formatted outcome.
+    #'
+    #' This function is a subcontractor and is called by either
+    #' 1. ._eval_by_matrix() or ._eval_multi(), with the former handling the
+    #'    loops upon matrices, when column looping is the outer loop (or second
+    #'    loop when there is also matrix looping.
+    #' 2. ._eval_by_row_groups(), when the column looping is the inner loop.
+    #'
+    #' Based on the looping template structure, it will also perform the loops
+    #' across rows , by subcontracting the job to ._eval_by_row_groups(),
+    #' when both loops are necessary and the column loop is the outer loop.
+    #'
+    #' @param inner    bool; is the column loop the outer loop (FAlSE) or the
+    #'                 inner loop (TRUE)?
+    #'
+    #' @returns
+    #' nothing; used for its side effects.
     ._eval_by_col_groups = function(inner = TRUE) {
 
       private$._reset_col_outcome()
@@ -1608,6 +1998,24 @@ Applyer <- R6::R6Class(
 
 
 
+    #' Private method
+    #'
+    #' Formats the outcome vector of a margin.
+    #'
+    #' It is essentially a wrapper to ._format_list_of_evals(), where it is
+    #' applied per group when it applies. In the latter case, row binding is
+    #' applied without column id, as it is not necessary in the context of
+    #' grouping, given that the groups are already identified by a set of
+    #' columns.
+    #'
+    #' In the case of simplification in grouping context, an unnest step is
+    #' perform because otherwise, the output tibble will contains tibbles and
+    #' the simplification steps that comes later won't work.
+    #'
+    #' @param margin    one of "row" or "col", margin to format
+    #'
+    #' @returns
+    #' nothing; used for its side effects.
     ._format_margin_outcome = function(margin) {
 
       grouped <- private$._loop_struct[[paste(margin, "grouped", sep = "_")]]
@@ -1617,31 +2025,50 @@ Applyer <- R6::R6Class(
         outcome_tmp <- private$._loop_struct[[paste(margin, "group_df", sep = "_")]]
 
         outcome_tmp$.rows <- lapply(private[[outcome_id]], function(o) {
-          private$._format_list_of_evals(o, grouped = TRUE)
+          private$._format_list_of_evals(o, no_id = TRUE)
         })
 
         private[[outcome_id]] <- dplyr::rename(outcome_tmp, .vals = .rows)
         if (private$._simplify != "no") {
-          private[[outcome_id]] <- tidyr::unnest(private[[outcome_id]], cols = .vals)
+          private[[outcome_id]] <- tidyr::unnest(private[[outcome_id]],
+                                                 cols = .vals)
         }
         return()
 
       }
 
-      private[[outcome_id]] <- private$._format_list_of_evals(private[[outcome_id]], FALSE)
+      private[[outcome_id]] <- private$._format_list_of_evals(private[[outcome_id]])
 
     },
 
 
 
 
-
-    ._format_list_of_evals = function(lst, grouped) {
+    #' Private method
+    #'
+    #' Formats the outcome vector of function evaluation.
+    #'
+    #' It does one of two things:
+    #'
+    #' 1. returns the vector unchanged or
+    #' 2. returns a tibble that is the result of row binding the elements. This
+    #'    is done if simplification is requested by the user.
+    #'
+    #'  The default in row binding is to provide an identifyer column, but this
+    #'  can be disabled with `no_id = TRUE`. This is used for instance in the
+    #'  context of grouping, where the identifyer column is not needed.
+    #'
+    #' @param lst    a list, although any vector can technically do. This is the
+    #'               outcome vector of the evaluated functions.
+    #' @param no_id  bool, if TRUE, no column identifyer is created when row
+    #'               binding. Applies only in the context of simplification.
+    #'
+    #' @returns
+    #' a list or a tibble; see function description.
+    ._format_list_of_evals = function(lst, no_id = FALSE) {
 
       if (private$._simplify == "no") return(lst)
-
-      if (grouped) return(dplyr::bind_rows(lst))
-
+      if (no_id) return(dplyr::bind_rows(lst))
       dplyr::bind_rows(lst, .id = private$._tag)
 
     },
@@ -1649,6 +2076,29 @@ Applyer <- R6::R6Class(
 
 
 
+    #' Private method
+    #'
+    #' Evaluates the functions and performs initial formatting.
+    #'
+    #' The formatting at this stage is minimal and is simply staging the real
+    #' formatting that will come later.
+    #'
+    #' 1. In the context of simplification in long format, removes the vector
+    #'    names, as they are not needed given the ID column that is created in
+    #'    that context.
+    #'    ._format_fn_outcome() performs that action
+    #' 2. Once all the functions have been evaluated, if simplification is
+    #'    needed, assesses that all lengths are the same (via ._assess_length()),
+    #'    a necessary condition to perform the following formatting
+    #' 3. In the context of simplification, reformat as lists where elements
+    #'    will be tibble columns once gone through the bind_rows step. This is
+    #'    done via ._format_list_of_fns(); see that function for details.
+    #'
+    #' @param grouped    bool, TRUE if one of row or column grouping is on.
+    #'                   Needed for final formatting.
+    #'
+    #' @returns
+    #' nothing; used for its side effects.
     ._eval_fns = function(grouped = FALSE) {
 
       for (fidx in seq_len(private$._fns_n)) {
@@ -1656,10 +2106,12 @@ Applyer <- R6::R6Class(
         fn <- private$._fns[[fidx]]
         private$._scope$register_function(fn)
         private$._fns_outcome[[fidx]] <- private$._scope$eval()
+        private$._set_out_lens(fidx)
         private$._format_fn_outcome(fidx)
 
       }
 
+      private$._assess_length()
       private$._format_list_of_fns(grouped)
 
     },
@@ -1667,6 +2119,14 @@ Applyer <- R6::R6Class(
 
 
 
+    #' Private method
+    #'
+    #' Updates the idx^th function outcome length
+    #'
+    #' @param idx   index (integer), which function to update
+    #'
+    #' @returns
+    #' nothing; used for its side effects.
     ._set_out_lens = function(idx) {
 
       private$._fn_out_lens[idx] <- length(private$._fns_outcome[[idx]])
@@ -1675,12 +2135,29 @@ Applyer <- R6::R6Class(
 
 
 
-
+    #' Private method
+    #'
+    #' Updates the idx^th function outcome names.
+    #'
+    #' These are the names that will make the function IDs unique within the
+    #' outcome of the same function (e.g., range returns of vector of length 2,
+    #' the naming will be unique after ._set_fns_names).
+    #'
+    #' Done only if:
+    #'
+    #' 1. Simplification
+    #' 2. function returns a vector of length > 1 - or if force_name is TRUE
+    #' 3. the names have not been set already. This is for optimization purpose,
+    #'    as this step is peformed within loops
+    #'
+    #' @param idx   index (integer), which function to update
+    #'
+    #' @returns
+    #' nothing; used for its side effects.
     ._set_fns_names = function(idx) {
 
-      private$._set_out_lens(idx)
-
-      if ((!private$._fn_out_lens[idx] == 1L || private$._force_name) &&
+      if (private$._simplify != "no" &&
+          (private$._fn_out_lens[idx] != 1L || private$._force_name) &&
           is.null(out_names <- private$._fns_outcome_names[[idx]])) {
 
         out_names <- make_names(private$._fns_outcome[[idx]], .name = "")
@@ -1692,33 +2169,43 @@ Applyer <- R6::R6Class(
 
 
 
+    #' Private method
+    #'
+    #' In the context of simplification in long format, removes the outcome
+    #' vector names of the idx^th element, as they are not needed given the ID
+    #' column that is created in that context.
+    #'
+    #' @param idx    index of the outcome element to update.
+    #'
+    #' @returns
+    #' nothing; used for its side effects.
     ._format_fn_outcome = function(idx) {
 
       private$._set_fns_names(idx)
-
-      if (private$._simplify == "no") return()
-
-      # with length == 1 and no name forcing, it long/wide format is irrelevant
-      if (private$._fn_out_lens[idx] == 1L && !private$._force_name) {
-        return()
-      }
-
 
       if (private$._simplify == "long") {
         private$._fns_outcome[[idx]] <- unname(private$._fns_outcome[[idx]])
         return()
       }
 
-
-      # wide
       invisible()
 
     },
 
 
 
-
+    #' Private method
+    #'
+    #' If simplification is needed, assesses that all lengths of the outcome
+    #' vector are the same (via ._assess_length()), a necessary condition in
+    #' order to perform simplification.
+    #'
+    #' @returns
+    #' nothing; used for its side effects.
     ._assess_length = function() {
+
+      if (private$._simplify == "no") return(invisible())
+
 
       lens <- private$._fn_out_lens
 
@@ -1737,6 +2224,25 @@ Applyer <- R6::R6Class(
 
 
 
+    #' Private method
+    #'
+    #' In the context of simplification, performs formatting so that the
+    #' bind_rows step will work and yield the long/wide format that is needed.
+    #'
+    #' Otherwise, or when formatting is irrelevant (i.e., when the outcomes
+    #' are all of length 1 without name forcing), ._fns_outcome_formatted is
+    #' simply equal to ._fns_outcome.
+    #'
+    #' See the comments in the function for the long and wide specificity of
+    #' the formats.
+    #'
+    #' Finally, when grouped, the outcome is wrapped in a list as a measure of
+    #' protection against bind_rows.
+    #'
+    #' @param idx    bool; was there row or column grouping?
+    #'
+    #' @returns
+    #' nothing; used for its side effects.
     ._format_list_of_fns = function(grouped) {
 
 
@@ -1745,9 +2251,6 @@ Applyer <- R6::R6Class(
         return()
       }
 
-      private$._assess_length()
-
-
       # with length == 1 and no name forcing, it long/wide format is irrelevant
       if (unique(private$._fn_out_lens) == 1L && !private$._force_name) {
         private$._fns_outcome_formatted <- private$._fns_outcome
@@ -1755,10 +2258,14 @@ Applyer <- R6::R6Class(
       }
 
 
+      # creates new elements - that will later become new columns - that
+      # contains the IDs of the outcomes. It is also ordered to make sure the
+      # "name" element always comes right before its corresponding outcome, as
+      # well as keeping the original outcome order.
       if (private$._simplify == "long") {
         nms <- setNames(private$._fns_outcome_names,
                         paste0(names(private$._fns_outcome), ".name"))
-        private$._fns_outcome_formatted <- c(nms, private$._fns_outcome)[private$._wide_order]
+        private$._fns_outcome_formatted <- c(nms, private$._fns_outcome)[private$._long_order]
 
         if (grouped) {
           private$._fns_outcome_formatted <- list(private$._fns_outcome_formatted)
@@ -1767,6 +2274,16 @@ Applyer <- R6::R6Class(
       }
 
       # wide
+
+      # The function outcomes are in a list where each element corresponds to
+      # a function. The flattening step creates a single vector (which could be
+      # a list) where each element will be converted to a wide-wise column
+      # later. In addition, based on ._fns_outcome_names, the new "columns" are
+      # renamed so that their names are unique.
+      #
+      # As for list_row, it wraps lists in an additional layer of list but
+      # doesn't do anything to vectors. This is to protect lists against the
+      # unnesting step that comes later.
       private$._fns_outcome_formatted <- list_row(
         flatten_and_name(private$._fns_outcome,
                          private$._fns_outcome_names))
@@ -1813,19 +2330,6 @@ get_fn_names <- function(quos)
 
 
 
-
-
-
-get_var_tag <- function(margin)
-{
-  if (is.null(margin) || margin == 0) {
-    var_lab_mat
-  } else if (margin == 1) {
-    var_lab_row
-  } else {
-    var_lab_col
-  }
-}
 
 
 
@@ -1956,7 +2460,8 @@ eval_function <- function(.ms, ..., margin = NULL, matidx = NULL,
 #'      annotation. You can use `.env[[var]]` or `.env$var` to make sure to use
 #'      the proper variable.
 #'
-#' The matrixset package defines its own pronouns: `r var_lab_mat`, `r var_lab_row` and `r var_lab_col`, which
+#' The matrixset package defines its own pronouns: `r var_lab_mat`,
+#' `r var_lab_row` and `r var_lab_col`, which
 #' are discussed in the function specification argument (`...`).
 #'
 #' It is not necessary to import any of the pronouns (or load `rlang` in the
@@ -2081,12 +2586,14 @@ eval_function <- function(.ms, ..., margin = NULL, matidx = NULL,
 #'    See examples.
 #'
 #' @returns
-#' A list for every matrix in the matrixset object. Each list is itself a list.
-#' For `apply_matrix`, it is a list of the function values - `NULL` if the matrix
-#' was empty. Otherwise, it is a list with one element for each row/column -
-#' these elements will be `NULL` if the corresponding matrix was empty. And
-#' finally, for `apply_row`/`apply_column`, each of these sub-list is a list,
-#' the results of each function.
+#' A list for every matrix in the matrixset object. Each list is itself a
+#' list, or `NULL` for `NULL` matrices. For `apply_matrix`, it is a list of
+#' the function values. Otherwise, it is a list with one element for each
+#' row/column. And finally, for `apply_row`/`apply_column`, each of these
+#' sub-list is a list, the results of each function.
+#'
+#' When `.matrix_wise == FALSE`, the output format differs only in that there is
+#' no list for matrices.
 #'
 #' If each function returns a `vector` of the same dimension, you can use either
 #' the `_dfl` or the `_dfw` version. What they do is to return a list of

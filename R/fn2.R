@@ -649,17 +649,17 @@ EvalScope <- R6::R6Class(
 
       private$._context_env$current_row_info <- function() {
         if (is.null(private$i_)) {
-          .subset2(student_results, "row_info")
+          .subset2(private$._ms, "row_info")
         } else {
-          .subset2(student_results, "row_info")[private$i_, ]
+          .subset2(private$._ms, "row_info")[private$i_, ]
         }
       }
 
       private$._context_env$current_column_info <- function() {
         if (is.null(private$j_)) {
-          .subset2(student_results, "column_info")
+          .subset2(private$._ms, "column_info")
         } else {
-          .subset2(student_results, "column_info")[private$j_, ]
+          .subset2(private$._ms, "column_info")[private$j_, ]
         }
       }
 
@@ -2253,6 +2253,10 @@ Applyer <- R6::R6Class(
 
       # with length == 1 and no name forcing, it long/wide format is irrelevant
       if (unique(private$._fn_out_lens) == 1L && !private$._force_name) {
+        if (private$._margin == 0) {
+          private$._fns_outcome_formatted <- list(private$._fns_outcome)
+          return()
+        }
         private$._fns_outcome_formatted <- private$._fns_outcome
         return()
       }
@@ -2267,7 +2271,7 @@ Applyer <- R6::R6Class(
                         paste0(names(private$._fns_outcome), ".name"))
         private$._fns_outcome_formatted <- c(nms, private$._fns_outcome)[private$._long_order]
 
-        if (grouped) {
+        if (grouped || private$._margin == 0) {
           private$._fns_outcome_formatted <- list(private$._fns_outcome_formatted)
         }
         return()
@@ -2288,7 +2292,7 @@ Applyer <- R6::R6Class(
         flatten_and_name(private$._fns_outcome,
                          private$._fns_outcome_names))
 
-      if (grouped) {
+      if (grouped || private$._margin == 0) {
         private$._fns_outcome_formatted <- list(private$._fns_outcome_formatted)
       }
 
@@ -2522,7 +2526,7 @@ FnMaker <- R6::R6Class(
 
       }
 
-      rlang::abort("")
+      rlang::abort("Functions must be provided as formulas or function names.")
 
     }
 
@@ -2756,13 +2760,13 @@ eval_function <- function(.ms, ..., margin = NULL, matidx = NULL,
 #' (rg_w <- apply_column_dfw(student_results, rg=range))
 #'
 #' # More complex examples can be used, by using pronouns and data annotation
-#' (vals <- apply_column(student_results, avr=mean, avr_trim=mean(.j, trim=.05),
-#'                                       reg=lm(.j ~ teacher)))
+#' (vals <- apply_column(student_results, avr=mean, avr_trim=~mean(.j, trim=.05),
+#'                                       reg=~lm(.j ~ teacher)))
 #'
 #' # You can wrap complex function results, such as for lm, into a list, to use
 #' # the dfl/dfr version
-#' (vals_tidy <- apply_column_dfw(student_results, avr=mean, avr_trim=mean(.j, trim=.05),
-#'                                                reg=list(lm(.j ~ teacher))))
+#' (vals_tidy <- apply_column_dfw(student_results, avr=mean, avr_trim=~mean(.j, trim=.05),
+#'                                                reg=~list(lm(.j ~ teacher))))
 #'
 #' # You can provide complex expressions by using formulas
 #' (r <- apply_column(student_results,
@@ -2775,7 +2779,7 @@ eval_function <- function(.ms, ..., margin = NULL, matidx = NULL,
 #' # the .data pronoun can be useful to use names stored in variables
 #' fn <- function(nm) {
 #'   if (!is.character(nm) && length(nm) != 1) stop("this example won't work")
-#'   apply_column(student_results, lm(.j ~ .data[[nm]]))
+#'   apply_column(student_results, ~lm(.j ~ .data[[nm]]))
 #' }
 #' fn("teacher")
 #'
@@ -2805,13 +2809,13 @@ eval_function <- function(.ms, ..., margin = NULL, matidx = NULL,
 #'                                  ct = ~ c(avr = mean(.j), med = median(.j)),
 #'                                  rg = range))
 #' (summ_gr_wide <- apply_column_dfw(cl_prof_program_gr,
-#'                                  ct = c(avr = mean(.j), med = median(.j)),
+#'                                  ct = ~ c(avr = mean(.j), med = median(.j)),
 #'                                  rg = range))
 #'
 #'
 #' # This is an example where you may want to use the .force_name argument
-#' (apply_matrix_dfl(column_group_by(student_results, program), FC = colMeans(.m)))
-#' (apply_matrix_dfl(column_group_by(student_results, program), FC = colMeans(.m),
+#' (apply_matrix_dfl(column_group_by(student_results, program), FC = ~ colMeans(.m)))
+#' (apply_matrix_dfl(column_group_by(student_results, program), FC = ~ colMeans(.m),
 #'                   .force_name = TRUE))
 #'
 #' @name loop

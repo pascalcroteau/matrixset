@@ -2300,87 +2300,234 @@ Applyer <- R6::R6Class(
 
 
 
+#' FnMaker: Harmonizes provided functions into function expressions.
+#'
+#' Turns functions and formulas into function expressions, as well as making
+#' sure that provided function names do not clash with matrixset row/column
+#' tags - though the later is relevant only in context of simplification.
+#'
+#' @docType class
+#' @noRd
+#' @name FnMaker
+FnMaker <- R6::R6Class(
+  "FnMaker",
 
-quo_is_formula <- function(quo)
-{
-  rlang::is_formula(rlang::quo_get_expr(quo))
-}
-
-
-
-quo_is_function <- function(quo)
-{
-  if (!rlang::quo_is_symbolic(quo)) return(FALSE)
-  test_for_fn <- tryCatch(rlang::eval_tidy(quo), error = function(e) e)
-  if (inherits(test_for_fn, "error")) return(FALSE)
-  rlang::is_function(test_for_fn)
-}
+  public = list(
 
 
+    #' Constructor for FnMaker
+    #'
+    #' @param .ms       The matrix_set object in which to get row and/or column
+    #'                  tag and thus, to which the FnMaker class is assigned to
+    #' @param quos      the functions provided by the user, given to FnMaker as
+    #'                  quosures.
+    #' @param margin    0, 1 or 2. 0 = `apply_matrix` has been called.
+    #'                  1 = `apply_row` and 2 = `apply_column`. The dfw/dfl
+    #'                  versions are covered as well. For FnMaker, the margin
+    #'                  is needed to know which tag (row or column) to use to
+    #'                  check that no function names are clashing with the tags.
+    #' @param simplify  single character, one of "no", "long" or "wide".
+    #'                  For FnMaker, simply needed to know if simplification is
+    #'                  required to know if it is required to prevent function
+    #'                  names clashing with row and/or column tag (typically,
+    #'                  .rowname or .colname). Without simplification, there is
+    #'                  no such constraints.
+    #' @param call_env  The calling environment of the apply_* functions. This
+    #'                  will only be used in an error message if any functions,
+    #'                  provided as formulas, can't be converted to actual
+    #'                  functions.
+    #'
+    initialize = function(.ms, quos, margin, simplify,
+                          call_env = rlang::caller_env()) {
 
-get_fn_names <- function(quos)
-{
-  nmfn <- names(quos)
-  is_a_formula <- vapply(quos, quo_is_formula, FALSE)
-  if (any(form_idx <- is_a_formula)) {
-    nmfn[form_idx] <- gsub("^~", "", nmfn[form_idx])
-  }
-  nmfn
-}
+      private$._fn_names <- private$._get_fn_names(quos)
+      private$._assess_fun_names(.ms, margin, simplify)
+
+      var_tag <- get_var_tag(margin)
+      private$fns_ <- lapply(quos, function(q) {
+        private$._as_fn_expr(q, var_tag, call_env)
+      })
+
+      names(private$fns_) <- private$._fn_names
+
+    }
+
+  ),
+
+  active = list(
+
+    #' Functions
+    #'
+    #' @field fns    expressions representing the functions to evaluate, in a
+    #'               list format. Each list name is the function name, or label.
+    fns = function() private$fns_
+
+  ),
+
+
+
+  private = list(
+
+    fns_ = NULL,          # expressions representing the functions to evaluate,
+                          # in a list format.
+
+    ._fn_names = NULL,    # name, or label, of each function expression.
+
+
+
+    #' Private method
+    #'
+    #' Test if a quosure is a formula.
+    #'
+    #' @param quo    quosure to test
+    #'
+    #' @returns
+    #' bool, TRUE if the quosure is a formula, FALSE otherwise
+    ._quo_is_formula = function(quo) {
+      rlang::is_formula(rlang::quo_get_expr(quo))
+    },
+
+
+
+    #' Private method
+    #'
+    #' Test if a quosure is a function.
+    #'
+    #' @param quo    quosure to test
+    #'
+    #' @returns
+    #' bool, TRUE if the quosure is a function, FALSE otherwise
+    ._quo_is_function = function(quo) {
+      if (!rlang::quo_is_symbolic(quo)) return(FALSE)
+      test_for_fn <- tryCatch(rlang::eval_tidy(quo), error = function(e) e)
+      if (inherits(test_for_fn, "error")) return(FALSE)
+      rlang::is_function(test_for_fn)
+    },
+
+
+
+    #' Private method
+    #'
+    #' Get names (labels) of provided functions. For formulas, the ~ character
+    #' is removed.
+    #'
+    #' @param quos    the quosures with the function expressions
+    #'
+    #' @returns
+    #' character vector
+    ._get_fn_names = function(quos) {
+      nmfn <- names(quos)
+      is_a_formula <- vapply(quos, private$._quo_is_formula, FALSE)
+      if (any(form_idx <- is_a_formula)) {
+        nmfn[form_idx] <- gsub("^~", "", nmfn[form_idx])
+      }
+      nmfn
+    },
+
+
+
+    #' Private method
+    #'
+    #' Workhorse of ._assess_fun_names(); provides the assessment for a given
+    #' margin tag.
+    #'
+    #' @param tag       string, the tag to check. If NULL, no check is performed
+    #' @param simplify  logical (no default). If TRUE, the test is performed,
+    #'                  otherwise it is skipped.
+    #'
+    #' @returns
+    #' used for its side effect.
+    ._assess_fun_names_for_tag = function(tag, simplify) {
+      if (is.na(tag) || !simplify) return(invisible(NULL))
+      if (any(private$._fn_names == tag))
+        stop(paste("the function results can't be named", shQuote(tag)))
+    },
 
 
 
 
 
+    #' Private method
+    #'
+    #' Assess if the name (i.e., label) attributed to function result in apply_*
+    #' (e.g. avr in apply_row_dfl(ms_object, avr = mean)) matches the matrixset
+    #' object's relevant tag (tag). In the example, the relevant tag is the row
+    #' tag (because apply_row), which unless changed by user, is .rowname.
+    #'
+    #' Note that this name is used as column name in the dfl/dfw versions of the
+    #' apply functions. Consequently, the test is relevant only for these apply
+    #' versions.
+    #'
+    #' @param .ms       The matrix_set object in which to get row and/or column
+    #'                  tag.
+    #' @param margin    0, 1 or 2. 0 = `apply_matrix` has been called.
+    #'                  1 = `apply_row` and 2 = `apply_column`. The dfw/dfl
+    #'                  versions are covered as well. For FnMaker, the margin
+    #'                  is needed to know which tag (row or column) to use to
+    #'                  check that no function names are clashing with the tags.
+    #' @param simplify  One of "no", "long" or "wide". Will be turned into a
+    #'                  bool by simplify != "no".
+    #'
+    #' @returns
+    #' used for its side effect.
+    ._assess_fun_names = function(.ms, margin, simplify) {
+
+      # make sure we're not giving it the same name as tag. The check is skipped
+      # if simplify is FALSE (not dfl/dfw), as this restriction is necessary
+      # only to make sure the result tibble in dfl/dfw have column name conflict.
+      if (!is.null(margin) && (margin == 0 || margin == 1)) {
+        private$._assess_fun_names_for_tag(.rowtag(.ms), simplify != "no")
+      }
+      if (!is.null(margin) && (margin == 0 || margin == 2)) {
+        private$._assess_fun_names_for_tag(.coltag(.ms), simplify != "no")
+      }
+
+    },
 
 
 
-as_fn_expr <- function(x, dot_arg, env = globalenv(),
-                       arg = rlang::caller_arg(x), call = rlang::caller_env())
-{
+    #' Private method
+    #'
+    #' Turn a quosure representing a function into an expression representing a
+    #' function.
+    #'
+    #' The quosure can be either a formula or a function.
+    #'
+    #' @param x          quosure to convert
+    #' @param dot_arg    the pronoun that is available to use (typically, .m, .i
+    #'                   or .j) by the functions. Only used if need to convert
+    #'                   the function into an expression.
+    #'                   E.g., mean will become mean(.i) for apply_row.
+    #' @param call       The calling environment of the apply_* functions. This
+    #'                   will only be used in an error message if any functions,
+    #'                   provided as formulas, can't be converted to actual
+    #'                   functions.
+    #' @param arg        This argument will be mentioned in error messages as
+    #'                   the input that is at the origin of a problem.
+    #'
+    #' @returns
+    #' bool, TRUE if the quosure is a formula, FALSE otherwise
+    ._as_fn_expr = function(x, dot_arg, call, arg = rlang::caller_arg(x)) {
 
-  if (quo_is_function(x)) {
-    return(rlang::call2(rlang::quo_get_expr(x), as.name(dot_arg)))
+      if (private$._quo_is_function(x)) {
+        return(rlang::call2(rlang::quo_get_expr(x), as.name(dot_arg)))
 
-  }
+      }
 
-  if (quo_is_formula(x)) {
+      if (private$._quo_is_formula(x)) {
 
-    fn <- rlang::as_function(rlang::eval_tidy(x), env = env, arg = arg, call = call)
-    return(body(fn))
+        fn <- rlang::as_function(rlang::eval_tidy(x), env = globalenv(),
+                                 arg = arg, call = call)
+        return(body(fn))
 
-  }
+      }
 
-  rlang::abort("")
+      rlang::abort("")
 
-}
+    }
 
+  ))
 
-
-
-
-# Assess if the name (nms) attributed to function result in apply_* (e.g. avr in
-# apply_row_dfl(ms_object, avr = mean)) matches the matrixset object's relevant
-# tag (tag). In the example, the relevant tag is the row tag (because apply_row),
-# which unless changed by user, is .rowname.
-#
-# Note that this name is used as column name in the dfl/dfw versions of the
-# apply functions. Consequently, the test is relevant only for these apply
-# versions.
-#
-# @param nms         string, the column name with function result
-# @param tag         string, the relevant tag
-# @param simplify    logical (no default). If TRUE, the test is performed,
-#                    otherwise it is skipped.
-#
-# @returns
-# invisible NULL, unless nms == tag, in which case an error condition is issued.
-assess_fun_names <- function(nms, tag, simplify)
-{
-  if (is.na(tag) || !simplify) return(invisible(NULL))
-  if (any(nms == tag))
-    stop(paste("the function results can't be named", shQuote(tag)))
-}
 
 
 
@@ -2395,32 +2542,12 @@ eval_function <- function(.ms, ..., margin = NULL, matidx = NULL,
                           .simplify = "no", .force_name = FALSE,
                           env = rlang::caller_env(2))
 {
-  var_tag <- get_var_tag(margin)
-
   quosures <- rlang::enquos(..., .named = TRUE, .ignore_empty = "all")
-  fn_names <- get_fn_names(quosures)
+  fn_maker <- FnMaker$new(.ms, quosures, margin, .simplify)
 
 
-  fns <- lapply(quosures, function(q) {
-    as_fn_expr(q, var_tag)
-  })
-
-
-  # make sure we're not giving it the same name as tag. The check is skipped if
-  # simplify is FALSE (not dfl/dfw), as this restriction is necessary only to
-  # make sure the result tibble in dfl/dfw have column name conflict.
-  if (!is.null(margin) && (margin == 0 || margin == 1)) {
-    assess_fun_names(fn_names, .rowtag(.ms), .simplify != "no")
-  }
-  if (!is.null(margin) && (margin == 0 || margin == 2)) {
-    assess_fun_names(fn_names, .coltag(.ms), .simplify != "no")
-  }
-
-  names(fns) <- fn_names
-
-
-  applyer <- Applyer$new(.ms, matidx, margin, fns, .matrix_wise, .input_list,
-                         .simplify, .force_name, env)
+  applyer <- Applyer$new(.ms, matidx, margin, fn_maker$fns, .matrix_wise,
+                         .input_list, .simplify, .force_name, env)
 
   applyer$eval()
 

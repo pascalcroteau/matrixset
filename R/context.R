@@ -54,12 +54,12 @@ NULL
 
 
 
-context_enclos <- function(fn, env)
+
+context_message <- function(fn)
 {
-  FN <- env[[fn]]
-  if (is.null(FN)) stop(paste(encodeString(fn, quote = "`"), "can only be used within matrixset"),
-                        call. = FALSE)
-  FN
+
+  stop(paste(encodeString(fn, quote = "`"), "can only be used within matrixset"),
+       call. = FALSE)
 }
 
 
@@ -67,7 +67,7 @@ context_enclos <- function(fn, env)
 #' @export
 current_row_info <- function()
 {
-  context_enclos("current_row_info()", emptyenv())
+  context_message("current_row_info()")
 }
 
 
@@ -75,7 +75,7 @@ current_row_info <- function()
 #' @export
 current_column_info <- function()
 {
-  context_enclos("current_column_info()", emptyenv())
+  context_message("current_column_info()")
 }
 
 
@@ -83,7 +83,7 @@ current_column_info <- function()
 #' @export
 current_n_row <- function()
 {
-  context_enclos("current_n_row()", emptyenv())
+  context_message("current_n_row()")
 }
 
 
@@ -91,7 +91,7 @@ current_n_row <- function()
 #' @export
 current_n_column <- function()
 {
-  context_enclos("current_n_column()", emptyenv())
+  context_message("current_n_column()")
 }
 
 
@@ -99,7 +99,7 @@ current_n_column <- function()
 #' @export
 current_row_name <- function()
 {
-  context_enclos("current_row_name()", emptyenv())
+  context_message("current_row_name()")
 }
 
 
@@ -107,7 +107,7 @@ current_row_name <- function()
 #' @export
 row_pos <- function()
 {
-  context_enclos("row_pos()", emptyenv())
+  context_message("row_pos()")
 }
 
 
@@ -115,7 +115,7 @@ row_pos <- function()
 #' @export
 row_rel_pos <- function()
 {
-  context_enclos("row_rel_pos()", emptyenv())
+  context_message("row_rel_pos()")
 }
 
 
@@ -123,7 +123,7 @@ row_rel_pos <- function()
 #' @export
 current_column_name <- function()
 {
-  context_enclos("current_column_name()", emptyenv())
+  context_message("current_column_name()")
 }
 
 
@@ -131,7 +131,7 @@ current_column_name <- function()
 #' @export
 column_pos <- function()
 {
-  context_enclos("column_pos()", emptyenv())
+  context_message("column_pos()")
 }
 
 
@@ -139,5 +139,7 @@ column_pos <- function()
 #' @export
 column_rel_pos <- function()
 {
-  context_enclos("column_rel_pos()", emptyenv())
+  context_message("column_rel_pos()")
 }
+
+

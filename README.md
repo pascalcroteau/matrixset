@@ -137,8 +137,8 @@ You can create the object and then do some operations.
 library(matrixset)
 animals_ms <- matrixset(msr = animals, row_info = animal_info, row_key = "Animal")
 animals_ms %>% 
-    apply_row_dfl(rg = range(.i),
-                  qt = quantile(.i, probs = c(.25, .75)))   
+    apply_row_dfl(rg = ~ range(.i),
+                  qt = ~ quantile(.i, probs = c(.25, .75)))   
 #> $msr
 #> # A tibble: 56 × 5
 #>    .rowname        rg.name     rg qt.name     qt

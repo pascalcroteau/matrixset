@@ -87,7 +87,7 @@ test_that("matrixset general loop works", {
     x <- list(...)
     apply(do.call(rbind, x), 2, fun)
   }
-  ct <- apply_row(student_results, mn=ctr(.i1, .i2, fun = mean), md=ctr(.i1, .i2, fun = median), .matrix_wise = FALSE)
+  ct <- apply_row(student_results, mn=~ctr(.i1, .i2, fun = mean), md=~ctr(.i1, .i2, fun = median), .matrix_wise = FALSE)
   ct_ref <- lapply(setNames(seq(nrow(student_results)), rownames(student_results)), function(r) {
     M <- student_results[r,,,keep_annotation=FALSE, warn_class_change=FALSE]
     M <- unname(M)
@@ -98,7 +98,7 @@ test_that("matrixset general loop works", {
 
 
   js <- rlang::syms(paste0(".j", 1:2))
-  ct <- apply_column(student_results, mn=ctr(!!!js, fun = mean), md=ctr(!!!js, fun = median), .matrix_wise = FALSE)
+  ct <- apply_column(student_results, mn=~ctr(!!!js, fun = mean), md=~ctr(!!!js, fun = median), .matrix_wise = FALSE)
   ct_ref <- lapply(setNames(seq(ncol(student_results)), colnames(student_results)), function(cl) {
     M <- student_results[,cl,,keep_annotation=FALSE, warn_class_change=FALSE]
     M <- unname(M)
@@ -115,7 +115,7 @@ test_that("matrixset general loop works", {
     apply(do.call(rbind, x), 2, fun)
   }
   ctr2 <- function(l, fun) rlang::eval_tidy(rlang::quo(ctr_dot(!!!l, fun = fun)))
-  ct <- apply_row(student_results, mn=ctr2(.i, fun = mean), md=ctr2(.i, fun = median), .matrix_wise = FALSE, .input_list = TRUE)
+  ct <- apply_row(student_results, mn=~ctr2(.i, fun = mean), md=~ctr2(.i, fun = median), .matrix_wise = FALSE, .input_list = TRUE)
   ct_ref <- lapply(setNames(seq(nrow(student_results)), rownames(student_results)), function(r) {
     M <- student_results[r,,,keep_annotation=FALSE, warn_class_change=FALSE]
     M <- unname(M)
@@ -126,7 +126,7 @@ test_that("matrixset general loop works", {
 
 
 
-  ct <- apply_column(student_results, mn=ctr2(.j, fun = mean), md=ctr2(.j, fun = median), .matrix_wise = FALSE, .input_list = TRUE)
+  ct <- apply_column(student_results, mn=~ctr2(.j, fun = mean), md=~ctr2(.j, fun = median), .matrix_wise = FALSE, .input_list = TRUE)
   ct_ref <- lapply(setNames(seq(ncol(student_results)), colnames(student_results)), function(cl) {
     M <- student_results[,cl,,keep_annotation=FALSE, warn_class_change=FALSE]
     M <- unname(M)
@@ -139,7 +139,7 @@ test_that("matrixset general loop works", {
 
 
 
-  rg <- apply_row(student_results, reg = lm(.i2/.i1 ~ program), .matrix_wise = FALSE)
+  rg <- apply_row(student_results, reg = ~lm(.i2/.i1 ~ program), .matrix_wise = FALSE)
   rg_ref <- lapply(setNames(seq(nrow(student_results)), rownames(student_results)), function(r) {
     M <- student_results[r,,,keep_annotation=FALSE, warn_class_change=FALSE]
     M <- lapply(M, function(m) m[1,])
@@ -155,7 +155,7 @@ test_that("matrixset general loop works", {
 
 
 
-  rg <- apply_column(student_results, reg = lm(.j2/.j1 ~ teacher+class), .matrix_wise = FALSE)
+  rg <- apply_column(student_results, reg = ~lm(.j2/.j1 ~ teacher+class), .matrix_wise = FALSE)
   rg_ref <- lapply(setNames(seq(ncol(student_results)), colnames(student_results)), function(cl) {
     M <- student_results[,cl,,keep_annotation=FALSE, warn_class_change=FALSE]
     M <- lapply(M, function(m) m[,1])
@@ -172,7 +172,7 @@ test_that("matrixset general loop works", {
 
 
 
-  rg <- apply_row(student_results, reg = lm(.i1 ~ program), .matrix = 2, .matrix_wise = FALSE)
+  rg <- apply_row(student_results, reg = ~lm(.i1 ~ program), .matrix = 2, .matrix_wise = FALSE)
   rg_ref <- lapply(setNames(seq(nrow(student_results)), rownames(student_results)), function(r) {
     M <- student_results[r,,,keep_annotation=FALSE, warn_class_change=FALSE]
     M <- M[[2]][1,]
@@ -187,7 +187,7 @@ test_that("matrixset general loop works", {
 
 
 
-  rg <- apply_column(student_results, reg = lm(.j1 ~ teacher+class), .matrix = 2, .matrix_wise = FALSE)
+  rg <- apply_column(student_results, reg = ~lm(.j1 ~ teacher+class), .matrix = 2, .matrix_wise = FALSE)
   rg_ref <- lapply(setNames(seq(ncol(student_results)), colnames(student_results)), function(cl) {
     M <- student_results[,cl,,keep_annotation=FALSE, warn_class_change=FALSE]
     M <- M[[2]][,1]
@@ -203,10 +203,46 @@ test_that("matrixset general loop works", {
 
 
 
+  # INPUT_LIST = TRUE!!!!
+  rg <- apply_row(student_results, reg = ~lm(.i[[1]] ~ program), .matrix = 2,
+                  .matrix_wise = FALSE, .input_list = TRUE)
+  rg_ref <- lapply(setNames(seq(nrow(student_results)), rownames(student_results)), function(r) {
+    M <- student_results[r,,,keep_annotation=FALSE, warn_class_change=FALSE]
+    M <- M[[2]][1,]
+    M <- unname(M)
+    meta <- column_info(student_results)
+    meta <- tibble::column_to_rownames(meta, ".colname")
+    meta$.i <- list(NULL)
+    meta$.i[[1]] <- M
+    list(reg=eval(quote(lm(.i[[1]] ~ program)), envir = meta))
+  })
+
+  expect_equal(rg, rg_ref, ignore_attr = TRUE)
+
+
+
+  rg <- apply_column(student_results, reg = ~lm(.j[[1]] ~ teacher+class),
+                     .matrix = 2, .matrix_wise = FALSE, .input_list = TRUE)
+  rg_ref <- lapply(setNames(seq(ncol(student_results)), colnames(student_results)), function(cl) {
+    M <- student_results[,cl,,keep_annotation=FALSE, warn_class_change=FALSE]
+    M <- M[[2]][,1]
+    M <- unname(M)
+    meta <- row_info(student_results)
+    meta <- tibble::column_to_rownames(meta, ".rowname")
+    meta$.j <- list(NULL)
+    meta$.j[[1]] <- M
+    list(reg=eval(quote(lm(.j[[1]] ~ teacher+class)), envir = meta))
+  })
+
+  expect_equal(rg, rg_ref, ignore_attr = TRUE)
+
+
+
+
 
 #
 #   # .data
-  rg <- apply_row(student_results, reg = coef(lm(.i2/.i1 ~ .data[["program"]])), .matrix_wise = FALSE)
+  rg <- apply_row(student_results, reg = ~coef(lm(.i2/.i1 ~ .data[["program"]])), .matrix_wise = FALSE)
   rg_ref <- lapply(setNames(seq(nrow(student_results)), rownames(student_results)), function(r) {
     M <- student_results[r,,,keep_annotation=FALSE, warn_class_change=FALSE]
     M <- lapply(M, function(m) m[1,])
@@ -222,7 +258,7 @@ test_that("matrixset general loop works", {
 
 
 
-  rg <- apply_column(student_results, reg = coef(lm(.j2/.j1 ~ .data[["teacher"]]+class)), .matrix_wise = FALSE)
+  rg <- apply_column(student_results, reg = ~coef(lm(.j2/.j1 ~ .data[["teacher"]]+class)), .matrix_wise = FALSE)
   rg_ref <- lapply(setNames(seq(ncol(student_results)), colnames(student_results)), function(cl) {
     M <- student_results[,cl,,keep_annotation=FALSE, warn_class_change=FALSE]
     M <- lapply(M, function(m) m[,1])
@@ -240,7 +276,7 @@ test_that("matrixset general loop works", {
 
 
   program <- 0.5
-  rg <- apply_row(student_results, reg = .i2 - .i1 - .env[["program"]], .matrix_wise = FALSE)
+  rg <- apply_row(student_results, reg = ~.i2 - .i1 - .env[["program"]], .matrix_wise = FALSE)
   rg_ref <- lapply(setNames(seq(nrow(student_results)), rownames(student_results)), function(r) {
     M <- student_results[r,,,keep_annotation=FALSE, warn_class_change=FALSE]
     M <- lapply(M, function(m) m[1,])
@@ -253,7 +289,7 @@ test_that("matrixset general loop works", {
 
 
   teacher <- 0.5
-  rg <- apply_column(student_results, reg = .j2 - .j1 - .env[["teacher"]], .matrix_wise = FALSE)
+  rg <- apply_column(student_results, reg = ~.j2 - .j1 - .env[["teacher"]], .matrix_wise = FALSE)
   rg_ref <- lapply(setNames(seq(ncol(student_results)), colnames(student_results)), function(cl) {
     M <- student_results[,cl,,keep_annotation=FALSE, warn_class_change=FALSE]
     M <- lapply(M, function(m) m[,1])
@@ -350,7 +386,7 @@ test_that("matrixset general loop works", {
     x <- list(...)
     apply(do.call(rbind, x), 2, fun)
   }
-  ct <- apply_row(column_group_by(student_results, program), mn=ctr(.i1, .i2, fun = mean), md=ctr(.i1, .i2, fun = median), .matrix_wise = FALSE)
+  ct <- apply_row(column_group_by(student_results, program), mn=~ctr(.i1, .i2, fun = mean), md=~ctr(.i1, .i2, fun = median), .matrix_wise = FALSE)
   grs <- column_group_meta(column_group_by(student_results, program))
   ans <- grs
   ans$.rows <- NULL
@@ -369,7 +405,7 @@ test_that("matrixset general loop works", {
 
 
   js <- rlang::syms(paste0(".j", 1:2))
-  ct <- apply_column(row_group_by(student_results, teacher, class), mn=ctr(!!!js, fun = mean), md=ctr(!!!js, fun = median), .matrix_wise = FALSE)
+  ct <- apply_column(row_group_by(student_results, teacher, class), mn=~ctr(!!!js, fun = mean), md=~ctr(!!!js, fun = median), .matrix_wise = FALSE)
   grs <- row_group_meta(row_group_by(student_results, teacher, class))
   ans <- grs
   ans$.rows <- NULL
@@ -393,7 +429,7 @@ test_that("matrixset general loop works", {
     apply(do.call(rbind, x), 2, fun)
   }
   ctr2 <- function(l, fun) rlang::eval_tidy(rlang::quo(ctr_dot(!!!l, fun = fun)))
-  ct <- apply_row(column_group_by(student_results, program), mn=ctr2(.i, fun = mean), md=ctr2(.i, fun = median), .matrix_wise = FALSE, .input_list = TRUE)
+  ct <- apply_row(column_group_by(student_results, program), mn=~ctr2(.i, fun = mean), md=~ctr2(.i, fun = median), .matrix_wise = FALSE, .input_list = TRUE)
   grs <- column_group_meta(column_group_by(student_results, program))
   ans <- grs
   ans$.rows <- NULL
@@ -411,7 +447,7 @@ test_that("matrixset general loop works", {
 
 
 
-  ct <- apply_column(row_group_by(student_results, teacher, class), mn=ctr2(.j, fun = mean), md=ctr2(.j, fun = median), .matrix_wise = FALSE, .input_list = TRUE)
+  ct <- apply_column(row_group_by(student_results, teacher, class), mn=~ctr2(.j, fun = mean), md=~ctr2(.j, fun = median), .matrix_wise = FALSE, .input_list = TRUE)
   grs <- row_group_meta(row_group_by(student_results, teacher, class))
   ans <- grs
   ans$.rows <- NULL
@@ -430,7 +466,7 @@ test_that("matrixset general loop works", {
 
 
 
-  rg <- apply_row(column_group_by(student_results, program), reg = lm(.i2/.i1 ~ school_average), .matrix_wise = FALSE)
+  rg <- apply_row(column_group_by(student_results, program), reg = ~lm(.i2/.i1 ~ school_average), .matrix_wise = FALSE)
   grs <- column_group_meta(column_group_by(student_results, program))
   ans <- grs
   ans$.rows <- NULL
@@ -453,7 +489,7 @@ test_that("matrixset general loop works", {
 
 
 
-  rg <- apply_column(row_group_by(student_results, teacher), reg = lm(.j2/.j1 ~ class), .matrix_wise = FALSE)
+  rg <- apply_column(row_group_by(student_results, teacher), reg = ~lm(.j2/.j1 ~ class), .matrix_wise = FALSE)
   grs <- row_group_meta(row_group_by(student_results, teacher))
   ans <- grs
   ans$.rows <- NULL
@@ -478,7 +514,7 @@ test_that("matrixset general loop works", {
 
 
   ct <- apply_row(row_group_by(column_group_by(student_results, program), teacher),
-                  mn=ctr2(.i, fun = mean), md=ctr2(.i, fun = median),
+                  mn=~ctr2(.i, fun = mean), md=~ctr2(.i, fun = median),
                   .matrix_wise = FALSE, .input_list = TRUE)
   grs <- column_group_meta(column_group_by(student_results, program))
   ans <- grs
@@ -498,7 +534,7 @@ test_that("matrixset general loop works", {
 
 
   ct <- apply_column(row_group_by(column_group_by(student_results, program), teacher),
-                     mn=ctr2(.j, fun = mean), md=ctr2(.j, fun = median),
+                     mn=~ctr2(.j, fun = mean), md=~ctr2(.j, fun = median),
                      .matrix_wise = FALSE, .input_list = TRUE)
   grs <- row_group_meta(row_group_by(student_results, teacher))
   ans <- grs
@@ -537,7 +573,7 @@ test_that("matrixset 'long' loop works", {
     M <- student_results[r,,,keep_annotation=FALSE, warn_class_change=FALSE]
     M <- lapply(M, function(m) m[1,])
     M <- unname(M)
-    tibble::enframe(M[[2]]/M[[1]], name = "~.i2/.i1.name", value = "~.i2/.i1")
+    tibble::enframe(M[[2]]/M[[1]], name = ".i2/.i1.name", value = ".i2/.i1")
   })
   fc_ref <- dplyr::bind_rows(fc_ref, .id = ".rowname")
 
@@ -562,7 +598,7 @@ test_that("matrixset 'long' loop works", {
     M <- student_results[,cl,,keep_annotation=FALSE, warn_class_change=FALSE]
     M <- lapply(M, function(m) m[,1])
     M <- unname(M)
-    tibble::enframe(M[[2]]/M[[1]], name = "~.j2/.j1.name", value = "~.j2/.j1")
+    tibble::enframe(M[[2]]/M[[1]], name = ".j2/.j1.name", value = ".j2/.j1")
   })
   fc_ref <- dplyr::bind_rows(fc_ref, .id = ".colname")
 
@@ -587,8 +623,8 @@ test_that("matrixset 'long' loop works", {
     M <- student_results[r,,,keep_annotation=FALSE, warn_class_change=FALSE]
     M <- lapply(M, function(m) m[1,])
     M <- unname(M)
-    d1 <- tibble::enframe(M[[2]]/M[[1]], name = "~.i2/.i1.name", value = "~.i2/.i1")
-    d2 <- tibble::enframe(log2(M[[2]]/M[[1]]), name = "~log2(.i2/.i1).name", value = "~log2(.i2/.i1)")
+    d1 <- tibble::enframe(M[[2]]/M[[1]], name = ".i2/.i1.name", value = ".i2/.i1")
+    d2 <- tibble::enframe(log2(M[[2]]/M[[1]]), name = "log2(.i2/.i1).name", value = "log2(.i2/.i1)")
     dplyr::bind_cols(d1, d2)
   })
   fc_ref <- dplyr::bind_rows(fc_ref, .id = ".rowname")
@@ -616,8 +652,8 @@ test_that("matrixset 'long' loop works", {
     M <- student_results[,cl,,keep_annotation=FALSE, warn_class_change=FALSE]
     M <- lapply(M, function(m) m[,1])
     M <- unname(M)
-    d1 <- tibble::enframe(M[[2]]/M[[1]], name = "~.j2/.j1.name", value = "~.j2/.j1")
-    d2 <- tibble::enframe(log2(M[[2]]/M[[1]]), name = "~log2(.j2/.j1).name", value = "~log2(.j2/.j1)")
+    d1 <- tibble::enframe(M[[2]]/M[[1]], name = ".j2/.j1.name", value = ".j2/.j1")
+    d2 <- tibble::enframe(log2(M[[2]]/M[[1]]), name = "log2(.j2/.j1).name", value = "log2(.j2/.j1)")
     dplyr::bind_cols(d1, d2)
   })
   fc_ref <- dplyr::bind_rows(fc_ref, .id = ".colname")
@@ -680,8 +716,8 @@ test_that("matrixset 'long' loop works", {
       M <- student_results[r,gr,,keep_annotation=FALSE, warn_class_change=FALSE]
       M <- lapply(M, function(m) m[1,])
       M <- unname(M)
-      tbl <- tibble::enframe(M[[2]]/M[[1]], name = "~.i2/.i1.name", value = "~.i2/.i1")
-      tbl[["~.i2/.i1.name"]] <- ifelse(as.character(tbl[["~.i2/.i1.name"]]) == "1", "English", tbl[["~.i2/.i1.name"]])
+      tbl <- tibble::enframe(M[[2]]/M[[1]], name = ".i2/.i1.name", value = ".i2/.i1")
+      tbl[[".i2/.i1.name"]] <- ifelse(as.character(tbl[[".i2/.i1.name"]]) == "1", "English", tbl[[".i2/.i1.name"]])
       tbl
     })
     dplyr::bind_rows(tmp, .id = ".rowname")
@@ -703,8 +739,8 @@ test_that("matrixset 'long' loop works", {
       M <- student_results[gr, cl,,keep_annotation=FALSE, warn_class_change=FALSE]
       M <- lapply(M, function(m) m[,1])
       M <- unname(M)
-      tbl <- tibble::enframe(M[[2]]/M[[1]], name = "~.j2/.j1.name", value = "~.j2/.j1")
-      tbl[["~.j2/.j1.name"]] <- ifelse(as.character(tbl[["~.j2/.j1.name"]]) == "1", NA_character_, tbl[["~.j2/.j1.name"]])
+      tbl <- tibble::enframe(M[[2]]/M[[1]], name = ".j2/.j1.name", value = ".j2/.j1")
+      tbl[[".j2/.j1.name"]] <- ifelse(as.character(tbl[[".j2/.j1.name"]]) == "1", NA_character_, tbl[[".j2/.j1.name"]])
       tbl
     })
     dplyr::bind_rows(tmp, .id = ".colname")
@@ -868,7 +904,7 @@ test_that("matrixset 'wide' loop works", {
 
 
 
-  fc <- apply_row_dfw(student_results, FC = ~ .i2/.i1, logFC = log2(.i2/.i1), .matrix_wise = FALSE)
+  fc <- apply_row_dfw(student_results, FC = ~ .i2/.i1, logFC = ~log2(.i2/.i1), .matrix_wise = FALSE)
   fc_ref <- lapply(setNames(seq(nrow(student_results)), rownames(student_results)), function(r) {
     M <- student_results[r,,,keep_annotation=FALSE, warn_class_change=FALSE]
     M <- lapply(M, function(m) m[1,])
@@ -882,7 +918,7 @@ test_that("matrixset 'wide' loop works", {
   expect_equal(fc, fc_ref)
 
 
-  fc <- apply_row_dfw(student_results, FC = ~ .i[[2]]/.i[[1]], logFC = log2(.i[[2]]/.i[[1]]), .matrix_wise = FALSE, .input_list = TRUE)
+  fc <- apply_row_dfw(student_results, FC = ~ .i[[2]]/.i[[1]], logFC = ~log2(.i[[2]]/.i[[1]]), .matrix_wise = FALSE, .input_list = TRUE)
   fc_ref <- lapply(setNames(seq(nrow(student_results)), rownames(student_results)), function(r) {
     M <- student_results[r,,,keep_annotation=FALSE, warn_class_change=FALSE]
     M <- lapply(M, function(m) m[1,])
@@ -896,7 +932,7 @@ test_that("matrixset 'wide' loop works", {
   expect_equal(fc, fc_ref)
 
 
-  fc <- apply_row_dfw(student_results, FC = ~ mean(.i2/.i1), logFC = mean(log2(.i2/.i1)), .matrix_wise = FALSE)
+  fc <- apply_row_dfw(student_results, FC = ~ mean(.i2/.i1), logFC = ~mean(log2(.i2/.i1)), .matrix_wise = FALSE)
   fc_ref <- lapply(setNames(seq(nrow(student_results)), rownames(student_results)), function(r) {
     M <- student_results[r,,,keep_annotation=FALSE, warn_class_change=FALSE]
     M <- lapply(M, function(m) m[1,])
@@ -908,7 +944,7 @@ test_that("matrixset 'wide' loop works", {
   expect_equal(fc, fc_ref)
 
 
-  fc <- apply_column_dfw(student_results, FC = ~ .j2/.j1, logFC = log2(.j2/.j1), .matrix_wise = FALSE)
+  fc <- apply_column_dfw(student_results, FC = ~ .j2/.j1, logFC = ~log2(.j2/.j1), .matrix_wise = FALSE)
   fc_ref <- lapply(setNames(seq(ncol(student_results)), colnames(student_results)), function(cl) {
     M <- student_results[,cl,,keep_annotation=FALSE, warn_class_change=FALSE]
     M <- lapply(M, function(m) m[,1])
@@ -922,7 +958,7 @@ test_that("matrixset 'wide' loop works", {
   expect_equal(fc, fc_ref)
 
 
-  fc <- apply_column_dfw(student_results, FC = ~ .j[[2]]/.j[[1]], logFC = log2(.j[[2]]/.j[[1]]), .matrix_wise = FALSE, .input_list = TRUE)
+  fc <- apply_column_dfw(student_results, FC = ~ .j[[2]]/.j[[1]], logFC = ~log2(.j[[2]]/.j[[1]]), .matrix_wise = FALSE, .input_list = TRUE)
   fc_ref <- lapply(setNames(seq(ncol(student_results)), colnames(student_results)), function(cl) {
     M <- student_results[,cl,,keep_annotation=FALSE, warn_class_change=FALSE]
     M <- lapply(M, function(m) m[,1])
@@ -936,7 +972,7 @@ test_that("matrixset 'wide' loop works", {
   expect_equal(fc, fc_ref)
 
 
-  fc <- apply_column_dfw(student_results, FC = ~ mean(.j2/.j1), logFC = mean(log2(.j2/.j1)), .matrix_wise = FALSE)
+  fc <- apply_column_dfw(student_results, FC = ~ mean(.j2/.j1), logFC = ~mean(log2(.j2/.j1)), .matrix_wise = FALSE)
   fc_ref <- lapply(setNames(seq(ncol(student_results)), colnames(student_results)), function(cl) {
     M <- student_results[,cl,,keep_annotation=FALSE, warn_class_change=FALSE]
     M <- lapply(M, function(m) m[,1])
@@ -950,7 +986,7 @@ test_that("matrixset 'wide' loop works", {
 
 
   # showcase > 1 length answer
-  summ <- apply_row_dfw(student_results, qtl = ~ quantile(.i2/.i1, prob = c(.25,.75)), rg = range(.i2/.i1), .matrix_wise = FALSE)
+  summ <- apply_row_dfw(student_results, qtl = ~ quantile(.i2/.i1, prob = c(.25,.75)), rg = ~range(.i2/.i1), .matrix_wise = FALSE)
   summ_ref <- lapply(setNames(seq(nrow(student_results)), rownames(student_results)), function(r) {
     M <- student_results[r,,,keep_annotation=FALSE, warn_class_change=FALSE]
     M <- lapply(M, function(m) m[1,])
@@ -968,7 +1004,7 @@ test_that("matrixset 'wide' loop works", {
 
 
 
-  summ <- apply_column_dfw(student_results, qtl = ~ quantile(.j2/.j1, prob = c(.25,.75)), rg = range(.j2/.j1), .matrix_wise = FALSE)
+  summ <- apply_column_dfw(student_results, qtl = ~ quantile(.j2/.j1, prob = c(.25,.75)), rg = ~range(.j2/.j1), .matrix_wise = FALSE)
   summ_ref <- lapply(setNames(seq(ncol(student_results)), colnames(student_results)), function(cl) {
     M <- student_results[,cl,,keep_annotation=FALSE, warn_class_change=FALSE]
     M <- lapply(M, function(m) m[,1])
@@ -1010,7 +1046,7 @@ test_that("matrixset 'wide' loop works", {
       M <- unname(M)
       tbl <- tibble::tibble(mean(M[[2]]/M[[1]]),
                             min(M[[2]]/M[[1]]))
-      colnames(tbl) <- paste0(c("FC_mean ", "~min(.i2/.i1) "), dots_for_names, "1")
+      colnames(tbl) <- paste0(c("FC_mean ", "min(.i2/.i1) "), dots_for_names, "1")
       tbl
     })
     dplyr::bind_rows(tmp, .id = ".rowname")
@@ -1025,7 +1061,7 @@ test_that("matrixset 'wide' loop works", {
   grfc <- apply_row_dfw(column_group_by(student_results, program),
                         FC_mean = ~mean(.i[[2]]/.i[[1]]),
                         ~min(.i[[2]]/.i[[1]]), .matrix_wise = FALSE, .input_list = TRUE)
-  colnames(fc_ref)[4] <- "~min(.i[[2]]/.i[[1]])"
+  colnames(fc_ref)[4] <- "min(.i[[2]]/.i[[1]])"
   expect_identical(grfc, fc_ref)
 
 
@@ -1072,7 +1108,7 @@ test_that("matrixset 'wide' loop works", {
   expect_equal(grfc, fc_ref)
 
 
-  grfc <- apply_column_dfw(row_group_by(student_results, class), FC_mean = ~ mean(.j2/.j1), FC_min = min(.j2/.j1), .matrix_wise = FALSE)
+  grfc <- apply_column_dfw(row_group_by(student_results, class), FC_mean = ~ mean(.j2/.j1), FC_min = ~min(.j2/.j1), .matrix_wise = FALSE)
   grs <- row_group_meta(row_group_by(student_results, class))
   fc_ref_tmp <- lapply(grs$.rows, function(gr) {
     tmp <- lapply(setNames(seq(ncol(student_results)), colnames(student_results)), function(cl) {
@@ -1096,7 +1132,7 @@ test_that("matrixset 'wide' loop works", {
   grfc <- apply_column_dfw(row_group_by(student_results, class),
                            FC_mean = ~mean(.j[[2]]/.j[[1]]),
                            ~min(.j[[2]]/.j[[1]]), .matrix_wise = FALSE, .input_list = TRUE)
-  colnames(fc_ref)[4] <- "~min(.j[[2]]/.j[[1]])"
+  colnames(fc_ref)[4] <- "min(.j[[2]]/.j[[1]])"
   expect_identical(grfc, fc_ref)
 
 #DUAL GROUPING
@@ -1123,15 +1159,15 @@ test_that("matrixset matrix loop works", {
   # expect_equal(rb, rb_ref)
 
 
-  fc <- apply_matrix(student_results, FC = .m2/.m1, .matrix_wise = FALSE)
+  fc <- apply_matrix(student_results, FC = ~.m2/.m1, .matrix_wise = FALSE)
   m <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
   fc_ref <- list(FC = m[[2]]/m[[1]])
   expect_equal(fc, fc_ref)
 
 
 
-  fc <- apply_matrix_dfl(student_results, FC = rowMeans(.m2/.m1),
-                      logFC = rowMeans(log2(.m2/.m1)), .matrix_wise = FALSE)
+  fc <- apply_matrix_dfl(student_results, FC = ~rowMeans(.m2/.m1),
+                      logFC = ~rowMeans(log2(.m2/.m1)), .matrix_wise = FALSE)
   m <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
   fc_ref = list(FC = rowMeans(m[[2]]/m[[1]]), logFC = rowMeans(log2(m[[2]]/m[[1]])))
   fc_ref <- tibble::tibble(FC.name = names(fc_ref$FC),
@@ -1142,8 +1178,8 @@ test_that("matrixset matrix loop works", {
 
 
 
-  fc <- apply_matrix_dfw(student_results, FC = rowMeans(.m2/.m1),
-                     logFC = rowMeans(log2(.m2/.m1)), .matrix_wise = FALSE)
+  fc <- apply_matrix_dfw(student_results, FC = ~rowMeans(.m2/.m1),
+                     logFC = ~rowMeans(log2(.m2/.m1)), .matrix_wise = FALSE)
   m <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
   fc_ref = c(rowMeans(m[[2]]/m[[1]]), rowMeans(log2(m[[2]]/m[[1]])))
   names(fc_ref) <- paste(rep(c("FC", "logFC"), each = 20), names(fc_ref))
@@ -1166,7 +1202,7 @@ test_that("matrixset matrix loop works", {
 
 
 
-  fc <- apply_matrix(row_group_by(student_results, teacher), FC = .m2/.m1,
+  fc <- apply_matrix(row_group_by(student_results, teacher), FC = ~.m2/.m1,
                   .matrix_wise = FALSE)
   m <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
   fc_ref <- row_group_meta(row_group_by(student_results, teacher))
@@ -1177,7 +1213,7 @@ test_that("matrixset matrix loop works", {
 
 
 
-  fc <- apply_matrix_dfl(row_group_by(student_results, teacher), FC = colMeans(.m2/.m1),
+  fc <- apply_matrix_dfl(row_group_by(student_results, teacher), FC = ~colMeans(.m2/.m1),
                       .matrix_wise = FALSE)
   m <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
   fc_ref <- row_group_meta(row_group_by(student_results, teacher))
@@ -1191,7 +1227,7 @@ test_that("matrixset matrix loop works", {
 
 
 
-  fc <- apply_matrix_dfw(row_group_by(student_results, teacher), FC = colMeans(.m2/.m1),
+  fc <- apply_matrix_dfw(row_group_by(student_results, teacher), FC = ~colMeans(.m2/.m1),
                       .matrix_wise = FALSE)
   m <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
   fc_ref <- row_group_meta(row_group_by(student_results, teacher))
@@ -1217,7 +1253,7 @@ test_that("matrixset matrix loop works", {
 
 
 
-  fc <- apply_matrix(column_group_by(student_results, program), FC = .m2/.m1,
+  fc <- apply_matrix(column_group_by(student_results, program), FC = ~.m2/.m1,
                   .matrix_wise = FALSE)
   m <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
   fc_ref <- column_group_meta(column_group_by(student_results, program))
@@ -1228,7 +1264,7 @@ test_that("matrixset matrix loop works", {
 
 
 
-  fc <- apply_matrix_dfl(column_group_by(student_results, program), FC = rowMeans(.m2/.m1),
+  fc <- apply_matrix_dfl(column_group_by(student_results, program), FC = ~rowMeans(.m2/.m1),
                       .matrix_wise = FALSE)
   m <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
   fc_ref <- column_group_meta(column_group_by(student_results, program))
@@ -1242,7 +1278,7 @@ test_that("matrixset matrix loop works", {
 
 
 
-  fc <- apply_matrix_dfw(column_group_by(student_results, program), FC = rowMeans(.m2/.m1),
+  fc <- apply_matrix_dfw(column_group_by(student_results, program), FC = ~rowMeans(.m2/.m1),
                       .matrix_wise = FALSE)
   m <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
   fc_ref <- column_group_meta(column_group_by(student_results, program))
@@ -1257,7 +1293,7 @@ test_that("matrixset matrix loop works", {
 
 
   fc <- apply_matrix(column_group_by(row_group_by(student_results, teacher, class), program),
-                     .m2/.m1, .matrix_wise = FALSE)
+                     ~.m2/.m1, .matrix_wise = FALSE)
   grs_row <- row_group_meta(row_group_by(student_results, teacher, class))
   grs_col <- column_group_meta(column_group_by(student_results, program))
   m <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
@@ -1277,7 +1313,7 @@ test_that("matrixset matrix loop works", {
 
 
   fc <- apply_matrix_dfl(column_group_by(row_group_by(student_results, teacher, class), program),
-                         rowMeans(.m2/.m1), .matrix_wise = FALSE)
+                         ~rowMeans(.m2/.m1), .matrix_wise = FALSE)
   grs_row <- row_group_meta(row_group_by(student_results, teacher, class))
   grs_col <- column_group_meta(column_group_by(student_results, program))
   m <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]
@@ -1301,7 +1337,7 @@ test_that("matrixset matrix loop works", {
 
 
   fc <- apply_matrix_dfw(column_group_by(row_group_by(student_results, teacher, class), program),
-                         FC = colMeans(.m2/.m1), .matrix_wise = FALSE, .force_name = TRUE)
+                         FC = ~colMeans(.m2/.m1), .matrix_wise = FALSE, .force_name = TRUE)
   grs_row <- row_group_meta(row_group_by(student_results, teacher, class))
   grs_col <- column_group_meta(column_group_by(student_results, program))
   m <- student_results[,,,keep_annotation = FALSE, warn_class_change = FALSE]

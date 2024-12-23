@@ -101,7 +101,7 @@ remove_matrix.matrixset <- function(.ms, matrix)
   nA <- nargs()
 
   if (nA == 0L)
-    stop("This special case of 'remove_matrix' can only be called inside 'mutate_mat()'")
+    stop("This special case of 'remove_matrix' can only be called inside 'mutate_matrix()'")
 
   if (nA < 2) {
     if (!has_ms) stop("argument \".ms\" is missing")
@@ -126,131 +126,162 @@ remove_matrix.matrixset <- function(.ms, matrix)
 }
 
 
+
+
+
+
+#' EvalScopeOfApply: Class to handle evaluation environment scope specific to
+#' mutate_matrix.
+#'
+#' It is a child of EvalScope, to which it adds the following functionalities:
+#'
+#' * Provides remove_matrix() as a context function, so that it can be used to
+#'   remove a matrix within mutate_matrix
+#' * Makes the matrix names available as active bindings, so they can be used
+#'   in expressions to build other matrices, or update them.
+#' * Defines eval_and_assign, which is like eval of the parent class, but this
+#'   one also assigns the new matrix (or an updated version of a matrixset
+#'   matrix) to the ._elms_env scope environment.
+#'
+#' Contrarily to the parent class where eval() returns the desired outcome,
+#' the active binding `updated_matrices` is the way to extract the final matrix
+#' set.
+#'
+#' @docType class
+#' @noRd
+#' @name EvalScopeOfMutate
+EvalScopeOfMutate <- R6::R6Class(
+  "EvalScopeOfMutate",
+
+  inherit = EvalScope,
+
+  public = list(
+
+
+    #' Constructor for EvalScopeOfApply
+    #'
+    #' @param .ms         The matrix_set object in which to find matrices or
+    #'                    create new ones in and thus, to which the
+    #'                    EvalScopeOfMutate class is assigned to
+    #' @param .env        The calling environment of the function that needs to
+    #'                    use EvalScopeOfMutate This is typically the environment
+    #'                    in which mutate_matrix was called from.
+    #'
+    initialize = function(.ms, env) {
+
+      super$initialize(.ms, env)
+
+      private$._mats <- .subset2(.ms, "matrix_set")
+      private$._mat_names <- .matrixnames(.ms)
+
+      fn <- function() {}
+      for (field in .matrixnames(.ms)) {
+        body(fn) <- substitute(private$._mats[[fld]], list(fld = field))
+        makeActiveBinding(field, fn, env = private$._enclos_env)
+      }
+
+      # a filter in mutate_matrix will handle this special object
+      private$._context_env$remove_matrix <- function() {
+        ._NULL_
+      }
+
+    },
+
+
+    #' Evaluate an expression in the enclosing environment and assigns the
+    #' result in ._elms_env enclosing environment.
+    #'
+    #' Update active bindings of the original matrix names if mutate_matrix is
+    #' used to update them.
+    #'
+    #' @returns
+    #' used for its side effect
+    eval_and_assign = function(mat_name) {
+
+      assign(mat_name,
+             self$eval(),
+             envir = private$._elms_env)
+
+
+      if (mat_name %in% names(private$._enclos_env)) {
+        fn <- function() {}
+        body(fn) <- substitute(private$._elms_env[[fld]], list(fld = mat_name))
+        makeActiveBinding(mat_name, fn, env = private$._enclos_env)
+      }
+
+    }
+
+  ),
+
+
+
+  active = list(
+
+    #' Active Bindings
+    #'
+    #' @field updated_matrices  Active bindings to extract both the original
+    #'                          matrices and the new matrices, as well as the
+    #'                          updated original matrices (if applicable). Makes
+    #'                          sure to use the most up-to-date version of the
+    #'                          original matrices.
+    updated_matrices = function() {
+      new_mat_nms <- names(private$._elms_env)
+      orig_mat_nms <- setdiff(private$._mat_names, new_mat_nms)
+
+      c(private$._mats[orig_mat_nms], as.list(private$._elms_env))
+    }
+
+  ),
+
+
+
+  private = list(
+
+    ._mat_names = NULL  # names of the original matrices
+
+  )
+
+)
+
+
+
+
+
+#' Evaluates the expressions
+#'
+#' Evaluates the expressions via the EvalScopeOfMutate class, as well as
+#' assessing if some row or column annotations share the same name.
+#'
+#' @field quos quosures that contains the expressions to evaluate.
+#' @field .ms  the matrixset object where to evaluate the expressions
+#' @field .env The calling environment of the mutate_matrix call.
+#'
+#' @returns
+#' a list of matrices
+#'
+#' @noRd
 .mutate_mat <- function(quos, .ms, .env)
 {
-  cl <- sys.call()
-  cash_status$set(cl)
-  on.exit(cash_status$clear(cl))
 
-  .mats <- .ms$matrix_set
-  .rowinf <- .ms$row_info
-  .colinf <- .ms$column_info
-
-  if (length(same <- intersect(names(.rowinf), names(.colinf))) > 0) {
+  if (length(same <- intersect(.rowtraits(.ms), .coltraits(.ms))) > 0) {
     warning(paste0("The following traits are found in both rows and columns:\n  ",
                    paste(encodeString(same, quote = "\""), collapse = ", "),
                    ".\n  If any of these are needed, you should use context functions to make sure to use the correct ones."))
   }
 
 
-
-
-
-
-  top <- new.env()
-  flush_matrix <- function() ._NULL_
-  assign("remove_matrix", flush_matrix, top)
-  middle <- new.env(parent = top)
-  middle <- list2env(.rowinf, middle)
-  middle <- list2env(.colinf, middle)
-  funs <- new.env(parent = middle)
-  bottom <- new.env(parent = funs)
-  bottom <- list2env(.mats, bottom)
-  mask <- rlang::new_data_mask(bottom, top = top)
-  mask$.data <- rlang::as_data_pronoun(mask)
-
-
-
-  funs[["current_row_info"]] <- function() {
-    funs$.__row_info
-  }
-
-  funs[["current_column_info"]] <- function() {
-    funs$.__column_info
-  }
-
-  funs[["current_n_row"]] <- function() {
-    nrow(funs$.__row_info)
-  }
-
-  funs[["current_n_column"]] <- function() {
-    nrow(funs$.__column_info)
-  }
-
-  funs[["current_row_name"]] <- function() {
-    funs$.__row_name
-  }
-
-  funs[["row_pos"]] <- function() {
-    funs$.__row_idx
-  }
-
-  funs[["row_rel_pos"]] <- function() {
-    seq_len(nrow(funs$.__row_info))
-  }
-
-  funs[["current_column_name"]] <- function() {
-    funs$.__column_name
-  }
-
-  funs[["column_pos"]] <- function() {
-    funs$.__col_idx
-  }
-
-  funs[["column_rel_pos"]] <- function() {
-    seq_len(nrow(funs$.__column_info))
-  }
-
-
-  context_enclos("current_row_info", funs)
-  context_enclos("current_column_info", funs)
-  context_enclos("current_n_row", funs)
-  context_enclos("current_n_column", funs)
-  context_enclos("current_row_name", funs)
-  context_enclos("current_column_name", funs)
-  context_enclos("row_pos", funs)
-  context_enclos("row_rel_pos", funs)
-  context_enclos("column_pos", funs)
-  context_enclos("column_rel_pos", funs)
-
-
-  funs[[".__row_info"]] <- .rowinf
-  funs[[".__row_idx"]] <- seq_len(nrow(.ms))
-  funs[[".__row_name"]] <- rownames(.ms)
-  funs[[".__column_info"]] <- .colinf
-  funs[[".__col_idx"]] <- seq_len(ncol(.ms))
-  funs[[".__column_name"]] <- colnames(.ms)
-
-
-
-
-
-
-
-
-
-
-  # top <- new.env()
-  # flush_matrix <- function() ._NULL_
-  # assign("remove_matrix", flush_matrix, top)
-  #
-  # middle <- new.env(parent = top)
-  # middle <- list2env(.rowinf, middle)
-  # middle <- list2env(.colinf, middle)
-  #
-  # bottom <- new.env(parent = middle)
-  # bottom <- list2env(.mats, bottom)
-  #
-  # mask <- rlang::new_data_mask(bottom, top = top)
-  # mask$.data <- rlang::as_data_pronoun(mask)
+  scope <- EvalScopeOfMutate$new(.ms, .env)
 
   for (i in seq_along(quos)) {
-    assign(names(quos)[i], rlang::eval_tidy(quos[[i]], mask, .env), bottom)
+    scope$register_function(rlang::quo_get_expr(quos[[i]]))
+    scope$eval_and_assign(names(quos)[i])
   }
 
-  as.list(bottom)
+  scope$updated_matrices
 
 }
+
+
 
 
 #' Create/modify/delete matrices from a `matrixset` object
@@ -317,11 +348,6 @@ mutate_matrix.matrixset <- function(.ms, ...)
 
   nms <- .matrixnames(.ms)
   all_nms <- unique(c(nms, new_nms), fromLast = TRUE)
-
-  # for (i in seq_along(quosures)) {
-  #   quosures[[i]] <- norm_call(quosures[[i]], NULL, FALSE)
-  # }
-
 
   candidates <- .mutate_mat(quosures, .ms, rlang::caller_env())
   candidates <- candidates[all_nms]

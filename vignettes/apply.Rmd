@@ -108,9 +108,9 @@ library(magrittr)
 library(purrr)
 out <- animals_ms %>% 
    apply_matrix(exp,
-                mean(.m, trim=.1),
+                ~ mean(.m, trim=.1),
                 foo=asinh,
-                pow = 2^.m,
+                pow = ~ 2^.m,
                 reg = ~ {
                   is_alive <- !is_extinct
                   lm(.m ~ is_alive + class)
@@ -142,9 +142,9 @@ Let's now showcase the row/column version with a `apply_column()` example:
 ```{r}
 out <- animals_ms %>% 
    apply_column(exp,
-                mean(.j, trim=.1),
+                ~ mean(.j, trim=.1),
                 foo=asinh,
-                pow = 2^.j,
+                pow = ~ 2^.j,
                 reg = ~ {
                   is_alive <- !is_extinct
                   lm(.j ~ is_alive + class)
@@ -167,9 +167,9 @@ matrix/vector subsets.
 animals_ms %>% 
   row_group_by(class) %>% 
   apply_matrix(exp,
-               mean(.m, trim=.1),
+               ~ mean(.m, trim=.1),
                foo=asinh,
-               pow = 2^.m,
+               pow = ~ 2^.m,
                reg = ~ {
                  is_alive <- !is_extinct
                  lm(.m ~ is_alive)
@@ -206,7 +206,7 @@ Below is the `_dfl` flavor in action. We point out two things to notice:
 
 ```{r}
 animals_ms %>% 
-    apply_matrix_dfl(mean(.m, trim=.1),
+    apply_matrix_dfl(~ mean(.m, trim=.1),
                      MAD=mad,
                      reg = ~ {
                          is_alive <- !is_extinct
@@ -216,7 +216,7 @@ animals_ms %>%
 
 ```{r}
 animals_ms %>% 
-    apply_column_dfl(mean(.j, trim=.1),
+    apply_column_dfl(~ mean(.j, trim=.1),
                      MAD=mad,
                      reg = ~ {
                          is_alive <- !is_extinct
@@ -231,14 +231,14 @@ The difference between the two lies when the vectors are of length > 1.
 
 ```{r}
 animals_ms %>% 
-    apply_row_dfl(rg = range(.i),
-                  qt = quantile(.i, probs = c(.25, .75)))   
+    apply_row_dfl(rg = ~ range(.i),
+                  qt = ~ quantile(.i, probs = c(.25, .75)))   
 ```
 
 ```{r}
 animals_ms %>% 
-    apply_row_dfw(rg = range(.i),
-                  qt = quantile(.i, probs = c(.25, .75)))   
+    apply_row_dfw(rg = ~ range(.i),
+                  qt = ~ quantile(.i, probs = c(.25, .75)))   
 ```
 
 We can observe three things:
@@ -275,7 +275,7 @@ For instance, a simple way of knowing the number of animals per group could be
 ```{r}
 animals_ms %>% 
     row_group_by(class) %>% 
-    apply_matrix_dfl(n=current_n_row()) %>% 
+    apply_matrix_dfl(n = ~ current_n_row()) %>% 
     .$msr
 ```
 
@@ -313,7 +313,7 @@ reg_expr <- expr({
 })
 
 animals_ms %>% 
-    apply_column_dfl(mean(.j, trim=.1),
+    apply_column_dfl(~ mean(.j, trim=.1),
                      MAD=mad,
                      reg = ~ !!reg_expr)
 ```

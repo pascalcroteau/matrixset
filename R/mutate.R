@@ -255,6 +255,11 @@ EvalScopeOfMutate <- R6::R6Class(
 #' @field quos quosures that contains the expressions to evaluate.
 #' @field .ms  the matrixset object where to evaluate the expressions
 #' @field .env The calling environment of the mutate_matrix call.
+#'
+#' @returns
+#' a list of matrices
+#'
+#' @noRd
 .mutate_mat <- function(quos, .ms, .env)
 {
 

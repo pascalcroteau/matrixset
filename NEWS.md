@@ -1,5 +1,33 @@
 # matrixset (development version)
 
+## Changes to `apply_matrix()`, `apply_row()` and `apply_column()`
+
+Note that the changes also apply to the dfl/dfw variants.
+
+### Behavior changes
+
+* The functions are transitioning into taking only functions and formulas and
+    no longer expressions. This change was made since the usage of formula and
+    expression was almost identical, and the formula is clearer. The 
+    documentation has been updated to reflect this and the lifecyle as well.
+    
+    While this is currently still allowed, a warning will be issued that a
+    formula should be used instead.
+* The function labels - what is used as column names when simplifying the 
+    results - no longer includes the "~" in the name when an expression was
+    provided as a formula
+* The `NULL` matrices are no longer formatted during the simplification process.
+    From now on, `NULL` is always returned for these matrices.
+    
+    For now, this is a soft deprecation and a lifecycle warning is issued.
+
+### Internal changes
+
+Yet again, the functions have been refactored to improve both on clarity and
+performance. The functions are now implemented using R6 classes. A substantial
+performance has been noticed, between 2x to 20x faster, depending on the apply
+flavor.
+
 ## Improved functionality
 
 It is now possible to expand `matrixset` objects following a join operation even

@@ -107,7 +107,7 @@ mrm_plus2015_ratio %>%
     # to average the triplicates
     row_group_by(CalibrationPoint) %>%
     # send the analyte averaged values in the annotation frame
-    annotate_column_from_apply(foo = mean(.j), .matrix = "area_log_ratio") %>% 
+    annotate_column_from_apply(foo = ~ mean(.j), .matrix = "area_log_ratio") %>% 
     column_info() %>%
     select(-`NA`) %>% # discards the blanks
     pivot_longer(Point_1:Point_7, names_to = "CalibrationPoint", values_to = "Rep_avr") %>%
@@ -178,7 +178,7 @@ shown below.
 
 ```{r, fig.width=7, fig.height=5, message = FALSE}
 mrm_plus2015 %>% 
-    apply_row_dfl(poor = sum(.i < 50000),
+    apply_row_dfl(poor = ~ sum(.i < 50000),
                   .matrix = c("light_area", "heavy_area")) %>% 
     bind_rows(.id = "area") %>% 
     ggplot(aes(.rowname, poor, fill = area)) + 
@@ -201,11 +201,11 @@ expressions.
 
 
 ```{r, fig.width=7, fig.height=7, message = FALSE}
-box_expr <- list(ymin = expr(min(.i)), 
-                 lower = expr(quantile(.i, probs = .25, names = FALSE)),
-                 middle = expr(median(.i)),
-                 upper = expr(quantile(.i, probs = .75, names = FALSE)),
-                 ymax = expr(max(.i)))
+box_expr <- list(ymin = expr(~ min(.i)), 
+                 lower = expr(~ quantile(.i, probs = .25, names = FALSE)),
+                 middle = expr(~ median(.i)),
+                 upper = expr(~ quantile(.i, probs = .75, names = FALSE)),
+                 ymax = expr(~ max(.i)))
 
 
 mrm_plus2015_ratio %>% 
@@ -232,11 +232,11 @@ type (blank or not) and random batch effect for calibration point.
 ```{r, message=FALSE}
 # library(lme4)
 diff <- mrm_plus2015_ratio %>% 
-    apply_column_dfl(p_cov = predict(lm(.j ~ 1 + SampleType + point),
+    apply_column_dfl(p_cov = ~ predict(lm(.j ~ 1 + SampleType + point),
                                      type = "response"),
                      #p_cov = predict(lmer(.j ~ 1 + SampleType + (1|point)),
                      #                type = "response"),
-                     p_null = predict(lm(.j ~ 1)),
+                     p_null = ~ predict(lm(.j ~ 1)),
                      .matrix = "area_log_ratio") %>% 
     .[[1]] %>% 
     mutate(d = p_cov - p_null) %>% 

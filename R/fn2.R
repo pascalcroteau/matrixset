@@ -2526,7 +2526,7 @@ FnMaker <- R6::R6Class(
 
       }
 
-      lifecycle::deprecate_warn("0.3.0.9008",
+      lifecycle::deprecate_warn("0.4.0",
                                 I("Providing expressions"),
                                 with = I("a formula"),
                                 always = TRUE)
@@ -2554,6 +2554,8 @@ eval_function <- function(.ms, ..., margin = NULL, matidx = NULL,
                           .simplify = "no", .force_name = FALSE,
                           env = rlang::caller_env(2))
 {
+  lifecycle::deprecate_soft("0.4.0", I("Formatting NULL matrices"), user_env = env)
+
   quosures <- rlang::enquos(..., .named = TRUE, .ignore_empty = "all")
   fn_maker <- FnMaker$new(.ms, quosures, margin, .simplify)
 

@@ -2526,6 +2526,14 @@ FnMaker <- R6::R6Class(
 
       }
 
+      lifecycle::deprecate_warn("0.3.0.9008",
+                                I("Providing expressions"),
+                                with = I("a formula"),
+                                always = TRUE)
+      return(rlang::quo_get_expr(x))
+
+
+      # will be active once the lifecycle permanently disallows expressions
       rlang::abort("Functions must be provided as formulas or function names.")
 
     }
@@ -2662,17 +2670,19 @@ eval_function <- function(.ms, ..., margin = NULL, matidx = NULL,
 #'     the following way:
 #'
 #'    * a function name, e.g., `mean`.
-#'    * a function call, where you can use `r var_lab_mat` to represent the current matrix
-#'       (for `apply_matrix`), `r var_lab_row` to represent the current row (for `apply_row`)
-#'       and `r var_lab_col` for the current column (`apply_column`). Bare names of object
-#'       traits can be used as well. For instance, `lm(.i ~ program)`.
+#'    * An anonymous function, e.g., `function(x) mean(x)` or `\(x) mean(x)`
+#'    * a formula expression, which may represent a function call, where you can
+#'       use `r var_lab_mat` to represent the current matrix (for `apply_matrix`),
+#'       `r var_lab_row` to represent the current row (for `apply_row`) and
+#'       `r var_lab_col` for the current column (`apply_column`). Bare names of
+#'       object traits can be used as well. For instance, `~ lm(.i ~ program)`.
 #'
 #'       The pronouns are also available for the multivariate version, under
 #'       certain circumstances, but they have a different meaning. See the
 #'       "Multivariate" section for more details.
-#'    * a formula expression. The pronouns `r var_lab_mat`, `r var_lab_row` and
-#'       `r var_lab_col` can be used as well. See examples to see the usefulness
-#'       of this.
+#'    * `r lifecycle::badge("superseded")`  an expression. Superseded in favor
+#'       of using a formula. The usage is almost identical and the formula is
+#'       more clear.
 #'
 #'    The expressions can be named; these names will be used to provide names to
 #'    the results.

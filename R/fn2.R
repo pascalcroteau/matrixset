@@ -2579,7 +2579,7 @@ eval_function <- function(.ms, ..., margin = NULL, matidx = NULL,
 #' row/column. The functions can be applied to all matrices or only a subset.
 #'
 #' The `dfl`/`dfw` versions differ in their output format and when possible,
-#' always return a [tibble()].
+#' always return a [tibble::tibble()].
 #'
 #' Empty matrices are simply left unevaluated. How that impacts the returned
 #' result depends on which flavor of apply_* has been used. See \sQuote{Value}

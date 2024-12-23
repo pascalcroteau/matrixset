@@ -176,7 +176,7 @@ The \code{apply_row}/\code{apply_column} functions do the same but separately fo
 row/column. The functions can be applied to all matrices or only a subset.
 
 The \code{dfl}/\code{dfw} versions differ in their output format and when possible,
-always return a \code{\link[=tibble]{tibble()}}.
+always return a \code{\link[tibble:tibble]{tibble::tibble()}}.
 
 Empty matrices are simply left unevaluated. How that impacts the returned
 result depends on which flavor of apply_* has been used. See \sQuote{Value}

@@ -787,7 +787,7 @@ EvalScope <- R6::R6Class(
 #'
 #' @docType class
 #' @noRd
-#' @name EvalScope
+#' @name EvalScopeOfApply
 EvalScopeOfApply <- R6::R6Class(
   "EvalScopeOfApply",
 

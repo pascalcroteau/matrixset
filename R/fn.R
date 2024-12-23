@@ -1,264 +1,61 @@
 
 
 
-# TEST USING COLUMN TRAIT IN COLUMN LOOP (AND ROW)
-# test same context as margin loop
-
-
-
-
-norm_call <- function(quo, var, .convert_name = TRUE)
+`%.==.%` <- function(x, y)
 {
-  expr <- rlang::quo_get_expr(quo)
-
-  if (rlang::is_formula(expr)) {
-    expr <- rlang::f_rhs(expr)
-    if (!(is.call(expr) && is(expr, "{"))) expr <- rlang::call2("{", expr)
-  }
-
-  colon <- FALSE
-  expr_orig <- expr
-  if (rlang::is_call(expr, "::")) {
-    # pkg <- expr[[2]]
-    expr <- expr[[3]]
-    colon <- TRUE
-  }
-  if (is.name(expr)) {
-    if (!.convert_name)
-      stop("function names are not accepted in this context", call. = FALSE)
-    # expr <- rlang::call2(expr, !!!rlang::syms(var))
-    expr <- if (colon) rlang::call2(expr_orig, !!!rlang::syms(var)) else rlang::call2(expr, !!!rlang::syms(var))
-  }
-  # if (colon) expr <- call("::", pkg, expr)
-  rlang::quo_set_expr(quo, expr)
+  if (is.null(x)) FALSE else if (is.null(y)) FALSE else x == y
 }
 
 
 
-assess_fun_names <- function(nms, tag, simplify)
+#' Determines tag value
+#'
+#' Determines and return the pronoun available to use in the apply* function.
+#'
+#' @param margin    One of 0 (no margin; whole matrix), 1 (row) or 2 (column)
+#'
+#' @returns
+#' string, the pronoun
+#'
+#' @noRd
+get_var_tag <- function(margin)
 {
-  if (is.na(tag) || !simplify) return(invisible(NULL))
-  if (any(nms == tag))
-    stop(paste("the function results can't be named", shQuote(tag)))
-}
-
-
-
-
-
-.tag <- function(mg) switch(mg, "row" = .rowtag, "col" = .coltag)
-margin <- function(mg) switch (mg, "row" = nrow, "col" = ncol)
-margin_nms <- function(mg) switch (mg, "row" = rownames, "col" = colnames)
-margin_info <- function(mg) switch (mg, "row" = column_info, "col" = row_info)
-margin_info_compl <- function(mg) switch (mg, "row" = row_info, "col" = column_info)
-group_where <- function(mg) switch (mg, "row" = column_group_where, "col" = row_group_where)
-group_meta <- function(mg) switch (mg, "row" = column_group_meta, "col" = row_group_meta)
-margin_group_vars <- function(mg) switch (mg, "row" = column_group_vars, "col" = row_group_vars)
-
-
-
-set_env_expr <- quote({
-  top <- new.env()
-  middle <- new.env(parent = top)
-  funs <- new.env(parent = middle)
-  bottom <- new.env(parent = funs)
-  mask <- rlang::new_data_mask(bottom, top = top)
-  mask$.data <- rlang::as_data_pronoun(mask)
-})
-
-
-context_matidx <- quote({
-  if (is.null(matidx)) {
-    nmat <- .nmatrix(ms)
-    matidx <- seq_len(nmat)
-    seq_mats <- matidx
-    matnms <- matrixnames(ms)
+  if (is.null(margin) || margin == 0) {
+    var_lab_mat
+  } else if (margin == 1) {
+    var_lab_row
   } else {
-    matidx <- index_to_integer(matidx, nmatrix(ms), matrixnames(ms))
-    nmat <- length(matidx)
-    seq_mats <- seq_len(nmat)
-    matnms <- matrixnames(ms)[matidx]
+    var_lab_col
   }
-  seq_mats <- stats::setNames(seq_mats, matnms)
-})
-
-
-
-funs_context_expr <- quote({
-  funs[["current_row_info"]] <- function() {
-    funs$.__row_info
-  }
-
-  funs[["current_column_info"]] <- function() {
-    funs$.__column_info
-  }
-
-  funs[["current_n_row"]] <- function() {
-    nrow(funs$.__row_info)
-  }
-
-  funs[["current_n_column"]] <- function() {
-    nrow(funs$.__column_info)
-  }
-
-  funs[["current_row_name"]] <- function() {
-    funs$.__row_name
-  }
-
-  funs[["row_pos"]] <- function() {
-    funs$.__row_idx
-  }
-
-  funs[["row_rel_pos"]] <- function() {
-    seq_len(nrow(funs$.__row_info))
-  }
-
-  funs[["current_column_name"]] <- function() {
-    funs$.__column_name
-  }
-
-  funs[["column_pos"]] <- function() {
-    funs$.__column_idx
-  }
-
-  funs[["column_rel_pos"]] <- function() {
-    seq_len(nrow(funs$.__column_info))
-  }
-})
-
-
-context_enclos_expr <- quote({
-  context_enclos("current_row_info", funs)
-  context_enclos("current_column_info", funs)
-  context_enclos("current_n_row", funs)
-  context_enclos("current_n_column", funs)
-  context_enclos("current_row_name", funs)
-  context_enclos("current_column_name", funs)
-  context_enclos("row_pos", funs)
-  context_enclos("row_rel_pos", funs)
-  context_enclos("column_pos", funs)
-  context_enclos("column_rel_pos", funs)
-})
-
-
-
-
-context_funs_assign_expr <- function(mrg, inf_sym, idx_expr, name_expr)
-{
-  switch(mrg,
-         row = substitute({
-           funs[[".__row_info"]] <- inf
-           funs[[".__row_idx"]] <- idx
-           funs[[".__row_name"]] <- nms
-         },
-         list(inf = inf_sym,
-              idx = idx_expr,
-              nms = name_expr)),
-
-         substitute({
-           funs[[".__column_info"]] <- inf
-           funs[[".__column_idx"]] <- idx
-           funs[[".__column_name"]] <- nms
-         },
-         list(inf = inf_sym,
-              idx = idx_expr,
-              nms = name_expr)))
 }
 
 
 
+#' Flatten and set names of a list
+#'
+#' @description
+#' Removes a layer to a list. Once flattened, sets the names of the flattened
+#' list, possibly using the list/vector `nm` to do so.
+#'
+#' @details
+#' If provided, `nm` is used to concatenate its values to the original names of
+#' `x`.
+#'
+#' @param x    list to flatten
+#' @param nm   vector or list of names to set the names of the flattened list.
+#'
+#'
+#' @noRd
+flatten_and_name <- function(x, nm) {
 
-eval_fun_margin <- function(ms, mrg, var_lab, ..., matidx, .simplify, env)
-{
-  cl <- sys.call()
-  cash_status$set(cl)
-  on.exit(cash_status$clear(cl))
-
-  nmat <- NULL
-  seq_mats <- NULL
-  matnms <- NULL
-  mask <- NULL
-
-  if (is.null(ms$matrix_set)) return(NULL)
-
-  N <- margin(mrg)(ms)
-  inf <- margin_info(mrg)(ms)
-  inf_compl <- margin_info_compl(mrg)(ms)
-
-  mrg_compl <- switch(mrg, row = "col", "row")
-
-  eval(context_matidx)
-
-  quosures <- rlang::enquos(..., .named = TRUE, .ignore_empty = "all")
-
-
-  nmfn <- names(quosures)
-  assess_fun_names(nmfn, .tag(mrg)(ms), .simplify)
-
-  nfn <- length(quosures)
-  seq_fn <- stats::setNames(seq_len(nfn), nmfn)
-  for (i in seq_fn) {
-    quosures[[i]] <- norm_call(quosures[[i]], var_lab)
+  n <- length(x)
+  nms <- names(x)
+  r <- c()
+  for (i in 1:n) {
+    nmsi <- if (is.null(nm[[i]])) nms[i] else paste(nms[i], nm[[i]])
+    r <- c(r, setNames(x[[i]], nmsi))
   }
-
-  eval(set_env_expr)
-
-  eval(funs_context_expr)
-  eval(context_enclos_expr)
-
-
-
-
-  v <- vector('list', nmat)
-  names(v) <- matnms
-
-  vm <- vector('list', N)
-  names(vm) <- margin_nms(mrg)(ms)
-
-  vf <- vector('list', nfn)
-  names(vf) <- nmfn
-
-  top <- list2env(inf, top)
-
-  eval(context_funs_assign_expr(mrg_compl, quote(inf),
-                                quote(seq_len(margin(mrg_compl)(ms))),
-                                quote(margin_nms(mrg_compl)(ms))))
-
-  for (k in seq_mats) {
-
-    M <- ms$matrix_set[[matidx[[k]]]]
-
-    for (j in 1:N) {
-
-      inf_compl_j <- inf_compl[j, , drop = FALSE]
-      top <- list2env(inf_compl_j, top)
-
-      eval(context_funs_assign_expr(mrg, quote(inf_compl_j), quote(j),
-                                    quote(margin_nms(mrg)(ms)[j])))
-
-      if (!is.null(M)) {
-        mat <- if (mrg == "row") M[j, , drop = TRUE] else M[, j, drop = TRUE]
-        middle[[var_lab]] <- mat
-      }
-
-      for (vidx in seq_fn) {
-
-        if (is.null(M)) {
-          vf[vidx] <- list(NULL)
-        } else {
-          vf[[vidx]] <- rlang::eval_tidy(quosures[[vidx]], mask, env)
-        }
-
-      }
-      vm[[j]] <- vf
-    }
-
-    v[[k]] <- vm
-
-  }
-
-
-  v
+  r
 
 }
 
@@ -266,1239 +63,2510 @@ eval_fun_margin <- function(ms, mrg, var_lab, ..., matidx, .simplify, env)
 
 
 
-eval_fun_margin_grp <- function(ms, mrg, var_lab, ..., matidx, .simplify, env)
-{
-  cl <- sys.call()
-  cash_status$set(cl)
-  on.exit(cash_status$clear(cl))
+#' LoopStruct: Class to handle apply-implied looping structure
+#'
+#' This class determines the looping structure behind the apply_* calls. It
+#' provides the template of the loops to perform, but is not performing them.
+#'
+#' The looping structure consists of:
+#'
+#' * Information on if function(s) are evaluated on each matrix sequentially, or
+#'   if the whole matrix set is used as input
+#' * Information on when the whole matrix set is the function input, if it is in
+#'   list form, or if each matrix is to be accessed individually
+#' * The index of of the matrices of the matrix set to use as input (regardless
+#'   of _how_ they they are accessed by the function(s) to be evaluated)
+#' * Information on margins that are looped upon and why:
+#'
+#'     - Information on whether looping is even needed. Available globally and
+#'       for each margin.
+#'     - There is a distinction made on whether a margin loop is due to an
+#'       explicit request (e.g., there will be row looping for apply_row) vs.
+#'       grouping induced (e.g., there will be row looping involved in
+#'       apply_column(row_group_by(object, ...))). This information is handled
+#'       by LoopStruct
+#'     - The margin indexes to use in a loop iteration.
+#'     - In the case of grouping, the grouping basis tibble that contains the
+#'       group IDs.
+#'     - Which margin is looped on first. Typically it will be row margin, but
+#'       it will be column margin if:
+#'
+#'       - There is column looping but no row looping
+#'       - There is column grouping but no row grouping
+#'
+#'       THe purpose of deciding loop order is for optimization purposes.
+#'
+#' @docType class
+#' @noRd
+#' @name LoopStruct
+LoopStruct <- R6::R6Class(
+  "LoopStruct",
 
-  nmat <- NULL
-  seq_mats <- NULL
-  matnms <- NULL
-  mask <- NULL
-
-  if (is.null(ms$matrix_set)) return(NULL)
-
-  N <- margin(mrg)(ms)
-  inf <- margin_info(mrg)(ms)
-  inf_compl <- margin_info_compl(mrg)(ms)
-
-  gr_idx <- group_where(mrg)(ms)
-
-  ngroup <- length(gr_idx)
-
-  mrg_compl <- switch(mrg, row = "col", "row")
-
-  eval(context_matidx)
-
-  quosures <- rlang::enquos(..., .named = TRUE, .ignore_empty = "all")
-
-
-  nmfn <- names(quosures)
-  assess_fun_names(nmfn, .tag(mrg)(ms), .simplify)
-
-  nfn <- length(quosures)
-  seq_fn <- stats::setNames(seq_len(nfn), nmfn)
-  for (i in seq_fn) {
-    quosures[[i]] <- norm_call(quosures[[i]], var_lab)
-  }
-
-  eval(set_env_expr)
-
-  eval(funs_context_expr)
-  eval(context_enclos_expr)
-
+  public = list(
 
 
-  v <- vector('list', ngroup)
+    #' Constructor for LoopStruct
+    #'
+    #' @param .ms          The matrix_set object to which the apply_* function
+    #'                     is applied to and thus, to which the LoopStruct
+    #'                     class is assigned to
+    #' @param margin       The margin to loop upon. This refers to the apply_*
+    #'                     call. A margin of 0 corresponds to apply_matrix, 1
+    #'                     to apply_row and 2 to apply_column.
+    #' @param mat_subset   matrix indices of which matrix to apply functions
+    #'                     to. It can be `NULL` (use all matrices), a `numeric`
+    #'                     vector, a `character` vector, or a `logical` vector.
+    #'
+    #'                     Via a call to ._set_matrix_idx(), the following will
+    #'                     happen, based on `mat_subset` type:
+    #'
+    #'                     *  Numeric values are coerced to integer, the same
+    #'                        way `as.integer()` does,  and hence truncation
+    #'                        towards zero occurs.
+    #'                     *  Negative integers are allowed, indicating
+    #'                        elements to leave out.
+    #'                     *  Character vectors are matched to the matrix names
+    #'                        of the object, thus turned into integers.
+    #'                     * logical vectors are _NOT_ recycled, which is an
+    #'                       important difference with usual indexing. It means
+    #'                       that the `logical` vector must match the number of
+    #'                       matrices in length.
+    #' @param mat_wise     single logical value, indicating if matrices are
+    #'                     looped upon sequentially, or available all at once as
+    #'                     input to the functions to evaluate.
+    #' @param mats_as_list relevant only if mat_wise is FALSE. Single logical
+    #'                     value, indicating if the matrices are provided as a
+    #'                     single list (TRUE), or as individual objects.
+    #'
+    #' @noRd
+    initialize = function(.ms, margin, mat_subset, mat_wise, mats_as_list)
+    {
+      private$matrix_wise_ <- mat_wise
+      private$mats_as_list_ <- mats_as_list
 
-  vmt <- vector('list', nmat)
-  names(vmt) <- matnms
+      private$matrix_subset_ <- !is.null(mat_subset)
+      private$._set_matrix_idx(.ms, mat_subset)
+      if (mat_wise) private$._set_matrix_eval_status(.ms)
 
-  vm <- vector('list', N)
-  names(vm) <- margin_nms(mrg)(ms)
+      row_wise <- margin %.==.% 1
+      col_wise <- margin %.==.% 2
 
-  vf <- vector('list', nfn)
-  names(vf) <- nmfn
+      row_grp_meta <- attr(.ms, "row_group_meta")
+      col_grp_meta <- attr(.ms, "col_group_meta")
 
-  for (gr in 1:ngroup) {
+      row_grouped <- !is.null(row_grp_meta) && !row_wise
+      col_grouped <- !is.null(col_grp_meta) && !col_wise
 
-    idx <- gr_idx[[gr]]
+      if (!row_grouped) row_grp_meta <- NULL
+      if (!col_grouped) col_grp_meta <- NULL
 
-    inf_idx <- inf[idx, , drop = FALSE]
-    top <- list2env(inf_idx, top)
+      n_group_row <- if (row_grouped) nrow(row_grp_meta) else NULL
+      n_group_col <- if (col_grouped) nrow(col_grp_meta) else NULL
 
-    eval(context_funs_assign_expr(mrg_compl, quote(inf_idx), quote(idx),
-                                  quote(margin_nms(mrg_compl)(ms)[idx])))
+      private$._row_wise <- row_wise
+      private$._col_wise <- col_wise
+      private$row_group_df_ <- row_grp_meta
+      private$col_group_df_ <- col_grp_meta
+      private$row_grouped_ <- row_grouped
+      private$col_grouped_ <- col_grouped
 
-
-    for (k in seq_mats) {
-
-      Mfull <- ms$matrix_set[[matidx[[k]]]]
-
-      if (!is.null(Mfull)) {
-        M <- if (mrg == "row") Mfull[, idx, drop = FALSE] else Mfull[idx, , drop = FALSE]
-      }
-
-      for (j in 1:N) {
-
-        inf_compl_j <- inf_compl[j, , drop = FALSE]
-        top <- list2env(inf_compl_j, top)
-
-        eval(context_funs_assign_expr(mrg, quote(inf_compl_j), quote(j),
-                                      quote(margin_nms(mrg)(ms)[j])))
-
-        if (is.null(Mfull)) {
-          for (vidx in seq_fn) vf[vidx] <- list(NULL)
-        } else {
-
-          mat <- if (mrg == "row") M[j, , drop = TRUE] else M[, j, drop = TRUE]
-          middle[[var_lab]] <- mat
-
-          for (vidx in seq_fn) {
-            vf[[vidx]] <- rlang::eval_tidy(quosures[[vidx]], mask, env)
-          }
-
-        }
-
-        vm[[j]] <- vf
-
-      }
-
-      vmt[[k]] <- vm
+      private$set_row_groups(.ms)
+      private$set_col_groups(.ms)
 
     }
 
-    v[[gr]] <- vmt
-
-  }
+  ),
 
 
-  ans <- group_meta(mrg)(ms)
-  ans$.rows <- NULL
-  v <- lapply(seq_mats, function(k) {
-    ans$.vals <- lapply(1:ngroup, function(gr) {
-      v[[gr]][[k]]
-    })
-    ans
-  })
-
-  if (.simplify) attr(v, "group_vars") <- margin_group_vars(mrg)(ms)
-
-  v
-
-}
+  active = list(
 
 
+    #' @field row_group_df        tibble with a column for each row grouping
+    #'                            trait (variable) and a row for each group.
+    #'                            This is used to format the results in the
+    #'                            context of row grouping.
+    #'                            There is also a `.rows` column that stores the
+    #'                            group indexes, but it is used as a placeholder
+    #'                            for storing the function results
+    #' @field col_group_df        tibble with a column for each column grouping
+    #'                            trait (variable) and a row for each group.
+    #'                            This is used to format the results in the
+    #'                            context of column grouping.
+    #'                            There is also a `.rows` column that stores the
+    #'                            group indexes, but it is used as a placeholder
+    #'                            for storing the function results
+    #' @field row_grouped         bool that is TRUE if the matrixset object is
+    #'                            row-grouped
+    #' @field col_grouped         bool that is TRUE if the matrixset object is
+    #'                            column-grouped
+    #' @field row_groups_for_loop In the context of looping, the row groups are
+    #'                            either the rows themselves (e.g., apply_row),
+    #'                            or the groups defined by `row_group_by()`.
+    #'                            Note that the rows are the groups in the case
+    #'                            of apply_row, even if there is a row_group_by
+    #'                            in place.
+    #'                            `row_groups_for_loop` holds, for each of these
+    #'                            groups, the row indexes that correspond to
+    #'                            them.
+    #' @field col_groups_for_loop In the context of looping, the column groups
+    #'                            are either the columns themselves (e.g.,
+    #'                            apply_column), or the groups defined by
+    #'                            `column_group_by()`.
+    #'                            Note that the columns are the groups in the
+    #'                            case of apply_column, even if there is a
+    #'                            column_group_by in place.
+    #'                            `col_groups_for_loop` holds, for each of these
+    #'                            groups, the row indexes that correspond to
+    #'                            them.
+    #'
+    #' @field matrix_subsetting   bool that is TRUE if only a subset of the
+    #'                            matrices of the matrixset object are to be
+    #'                            used.
+    #' @field matrix_idx          integer indexes of the matrices to use.
+    #' @field matrix_wise         single logical value, indicating if matrices
+    #'                            are looped upon sequentially, or available all
+    #'                            at once as input to the functions to evaluate.
+    #' @field mats_as_list        relevant only if `matrix_wise` is FALSE.
+    #'                            Single logical value, indicating if the
+    #'                            matrices are provided as a single list (TRUE),
+    #'                            or as individual objects.
+    #' @field matrix_eval         logical vector, indicating for each matrix to
+    #'                            be used if an evaluation is to be performed.
+    #'                            The status is TRUE, unless the matrix is
+    #'                            `NULL`.
+    #'
+    #' @field looping             bool that is TRUE if looping - either on rows,
+    #'                            columns or both - is required. There is no
+    #'                            distinction based on the reason for looping
+    #'                            (grouping or per margin evaluation).
+    #' @field row_looping         bool that is TRUE if row looping is required.
+    #'                            There is no distinction based on the reason
+    #'                            for looping (grouping or per row evaluation).
+    #' @field col_looping         bool that is TRUE if column looping is
+    #'                            required. There is no distinction based on the
+    #'                            reason for looping (grouping or per column
+    #'                            evaluation).
+    #' @field col_looping_first   bool that is TRUE when column needs to happen
+    #'                            before row looping. Will be TRUE only if
+    #'                            1) There is column looping but no row looping
+    #'                            2) There is column grouping but no row grouping
 
+    row_group_df = function() private$row_group_df_,
+    col_group_df = function() private$col_group_df_,
+    row_grouped = function() private$row_grouped_,
+    col_grouped = function() private$col_grouped_,
+    row_groups_for_loop = function() private$row_groups_for_loop_,
+    col_groups_for_loop = function() private$col_groups_for_loop_,
 
+    matrix_subsetting = function() private$matrix_subset_,
+    matrix_idx = function() private$matrix_idx_,
+    matrix_wise = function() private$matrix_wise_,
+    mats_as_list = function() private$mats_as_list_,
+    matrix_eval = function() private$matrix_eval_,
 
-eval_fun_margin_mult <- function(ms, mrg, var_lab, ..., matidx, as_list_mat,
-                                 .simplify, env)
-{
-  cl <- sys.call()
-  cash_status$set(cl)
-  on.exit(cash_status$clear(cl))
-
-  nmat <- NULL
-  seq_mats <- NULL
-  matnms <- NULL
-  mask <- NULL
-
-  if (is.null(ms$matrix_set)) return(NULL)
-
-  N <- margin(mrg)(ms)
-  inf <- margin_info(mrg)(ms)
-  inf_compl <- margin_info_compl(mrg)(ms)
-
-  mrg_compl <- switch(mrg, row = "col", "row")
-
-  eval(context_matidx)
-
-  quosures <- rlang::enquos(..., .named = TRUE, .ignore_empty = "all")
-
-  if (!as_list_mat) mat_lab <- paste0(var_lab, seq_mats)
-
-  nmfn <- names(quosures)
-  assess_fun_names(nmfn, .tag(mrg)(ms), .simplify)
-
-  nfn <- length(quosures)
-  seq_fn <- stats::setNames(seq_len(nfn), nmfn)
-  for (i in seq_fn) {
-    quosures[[i]] <- norm_call(quosures[[i]], var_lab)
-  }
-
-  eval(set_env_expr)
-
-  eval(funs_context_expr)
-  eval(context_enclos_expr)
-
-  mat_list <- vector("list", nmat)
-  names(mat_list) <- matnms
-
-  val <- vector("list", N)
-  names(val) <- margin_nms(mrg)(ms)
-
-  v <- vector('list', nfn)
-  names(v) <- nmfn
-
-  top <- list2env(inf, top)
-
-  eval(context_funs_assign_expr(mrg_compl, quote(inf),
-                                quote(seq_len(margin(mrg_compl)(ms))),
-                                quote(margin_nms(mrg_compl)(ms))))
-
-
-  for (j in 1:N) {
-
-    inf_compl_j <- inf_compl[j, , drop = FALSE]
-
-    eval(context_funs_assign_expr(mrg, quote(inf_compl_j), quote(j),
-                                  quote(margin_nms(mrg)(ms)[j])))
-
-    top <- list2env(inf_compl_j, top)
-
-    for (k in seq_mats) {
-
-      M <- ms$matrix_set[[matidx[[k]]]]
-
-
-      if (!is.null(M)) {
-        mat_list[[k]] <- if (mrg == "row") M[j, , drop = TRUE] else M[, j, drop = TRUE]
-      }
-
-    }
-
-    if (as_list_mat) {
-      middle[[var_lab]] <- mat_list
-    } else {
-      names(mat_list) <- mat_lab
-      middle <- list2env(mat_list, envir = middle)
+    looping = function() {
+      !is.null(private$row_groups_for_loop_) ||
+        !is.null(private$col_groups_for_loop_)
+    },
+    row_looping = function() !is.null(private$row_groups_for_loop_),
+    col_looping = function() !is.null(private$col_groups_for_loop_),
+    col_looping_first = function() {
+      !private$row_grouped_ &&
+        (private$col_grouped_ || is.null(private$row_groups_for_loop_))
     }
 
 
-    for (vidx in seq_fn)
-      v[[vidx]] <- rlang::eval_tidy(quosures[[vidx]], mask, env)
-    val[[j]] <- v
-
-
-  }
-
-
-  val
-
-}
+  ),
 
 
 
 
+  private = list(
 
-eval_fun_margin_grp_mult <- function(ms, mrg, var_lab, ..., matidx, as_list_mat,
-                                     .simplify, env)
-{
-  cl <- sys.call()
-  cash_status$set(cl)
-  on.exit(cash_status$clear(cl))
-
-  nmat <- NULL
-  seq_mats <- NULL
-  matnms <- NULL
-  mask <- NULL
-
-  if (is.null(ms$matrix_set)) return(NULL)
-
-  N <- margin(mrg)(ms)
-  inf <- margin_info(mrg)(ms)
-  inf_compl <- margin_info_compl(mrg)(ms)
-
-  gr_idx <- group_where(mrg)(ms)
-  ngroup <- length(gr_idx)
-
-  mrg_compl <- switch(mrg, row = "col", "row")
-
-  eval(context_matidx)
-
-  quosures <- rlang::enquos(..., .named = TRUE, .ignore_empty = "all")
-
-  if (!as_list_mat) mat_lab <- paste0(var_lab, seq_mats)
-
-  nmfn <- names(quosures)
-  assess_fun_names(nmfn, .tag(mrg)(ms), .simplify)
-
-  nfn <- length(quosures)
-  seq_fn <- stats::setNames(seq_len(nfn), nmfn)
-  for (i in seq_fn) {
-    quosures[[i]] <- norm_call(quosures[[i]], var_lab)
-  }
-
-  eval(set_env_expr)
-
-  eval(funs_context_expr)
-  eval(context_enclos_expr)
+    matrix_subset_ = FALSE,
+    matrix_idx_ = NULL,
+    matrix_eval_ = NULL,
+    matrix_wise_ = NULL,
+    mats_as_list_ = NULL,
+    ._row_wise = NULL,               # TRUE only when row looping was explicitly
+                                     # requested and not the result of row
+                                     # grouping
+    ._col_wise = NULL,               # TRUE only when column looping was
+                                     # explicitly requested and not the result
+                                     # of column grouping
+    row_group_df_ = NULL,
+    col_group_df_ = NULL,
+    row_grouped_ = NULL,
+    col_grouped_ = NULL,
+    row_groups_for_loop_ = NULL,
+    col_groups_for_loop_ = NULL,
 
 
-  mat_list <- vector("list", nmat)
-  names(mat_list) <- matnms
 
-  val <- vector('list', nfn)
-  names(val) <- nmfn
-
-  vj <- vector('list', N)
-  names(vj) <- margin_nms(mrg)(ms)
-
-  v <- vector('list', ngroup)
-
-  for (gr in 1:ngroup) {
-
-    idx <- gr_idx[[gr]]
-
-    inf_idx <- inf[idx, , drop = FALSE]
-    top <- list2env(inf_idx, top)
-
-    eval(context_funs_assign_expr(mrg_compl, quote(inf_idx), quote(idx),
-                                  quote(margin_nms(mrg_compl)(ms)[idx])))
-
-
-    for (j in 1:N) {
-
-      inf_compl_j <- inf_compl[j, , drop = FALSE]
-
-      eval(context_funs_assign_expr(mrg, quote(inf_compl_j), quote(j),
-                                    quote(margin_nms(mrg)(ms)[j])))
-
-      top <- list2env(inf_compl_j, top)
-
-
-      for (k in seq_mats) {
-
-        M <- ms$matrix_set[[matidx[[k]]]]
-
-        if (!is.null(M)) {
-          mat_list[[k]] <- if (mrg == "row") M[j, , drop = TRUE][idx] else M[, j, drop = TRUE][idx]
-        }
-
-      }
-
-      if (as_list_mat) {
-        middle[[var_lab]] <- mat_list
+    #' Private method
+    #'
+    #' Sets the `matrix_idx_` variable (and by extension, the active binding
+    #' field `matrix_idx`).
+    #'
+    #' Note how the elements are named with the matrix names. This is necessary
+    #' for latter formatting.
+    #'
+    #' @param .ms    matrix_set object. Used to obtain some meta info such as
+    #'               the number of matrices and their names.
+    #' @param matidx matrix indices of which matrix to apply functions to. It
+    #'               can be `NULL` (use all matrices), a `numeric` vector, a
+    #'               `character` vector, or a `logical` vector.
+    #'
+    #'               Via a call to index_to_integer(), the following will
+    #'               happen, based on `matidx` type:
+    #'
+    #'               *  Numeric values are coerced to integer, the same
+    #'                  way `as.integer()` does, and hence truncation
+    #'                  towards zero occurs.
+    #'               *  Negative integers are allowed, indicating
+    #'                  elements to leave out.
+    #'               *  Character vectors are matched to the matrix names
+    #'                  of the object, thus turned into integers.
+    #'               *  logical vectors are _NOT_ recycled, which is an
+    #'                  important difference with usual indexing. It means
+    #'                  that the `logical` vector must match the number of
+    #'                  matrices in length.
+    #'
+    #' @returns
+    #' Nothing; used for its side effects.
+    ._set_matrix_idx = function(.ms, matidx)
+    {
+      if (is.null(matidx)) {
+        nmat <- .nmatrix(.ms)
+        matidx <- seq_len(nmat)
+        matnms <- matrixnames(.ms)
       } else {
-        names(mat_list) <- mat_lab
-        middle <- list2env(mat_list, envir = middle)
+        matnms <- .matrixnames(.ms)
+        matidx <- index_to_integer(matidx, .nmatrix(.ms), matnms)
+        matnms <- matnms[matidx]
       }
 
+      matidx <- stats::setNames(matidx, matnms)
+      private$matrix_idx_ <- matidx
 
-      for (vidx in seq_fn)
-        val[[vidx]] <- rlang::eval_tidy(quosures[[vidx]], mask, env)
-      vj[[j]] <- val
-
-    }
-
-    v[[gr]] <- vj
-
-  }
+    },
 
 
-  ans <- group_meta(mrg)(ms)
-  ans$.rows <- NULL
-  ans$.vals <- v
 
-
-  if (.simplify) attr(ans, "group_vars") <- margin_group_vars(mrg)(ms)
-
-
-  ans
-
-}
-
-
+    #' Private method
+    #'
+    #' Sets the `matrix_eval_` variable (and by extension, the active binding
+    #' field `matrix_eval`).
+    #'
+    #' @param .ms matrix_set object. Used to determine for each matrix if it is
+    #'            `NULL` or not.
+    #'
+    #' @returns
+    #' Nothing; used for its side effects.
+    ._set_matrix_eval_status = function(.ms)
+    {
+      mats <- .subset2(.ms, "matrix_set")
+      mat_eval <- !vapply(mats, is.null, FALSE)
+      private$matrix_eval_ <- mat_eval[private$matrix_idx_]
+    },
 
 
 
 
-eval_fun_matrix <- function(ms, ..., matidx, .simplify, env)
-{
-  cl <- sys.call()
-  cash_status$set(cl)
-  on.exit(cash_status$clear(cl))
+    #' Private method
+    #'
+    #' Sets the `row_groups_for_loop_` variable (and by extension, the active
+    #' binding field `row_groups_for_loop`).
+    #'
+    #' @param .ms matrix_set object. Used to determine the number of rows in the
+    #'            case where functions are to be evaluated for each row, and
+    #'            thus row looping is not the result of row grouping.
+    #'
+    #' @returns
+    #' Nothing; used for its side effects.
+    set_row_groups = function(.ms) {
 
-  nmat <- NULL
-  seq_mats <- NULL
-  matnms <- NULL
-  mask <- NULL
+      if (private$._row_wise) {
 
-  if (is.null(ms$matrix_set)) return(NULL)
+        row_grs <- as.list(seq_len(nrow(.ms)))
+        names(row_grs) <- rownames(.ms)
+        private$row_groups_for_loop_ <- row_grs
 
-  var_lab <- var_lab_mat
+      } else if (private$row_grouped_) {
 
-  nr <- nrow(ms)
-  nc <- ncol(ms)
-  rinf <- row_info(ms)
-  cinf <- column_info(ms)
+        private$row_groups_for_loop_ <- private$row_group_df_$.rows
 
-  eval(context_matidx)
+      }
 
-  quosures <- rlang::enquos(..., .named = TRUE, .ignore_empty = "all")
-
-
-  nmfn <- names(quosures)
-  assess_fun_names(nmfn, .rowtag(ms), .simplify)
-  assess_fun_names(nmfn, .coltag(ms), .simplify)
-
-  nfn <- length(quosures)
-  seq_fn <- stats::setNames(seq_len(nfn), nmfn)
-  for (i in seq_fn) {
-    quosures[[i]] <- norm_call(quosures[[i]], var_lab)
-  }
-
-  eval(set_env_expr)
-
-  eval(funs_context_expr)
-  eval(context_enclos_expr)
+    },
 
 
-  v <- vector('list', nmat)
-  names(v) <- matnms
-
-  vf <- vector('list', nfn)
-  names(vf) <- nmfn
-
-  top <- list2env(cinf, top)
-  top <- list2env(rinf, top)
-  eval(context_funs_assign_expr("col", quote(cinf), quote(seq_len(ncol(ms))),
-                                quote(colnames(ms))))
-  eval(context_funs_assign_expr("row", quote(rinf), quote(seq_len(nrow(ms))),
-                                quote(rownames(ms))))
 
 
-  for (k in seq_mats) {
+    #' Private method
+    #'
+    #' Sets the `col_groups_for_loop_` variable (and by extension, the active
+    #' binding field `col_groups_for_loop`).
+    #'
+    #' @param .ms matrix_set object. Used to determine the number of columns in
+    #'            the case where functions are to be evaluated for each column,
+    #'            and thus column looping is not the result of column grouping.
+    #'
+    #' @noRd
+    #'
+    #' @returns
+    #' Nothing; used for its side effects.
+    set_col_groups = function(.ms) {
 
-    M <- ms$matrix_set[[matidx[[k]]]]
+      if (private$._col_wise) {
 
+        col_grs <- as.list(seq_len(ncol(.ms)))
+        names(col_grs) <- colnames(.ms)
+        private$col_groups_for_loop_ <- col_grs
 
-    if (!is.null(M)) {
-      middle[[var_lab]] <- M
-    }
+      } else if (private$col_grouped_) {
 
-    for (vidx in seq_fn) {
+        private$col_groups_for_loop_ <- private$col_group_df_$.rows
 
-      if (is.null(M)) {
-        vf[vidx] <- list(NULL)
-      } else {
-        vf[[vidx]] <- rlang::eval_tidy(quosures[[vidx]], mask, env)
       }
 
     }
 
-    v[[k]] <- vf
+  )
 
-  }
-
-
-  v
-
-}
+)
 
 
 
 
-#sgms = singly grouped matrixset
-eval_fun_matrix_sgms <- function(ms, mrg, ..., matidx, .simplify, env)
-{
-  cl <- sys.call()
-  cash_status$set(cl)
-  on.exit(cash_status$clear(cl))
-
-  nmat <- NULL
-  seq_mats <- NULL
-  matnms <- NULL
-  mask <- NULL
-
-  if (is.null(ms$matrix_set)) return(NULL)
-
-  var_lab <- var_lab_mat
-  mrg_compl <- switch(mrg, row = "col", col = "row", "oops")
-  if (mrg_compl == "oops") stop("wrong margin specification")
-
-  nr <- nrow(ms)
-  nc <- ncol(ms)
-  inf <- switch(mrg, row = row_info(ms), column_info(ms))
-  inf_compl <- switch(mrg_compl, row = row_info(ms), column_info(ms))
 
 
-  gr_idx <- switch(mrg, "row"=row_group_where(ms), column_group_where(ms))
-  ngroup <- length(gr_idx)
 
-  eval(context_matidx)
+#' EvalScope: Class to handle evaluation environment scope
+#'
+#' This class manages the environments in which expressions and active bindings
+#' are to be evaluated.
+#'
+#' The environment structure is as follow:
+#' ._context_env:
+#'   |           environment where the context functions are stored, thus
+#'   |           allowing them to be accessible from the apply/mutate functions
+#'   |
+#'   --- ._elms_env:
+#'      |           environment to store temporary elements, created during the
+#'      |           evaluation of apply/mutate
+#'      |
+#'      --- ._enclos_env:
+#'                       where the expressions are evaluated. Being a
+#'                       (grand-)child of ._context_env/._elms_env, it has
+#'                       access to the context functions as well as elements
+#'                       created during the evaluation.
+#'
+#'                       The ._enclos_env environment has two special elements:
+#'                       .data and .env. The former contains the same fields and
+#'                       active bindings as ._enclos_env do (see, for instance,
+#'                       the help of the apply_* functions for the purpose of
+#'                       this) while the latter points to the calling
+#'                       environment (again, see apply_* for a use case).
+#'
+#' @note
+#' The class has two private variables, `i_` and `j_`, that refer to current
+#' row and column indexes to use for sub-setting a matrix prior to function
+#' evaluation.
+#'
+#' But this super class is more general and creates scope environment that are
+#' not specific to apply_* evaluation. Therefore, `i_` and `j_` are set to
+#' `NULL` and the active binding functions that are defined in this class take
+#' that into account.
+#'
+#' The advantage is that child classes that inherits from `EvalScope` need only
+#' to worry about `i_` and `j_` if they need it (e.g., `EvalScopeOfApply`), but
+#' can ignore them otherwise (e.g., `EvalScopeOfMutate`).
+#'
+#' @section Context Functions:
+#' The following context functions are defined in the `._context_env`
+#' environment:
+#'
+#' * current_n_row
+#' * current_n_column
+#' * current_row_name
+#' * current_column_name
+#' * current_row_info
+#' * current_column_info
+#' * row_pos
+#' * column_pos
+#' * row_rel_pos
+#' * column_rel_pos
+#'
+#' Their definition is appropriate for situations that requires neither `i_` nor
+#' `j_`, as well as situations where either/both are needed.
+#'
+#' If more parameters would be needed for a specific case, consider creating a
+#' new child class that overloads the context functions.
+#'
+#' @section Individual Annotations as Active Bindings:
+#' Annotations, from both rows and columns, are made available as active
+#' bindings.
+#'
+#' As for the context functions, the bindings are defined appropriately for
+#' situations that requires neither `i_` nor `j_`, as well as situations where
+#' either/both are needed.
+#'
+#' If more parameters would be needed for a specific case, consider creating a
+#' new child class that overloads the use of annotations.
+#'
+#' @docType class
+#' @noRd
+#' @name EvalScope
+EvalScope <- R6::R6Class(
+  "EvalScope",
 
-  quosures <- rlang::enquos(..., .named = TRUE, .ignore_empty = "all")
+  public = list(
 
 
-  nmfn <- names(quosures)
-  assess_fun_names(nmfn, .rowtag(ms), .simplify)
-  assess_fun_names(nmfn, .coltag(ms), .simplify)
+    #' Constructor for EvalScope
+    #'
+    #' @param .ms  The matrix_set object in which to find matrices to apply
+    #'             functions to (e.g., as from apply_* or mutate_matrix calls)
+    #'             and thus, to which the EvalScope class is assigned to
+    #' @param .env The calling environment of the function that needs to use
+    #'             EvalScope. This is typically the environment in which apply_*
+    #'             or mutate_matrix was called from.
+    #'
+    initialize = function(.ms, .env) {
 
-  nfn <- length(quosures)
-  seq_fn <- stats::setNames(seq_len(nfn), nmfn)
-  for (i in seq_fn) {
-    quosures[[i]] <- norm_call(quosures[[i]], var_lab)
-  }
+      # by setting the calling env as the parent env, this gives access to the
+      # bindings of that environment.
+      private$._context_env <- new.env(parent = .env)
+      private$._elms_env <- new.env(parent = private$._context_env)
+      private$._enclos_env <- new.env(parent = private$._elms_env)
+      private$._enclos_env$.data <- new.env()
+      private$._enclos_env$.env <- .env
 
+      private$._set_context()
 
-  eval(set_env_expr)
+      private$._ms <- .ms
+      private$._mats <- .subset2(.ms, "matrix_set")
+      private$._row_inf <- .subset2(.ms, "row_info")
+      private$._col_inf <- .subset2(.ms, "column_info")
 
-  eval(funs_context_expr)
-  eval(context_enclos_expr)
-
-  v <- vector('list', ngroup)
-
-  vmt <- vector('list', nmat)
-  names(vmt) <- matnms
-
-  vf <- vector('list', nfn)
-  names(vf) <- nmfn
-
-  for (gr in 1:ngroup) {
-
-    idx <- gr_idx[[gr]]
-
-    inf_idx <- inf[idx, , drop = FALSE]
-    top <- list2env(inf_idx, top)
-
-    eval(context_funs_assign_expr(mrg, quote(inf_idx), quote(idx),
-                                  quote(margin_nms(mrg)(ms)[idx])))
-
-    top <- list2env(inf_compl, top)
-
-    eval(context_funs_assign_expr(mrg_compl, quote(inf_compl),
-                                  quote(seq_len(margin(mrg_compl)(ms))),
-                                  quote(margin_nms(mrg_compl)(ms))))
+      private$._set_info_bindings()
+    },
 
 
-    for (k in seq_mats) {
 
-      M <- ms$matrix_set[[matidx[[k]]]]
-      M <- switch(mrg, row=M[idx, , drop = FALSE], M[, idx, drop = FALSE])
+    #' Registers a function to be evaluated.
+    #'
+    #' @param fn  function to be evaluated. It must be provided in the form of
+    #'            an expression.
+    #'
+    #' @returns
+    #' Nothing; used for its side effects.
+    register_function = function(fn) {
+      private$._fn <- fn
+    },
 
 
-      if (!is.null(M)) {
-        middle[[var_lab]] <- M
+
+    #' Evaluate a function in the enclosing environment.
+    #'
+    #' @returns
+    #' The outcome of the evaluated functions.
+    eval = function() {
+
+      eval(private$._fn, envir = private$._enclos_env)
+
+    }
+
+
+
+  ),
+
+
+  private = list(
+
+    ._context_env = NULL,
+    ._elms_env = NULL,
+    ._enclos_env = NULL,
+
+    ._ms = NULL,
+    ._mats = NULL,
+
+    # integers; for a given matrix, what row (i_) and/or column (j_) subset to
+    # use?
+    i_ = NULL,
+    j_ = NULL,
+
+    ._row_inf = NULL,
+    ._col_inf = NULL,
+
+    # function to evaluate
+    ._fn = NULL,
+
+
+
+    #' Private method
+    #'
+    #' Assigns context functions to the ._context_env environment.
+    #'
+    #' Their definition is appropriate for situations that requires neither `i_` nor
+    #' `j_`, as well as situations where either/both are needed.
+    #'
+    #' If more parameters would be needed for a specific case, consider creating
+    #' a new child class that overloads the context functions.
+    #'
+    #' @returns
+    #' Nothing; used for its side effects.
+    ._set_context = function() {
+
+      private$._context_env$current_n_row <- function() {
+        if (is.null(private$i_)) nrow(private$._ms) else length(private$i_)
       }
 
-      for (vidx in seq_fn) {
+      private$._context_env$current_n_column <- function() {
+        if (is.null(private$j_)) ncol(private$._ms) else length(private$j_)
+      }
 
-        if (is.null(M)) {
-          vf[vidx] <- list(NULL)
+
+
+      private$._context_env$current_row_name <- function() {
+        if (is.null(private$i_)) {
+          rownames(private$._ms)
         } else {
-          vf[[vidx]] <- rlang::eval_tidy(quosures[[vidx]], mask, env)
+          rownames(private$._ms)[private$i_]
+        }
+      }
+
+      private$._context_env$current_column_name <- function() {
+        if (is.null(private$j_)) {
+          colnames(private$._ms)
+        } else {
+          colnames(private$._ms)[private$i_]
+        }
+      }
+
+
+
+      private$._context_env$current_row_info <- function() {
+        if (is.null(private$i_)) {
+          .subset2(private$._ms, "row_info")
+        } else {
+          .subset2(private$._ms, "row_info")[private$i_, ]
+        }
+      }
+
+      private$._context_env$current_column_info <- function() {
+        if (is.null(private$j_)) {
+          .subset2(private$._ms, "column_info")
+        } else {
+          .subset2(private$._ms, "column_info")[private$j_, ]
+        }
+      }
+
+
+
+      private$._context_env$row_pos <- function() {
+        if (is.null(private$i_)) {
+          seq_len(nrow(private$._ms))
+        } else {
+          private$i_
+        }
+      }
+
+      private$._context_env$column_pos <- function() {
+        if (is.null(private$j_)) {
+          seq_len(ncol(private$._ms))
+        } else {
+          private$j_
+        }
+      }
+
+
+
+      private$._context_env$row_rel_pos <- function() {
+        cnr <- if (is.null(private$i_)) nrow(private$._ms) else length(private$i_)
+        seq_len(cnr)
+      }
+
+      private$._context_env$column_rel_pos <- function() {
+        cnc <- if (is.null(private$j_)) ncol(private$._ms) else length(private$j_)
+        seq_len(cnc)
+      }
+
+
+    },
+
+
+
+
+    #' Private method
+    #'
+    #' Assigns annotations from rows or columns, as determined by `info`, to the
+    #' ._enclos_env environment, as active bindings.
+    #'
+    #' Their definition is appropriate for situations that requires neither `i_` nor
+    #' `j_`, as well as situations where either/both are needed.
+    #'
+    #' If more parameters would be needed for a specific case, consider creating
+    #' a new child class that overloads the context functions.
+    #'
+    #' @param info one of "row" or "col", determining where to take the
+    #'             annotations from
+    #'
+    #' @returns
+    #' Nothing; used for its side effects.
+    ._set_bindings_from_inf = function(info) {
+
+      info_name <- paste(".", info, "inf", sep = "_")
+      fields <- names(private[[info_name]])
+
+      inf_idx <- if (info == "row") quote(private$i_) else quote(private$j_)
+
+      fn <- function() {}
+
+      for (field in fields) {
+        fn_body <- substitute(
+          {
+            if (is.null(idx)) {
+              return(private[[info]][[fld]])
+            }
+            private[[info]][[fld]][idx]
+          },
+          list(info = info_name,
+               fld = field,
+               idx = inf_idx)
+        )
+        body(fn) <- fn_body
+
+        makeActiveBinding(field, fn, env = private$._enclos_env)
+        makeActiveBinding(field, fn, env = private$._enclos_env$.data)
+      }
+
+    },
+
+
+
+    #' Private method
+    #'
+    #' Assigns annotations from both rows and columns, by calling
+    #' `._set_bindings_from_inf()`.
+    #'
+    #' @noRd
+    #'
+    #' @returns
+    #' Nothing; used for its side effects.
+    ._set_info_bindings = function() {
+
+      private$._set_bindings_from_inf("row")
+      private$._set_bindings_from_inf("col")
+
+    }
+
+  )
+
+)
+
+
+
+
+
+
+#' EvalScopeOfApply: Class to handle evaluation environment scope specific to
+#' apply_* functions.
+#'
+#' It is a child of EvalScope that makes use of the row/column sub-setting
+#' mechanism, to which it adds the following functionalities:
+#'
+#' * Has a mechanism for matrix selection/sub-setting
+#' * Uses a LoopStruct object to properly subset the matrices when needed
+#' * Provides a way to update `i_`, `j_` and `k_` (exclusive to EvalScopeOfApply)
+#' * Defines the apply_\* pronouns as active bindings. These pronouns are
+#'   typically `.i`, `.j` or `.m`, but they are defined by `var_lab_row`,
+#'   `var_lab_col` and `var_lab_mat`.
+#'
+#'
+#' @docType class
+#' @noRd
+#' @name EvalScopeOfApply
+EvalScopeOfApply <- R6::R6Class(
+  "EvalScopeOfApply",
+
+  inherit = EvalScope,
+
+  public = list(
+
+
+    #' Constructor for EvalScopeOfApply
+    #'
+    #' @param .ms         The matrix_set object in which to find matrices to
+    #'                    apply functions to and thus, to which the
+    #'                    EvalScopeOfApply class is assigned to
+    #' @param margin      0, 1 or 2. 0 = `apply_matrix` has been called.
+    #'                    1 = `apply_row` and 2 = `apply_column`. The dfw/dfl
+    #'                    versions are covered as well.
+    #' @param loop_struct an instance of a LoopStruct object.
+    #' @param .env        The calling environment of the function that needs to
+    #'                    use EvalScopeOfApply This is typically the environment
+    #'                    in which apply_* was called from.
+    #'
+    initialize = function(.ms, margin, loop_struct, .env) {
+
+      super$initialize(.ms, .env)
+
+      private$._margin <- margin
+      private$._set_pronoun(margin)
+      private$._loop_struct <- loop_struct
+
+      private$._set_bindings()
+
+    }
+
+
+  ),
+
+
+  active = list(
+
+    #' Setters
+    #'
+    #' @field i, j, k    Active bindings to set the private fields `i_`, `j_`
+    #'                   and `k_`. This allows to evaluate functions on the
+    #'                   proper matrix subsets.
+    i = function(new_i) private$i_ <- new_i,
+    j = function(new_j) private$j_ <- new_j,
+    k = function(new_k) private$k_ <- new_k
+
+  ),
+
+
+  private = list(
+
+    # integer; which matrix or matrices to use
+    k_ = NULL,
+
+    ._margin = NULL,          # private holder of `margin`
+    ._pronoun = NULL,         # available pronoun, typically one of `.i`, `.j`
+                              # or `.m`, but they are defined by `var_lab_row`,
+                              # `var_lab_col` and `var_lab_mat`
+
+    ._loop_struct = NULL,     # an instance of a LoopStruct object, which stores
+                              # various necessary instructions on how to
+                              # loop/group
+
+
+    # Private expressions
+    #
+    # These are used to build active binding functions.
+    #
+    # The first batch corresponds to matrices (all, as a list, a single one, or
+    # a subset in list format)
+    #
+    # The second batch builds on the same concept but provides row/column
+    # subsetting flavors.
+    #
+    # Pseudo variables ._k_ (represents matrix index) and ._M_ (represents a
+    # matrix) are placeholders to be replaced when building the active binding
+    # functions. See ._generate_mat_subset_expr() and
+    # ._generate_mat_subset_within_loop_expr() below.
+    #
+    # Note: The use of ._M_[private$i_, ][private$j_] or
+    #       ._M_[, private$j_][private$i_], as opposed to
+    #       ._M_[private$i_, private$j_], is to keep rownames/colnames at all
+    #       times, something the construction ._M_[private$i_, private$j_]
+    #       doesn't guarantee.
+
+    ._mat_whole = quote(private$._mats),
+    ._mat_subset_k = quote(private$._mats[[._k_]]),
+    ._mat_subset_k_lst = quote(private$._mats[._k_]),
+
+    ._M_subset_i_drop = quote(._M_[private$i_, ]),
+    ._M_subset_i_no_drop = quote(._M_[private$i_, , drop = FALSE]),
+    ._M_subset_i_then_j = quote(._M_[private$i_, ][private$j_]),
+    ._M_subset_j_drop = quote(._M_[, private$j_]),
+    ._M_subset_j_no_drop = quote(._M_[, private$j_, drop = FALSE]),
+    ._M_subset_j_then_i = quote(._M_[, private$j_][private$i_]),
+    ._M_subset_ij = quote(._M_[private$i_, private$j_, drop = FALSE]),
+
+
+
+
+    #' Private method
+    #'
+    #' Sets the private$._pronoun variable, which is the pronoun available to
+    #' use in the apply* function.
+    #'
+    #' @param margin    One of 0 (no margin; whole matrix), 1 (row) or 2 (column)
+    #'
+    #' @returns
+    #' Nothing; used for its side effects.
+    ._set_pronoun = function(margin) {
+
+      private$._pronoun <- get_var_tag(margin)
+
+    },
+
+
+
+    #' Private method
+    #'
+    #' Generates an expression to be used for building active binding functions.
+    #' The expression is for cases where a single matrix is evaluated at a time.
+    #'
+    #' @param k_expr   an expression, what to replace ._k_ with; an expression
+    #'                 that represents matrix index
+    #' @param sub_expr an expression, representing what row and/or column subset
+    #'                 of the matrix is of interest
+    #'
+    #' @returns
+    #' an expression
+    #'
+    #' @examples
+    #' private$._generate_mat_subset_expr(quote(k), private$._M_subset_i_drop)
+    #' # gives: private$._mats[[k]][private$i_, ]
+    #'
+    ._generate_mat_subset_expr = function(k_expr, sub_expr) {
+
+      do.call("substitute",
+              list(sub_expr,
+                   list(._M_ = do.call(substitute,
+                                       list(private$._mat_subset_k,
+                                            list(._k_ = k_expr))
+                   )
+                   )
+              )
+      )
+    },
+
+
+
+
+    #' Private method
+    #'
+    #' Generates an expression to be used for building active binding functions.
+    #' The expression is for cases where the function to be evaluated has access
+    #' to all matrices at once.
+    #'
+    #' @param seq_expr an expression, what to replace ._k_ with; an expression
+    #'                 that represents matrix index
+    #' @param sub_expr an expression, representing what row and/or column subset
+    #'                 of the matrix is of interest
+    #'
+    #' @returns
+    #' an expression
+    #'
+    #' @examples
+    #' private$._generate_mat_subset_within_loop_expr(private$._mat_subset_k_lst,
+    #'                                                private$._M_subset_i_drop)
+    #' # gives: lapply(private$._mats[private$k_], function(m) m[private$i_, ])
+    ._generate_mat_subset_within_loop_expr = function(seq_expr, sub_expr) {
+      do.call(substitute,
+              list(substitute(lapply(._ms_, function(m) ._m_expr_),
+                              list(._ms_ = do.call(substitute,
+                                                   list(seq_expr,
+                                                        list(._k_ = quote(private$k_)))
+                              ),
+                              ._m_expr_ = sub_expr)),
+                   list(._M_ = quote(m))))
+    },
+
+
+
+
+    #' Private method
+    #'
+    #' Generates an expression to be used for building active binding functions.
+    #'
+    #' The expression is for cases where a single matrix is evaluated at a time,
+    #' from a call to `apply_row` (or dfw/dfl variant). It deals with cases
+    #' `.matrix_wise = TRUE` or  `.matrix_wise = FALSE` and `.input_list = FALSE`.
+    #' For `.matrix_wise = FALSE` and `.input_list = TRUE`, see
+    #' ._generate_row_subset_multi().
+    #'
+    #' If a column subset is also taken, then the row subset is taken first.
+    #'
+    #'
+    #' @param k    an integer or an expression, what to replace ._k_ with; the
+    #'             matrix index, or an expression that represents matrix index
+    #'
+    #' @returns
+    #' an expression
+    ._generate_row_subset = function(k) {
+      if (private$._loop_struct$col_looping)
+        return(private$._generate_mat_subset_expr(k,
+                                                  private$._M_subset_i_then_j))
+
+      private$._generate_mat_subset_expr(k, private$._M_subset_i_drop)
+    },
+
+
+
+
+
+    #' Private method
+    #'
+    #' Generates an expression to be used for building active binding functions.
+    #'
+    #' The expression is for cases where a list of matrix is evaluated, from a
+    #' call to `apply_row` (or dfw/dfl variant), with options
+    #' `.matrix_wise = FALSE` and `.input_list = TRUE`.
+    #'
+    #' If a column subset is also taken, then the row subset is taken first.
+    #'
+    #' @returns
+    #' an expression
+    ._generate_row_subset_multi = function() {
+
+      if (private$._loop_struct$matrix_subsetting) {
+
+        if (private$._loop_struct$col_looping)
+          return(
+            private$._generate_mat_subset_within_loop_expr(private$._mat_subset_k_lst,
+                                                           private$._M_subset_i_then_j)
+          )
+
+        return(
+          private$._generate_mat_subset_within_loop_expr(private$._mat_subset_k_lst,
+                                                         private$._M_subset_i_drop)
+        )
+      }
+
+      if (private$._loop_struct$col_looping)
+        return(
+          private$._generate_mat_subset_within_loop_expr(private$._mat_whole,
+                                                         private$._M_subset_i_then_j)
+        )
+
+      private$._generate_mat_subset_within_loop_expr(private$._mat_whole,
+                                                     private$._M_subset_i_drop)
+
+    },
+
+
+
+
+
+    #' Private method
+    #'
+    #' Generates an expression to be used for building active binding functions.
+    #'
+    #' The expression is for cases where a single matrix is evaluated at a time,
+    #' from a call to `apply_column` (or dfw/dfl variant). It deals with cases
+    #' `.matrix_wise = TRUE` or  `.matrix_wise = FALSE` and `.input_list = FALSE`.
+    #' For `.matrix_wise = FALSE` and `.input_list = TRUE`, see
+    #' ._generate_col_subset_multi().
+    #'
+    #' If a row subset is also taken, then the column subset is taken first.
+    #'
+    #' @param k    an integer or an expression, what to replace ._k_ with; the
+    #'             matrix index, or an expression that represents matrix index
+    #'
+    #' @returns
+    #' an expression
+    ._generate_col_subset = function(k) {
+      if (private$._loop_struct$row_looping)
+        return(private$._generate_mat_subset_expr(k,
+                                                  private$._M_subset_j_then_i))
+
+      private$._generate_mat_subset_expr(k, private$._M_subset_j_drop)
+    },
+
+
+
+
+    #' Private method
+    #'
+    #' Generates an expression to be used for building active binding functions.
+    #'
+    #' The expression is for cases where a list of matrix is evaluated, from a
+    #' call to `apply_column` (or dfw/dfl variant), with options
+    #' `.matrix_wise = FALSE` and `.input_list = TRUE`.
+    #'
+    #' If a row subset is also taken, then the column subset is taken first.
+    #'
+    #' @returns
+    #' an expression
+    ._generate_col_subset_multi = function() {
+
+      if (private$._loop_struct$matrix_subsetting) {
+
+        if (private$._loop_struct$row_looping)
+          return(
+            private$._generate_mat_subset_within_loop_expr(private$._mat_subset_k_lst,
+                                                           private$._M_subset_j_then_i)
+          )
+
+        return(
+          private$._generate_mat_subset_within_loop_expr(private$._mat_subset_k_lst,
+                                                         private$._M_subset_j_drop)
+        )
+      }
+
+      if (private$._loop_struct$row_looping)
+        return(
+          private$._generate_mat_subset_within_loop_expr(private$._mat_whole,
+                                                         private$._M_subset_j_then_i)
+        )
+
+      private$._generate_mat_subset_within_loop_expr(private$._mat_whole,
+                                                     private$._M_subset_j_drop)
+
+    },
+
+
+
+
+    #' Private method
+    #'
+    #' Generates an expression to be used for building active binding functions.
+    #'
+    #' The expression is for cases where a single matrix is evaluated at a time,
+    #' from a call to `apply_matrix` (or dfw/dfl variant). It deals with cases
+    #' `.matrix_wise = TRUE` or  `.matrix_wise = FALSE` and `.input_list = FALSE`.
+    #' For `.matrix_wise = FALSE` and `.input_list = TRUE`, see
+    #' ._generate_mat_subset_multi().
+    #'
+    #' @param k    an integer or an expression, what to replace ._k_ with; the
+    #'             matrix index, or an expression that represents matrix index
+    #'
+    #' @returns
+    #' an expression
+    ._generate_mat_subset = function(k) {
+
+      if (private$._loop_struct$row_looping) {
+
+        if (private$._loop_struct$col_looping)
+          return(private$._generate_mat_subset_expr(k,
+                                                    private$._M_subset_ij))
+
+        return(private$._generate_mat_subset_expr(k,
+                                                  private$._M_subset_i_no_drop))
+      }
+
+
+      if (private$._loop_struct$col_looping)
+        return(private$._generate_mat_subset_expr(k,
+                                                  private$._M_subset_j_no_drop))
+
+      do.call(substitute, list(private$._mat_subset_k,
+                               list(._k_ = k)))
+    },
+
+
+
+
+    #' Private method
+    #'
+    #' Generates an expression to be used for building active binding functions.
+    #'
+    #' The expression is for cases where a list of matrix is evaluated, from a
+    #' call to `apply_matrix` (or dfw/dfl variant), with options
+    #' `.matrix_wise = FALSE` and `.input_list = TRUE`.
+    #'
+    #' @noRd
+    #'
+    #' @returns
+    #' an expression
+    ._generate_mat_subset_multi = function() {
+
+      if (private$._loop_struct$matrix_subsetting) {
+
+        if (private$._loop_struct$row_looping) {
+
+          if (private$._loop_struct$col_looping)
+            return(private$._mat_subset_multi_with_k_with_i_with_j_expr)
+
+          return(private$._mat_subset_multi_with_k_with_i_no_j_expr)
+
+        }
+
+        if (private$._loop_struct$col_looping)
+          return(private$._mat_subset_multi_with_k_no_i_with_j_expr)
+
+        return(private$._mat_subset_multi_with_k_no_i_no_j_expr)
+
+      }
+
+
+      if (private$._loop_struct$row_looping) {
+
+        if (private$._loop_struct$col_looping)
+          return(private$._mat_subset_multi_no_k_with_i_with_j_expr)
+
+        return(private$._mat_subset_multi_no_k_with_i_no_j_expr)
+
+      }
+
+      if (private$._loop_struct$col_looping)
+        return(private$._mat_subset_multi_no_k_no_i_with_j_expr)
+
+      return(private$._mat_subset_multi_no_k_no_i_no_j_expr)
+
+    },
+
+
+
+
+    #' Private method
+    #'
+    #' Generates an active binding.
+    #'
+    #' The expression is for cases where a single matrix is evaluated at a time,
+    #' from a call to `apply_matrix` (or dfw/dfl variant). It deals with cases
+    #' `.matrix_wise = TRUE` or  `.matrix_wise = FALSE` and `.input_list = FALSE`.
+    #' For `.matrix_wise = FALSE` and `.input_list = TRUE`, see
+    #' ._generate_mat_subset_multi().
+    #'
+    #' @param name       string, the name of the active binding
+    #' @param fn_body    expression, the body function of the active binding
+    #' @param in_data    bool. When TRUE, the binding is also created in the
+    #'                   .data environment
+    #'
+    #' @returns
+    #' Nothing; used for its side effects.
+    ._make_binding = function(name, fn_body, in_data = FALSE) {
+
+      fn <- function() {}
+      body(fn) <- fn_body
+
+      makeActiveBinding(name, fn, env = private$._enclos_env)
+      if (in_data) makeActiveBinding(name, fn, env = private$._enclos_env$.data)
+
+    },
+
+
+
+    #' Private method
+    #'
+    #' Generates the appropriate apply_* pronoun as an active binding.
+    #'
+    #' This is for the case where matrices are evaluated individually in turn.
+    #'
+    #' Also sets a custom message for trying to use an unavailable binding.
+    #'
+    #' @returns
+    #' Nothing; used for its side effects.
+    ._set_bindings_from_single_mat = function() {
+
+      active_name <- private$._pronoun
+      not_active_name <- setdiff(c(var_lab_row, var_lab_col, var_lab_mat),
+                                 active_name)
+
+
+      fn_body <- if (private$._margin == 1) {
+        private$._generate_row_subset(quote(private$k_))
+      } else if (private$._margin == 2) {
+        private$._generate_col_subset(quote(private$k_))
+      } else {
+        private$._generate_mat_subset(quote(private$k_))
+      }
+
+      private$._make_binding(active_name, fn_body)
+
+      for (v in not_active_name) {
+        msg <- glue::glue("object {OBJ} not found", OBJ = v)
+        fn_body <- substitute(stop(MSG, call. = FALSE), list(MSG=msg))
+        private$._make_binding(v, fn_body)
+      }
+    },
+
+
+
+    #' Private method
+    #'
+    #' Generates the appropriate apply_* pronoun as an active binding.
+    #'
+    #' This is for the case where matrices are all available for evaluation at
+    #' once, individually.
+    #'
+    #' @returns
+    #' Nothing; used for its side effects.
+    #'
+    #' TODO:
+    #' Also sets a custom message for trying to use an unavailable binding.
+    ._set_bindings_from_multi_mat_sep = function() {
+
+      active_name <- private$._pronoun
+
+      not_active_name <- setdiff(c(var_lab_row, var_lab_col, var_lab_mat),
+                                 active_name)
+
+
+      idx <- if (private$._loop_struct$matrix_subsetting) {
+        private$._loop_struct$matrix_idx
+      } else {
+        seq_along(private$._mats)
+      }
+      fields <- private$._mat_names[idx]
+
+
+
+      for (mi in seq_along(idx)) {
+
+        field <- paste0(active_name, mi)
+
+        fn_body <- if (private$._margin == 1) {
+          private$._generate_row_subset(idx[mi])
+        } else if (private$._margin == 2) {
+          private$._generate_col_subset(idx[mi])
+        } else {
+          private$._generate_mat_subset(idx[mi])
+        }
+
+        private$._make_binding(field, fn_body, in_data = TRUE)
+
+        # for (v in not_active_name) {
+        #   msg <- glue::glue("object {OBJ} not found", OBJ = v)
+        #   fn <- function() {}
+        #   fn_body <- substitute(stop(MSG, call. = FALSE), list(MSG=msg))
+        #   body(fn) <- fn_body
+        #   makeActiveBinding(v, fn, env = private$._enclos_env)
+        # }
+      }
+    },
+
+
+
+    #' Private method
+    #'
+    #' Generates the appropriate apply_* pronoun as an active binding.
+    #'
+    #' This is for the case where matrices are all available for evaluation at
+    #' once. If not as a list, it defers to ._set_bindings_from_multi_mat_sep().
+    #'
+    #' @returns
+    #' Nothing; used for its side effects.
+    #'
+    #' TODO:
+    #' Also sets a custom message for trying to use an unavailable binding.
+    ._set_bindings_from_multi_mat = function() {
+
+      active_name <- private$._pronoun
+      not_active_name <- setdiff(c(var_lab_row, var_lab_col, var_lab_mat),
+                                 active_name)
+
+      if (!private$._loop_struct$mats_as_list) {
+        return(private$._set_bindings_from_multi_mat_sep())
+      }
+
+
+      fn_body <- if (private$._margin == 1) {
+        private$._generate_row_subset_multi()
+      } else if (private$._margin == 2) {
+        private$._generate_col_subset_multi()
+      } else {
+        private$._generate_mat_subset_multi()
+      }
+
+      private$._make_binding(active_name, fn_body)
+
+      # for (v in not_active_name) {
+      #   msg <- glue::glue("object {OBJ} not found", OBJ = v)
+      #   fn <- function() {}
+      #   fn_body <- substitute(stop(MSG, call. = FALSE), list(MSG=msg))
+      #   body(fn) <- fn_body
+      #   makeActiveBinding(v, fn, env = private$._enclos_env)
+      # }
+    },
+
+
+
+    #' Private method
+    #'
+    #' Generates the appropriate apply_* pronoun as an active binding.
+
+    #' TODO:
+    #' Also sets a custom message for trying to use an unavailable binding.
+    ._set_bindings = function() {
+
+      if (!private$._loop_struct$matrix_wise) {
+
+        private$._set_bindings_from_multi_mat()
+        return()
+
+      }
+
+      private$._set_bindings_from_single_mat()
+
+    }
+
+  )
+
+)
+
+
+
+
+
+
+
+
+
+
+#' Applyer: applies function(s) to the matrices of a matrix_set object.
+#'
+#' Performs the loops as dictated by the loop template - determined by
+#' LoopStruct - and evaluate the functions.
+#'
+#' Formatting is applied as well, based on different parameters:
+#'
+#' * Simplification always yields a tibble output - per matrix when
+#'   `.matrix_wise` is TRUE. Simplification is triggered by the use of the
+#'   dfw/dfl variants of the apply functions.
+#'     * Information columns are created if long format has been selected.
+#'     * Proper column names are created if wide format has been selected.
+#' * In presence of relevant grouping, a tibble is always returned - per matrix
+#'   when `.matrix_wise` is TRUE. Without simplification, there is a tibble row
+#'   per group and a column per grouping variable. With simplification, the
+#'   columns are also provided.
+#'
+#' @docType class
+#' @noRd
+#' @name Applyer
+Applyer <- R6::R6Class(
+  "Applyer",
+
+  public = list(
+
+
+    #' Constructor for EvalScopeOfApply
+    #'
+    #' @param .ms         The matrix_set object in which to find matrices to
+    #'                    apply functions to and thus, to which the
+    #'                    Applyer class is assigned to
+    #' @param matidx      `NULL`, which means all matrices are used, or the
+    #'                    matrices to use, provided as:
+    #'
+    #'                    * Numeric values, coerced to integer through
+    #'                      [as.integer()] if not already integers. This means
+    #'                      potential truncation towards zero.
+    #'                      Negative values are allowed, interpreded as matrices
+    #'                      to leave out.
+    #'                    * Character vector, matched to the matrix names.
+    #'                    * Logival vector, stating for each element if it is
+    #'                      used (`TRUE`) or discarded (`FALSE`). Logical
+    #'                      vectors are *NOT* recycled, which means that the
+    #'                      `logical` vector must match the object dimension in
+    #'                      length.
+    #'                    Simply passed to LoopStruct which builds the looping
+    #'                    structure template.
+    #' @param margin      0, 1 or 2. 0 = `apply_matrix` has been called.
+    #'                    1 = `apply_row` and 2 = `apply_column`. The dfw/dfl
+    #'                    versions are covered as well.
+    #' @param fns         list of functions to evaluate. Each function must be
+    #'                    provided as an expression that can evaluated through
+    #'                    `eval`.
+    #' @param mat_wise    single logical value, indicating if matrices are
+    #'                    looped upon sequentially, or available all at once as
+    #'                    input to the functions to evaluate.
+    #'                    Simply passed to LoopStruct which builds the looping
+    #'                    structure template.
+    #' @param as_list     relevant only if mat_wise is FALSE. Single logical
+    #'                    value, indicating if the matrices are provided as a
+    #'                    single list (TRUE), or as individual objects.
+    #'                    Simply passed to LoopStruct which builds the looping
+    #'                    structure template.
+    #' @param simplify    single character, one of "no", "long" or "wide".
+    #'                    Refers to output format, relevant only if the output
+    #'                    is a vector of length > 1. In this case, long format
+    #'                    has a row per outcome, identified by an additional
+    #'                    column, while they are separate columns in wide format.
+    #' @param force_name  bool, used only for the simplified output versions
+    #'                    (dfl/dfw). If FALSE, function IDs will be provided
+    #'                    only if the function outcome is a vector of length 2
+    #'                    or more. If `force_name` is `TRUE` then function IDs
+    #'                    are provided in all situations.
+    #'
+    #'                    This can be useful in situation of grouping. As the
+    #'                    functions are evaluated independently within each
+    #'                    group, there could be situations where function
+    #'                    outcomes are of length 1 for some groups and lenght 2
+    #'                    or more in other groups.
+    #' @param env         The calling environment of the function that needs to
+    #'                    use EvalScopeOfApply This is typically the environment
+    #'                    in which apply_* was called from.
+    #'
+    initialize = function(.ms, matidx, margin, fns, mat_wise, as_list, simplify,
+                          force_name, env) {
+
+      # looping structure template
+      private$._loop_struct <- LoopStruct$new(.ms, margin, matidx, mat_wise,
+                                              as_list)
+
+      private$._margin <- margin
+      private$._set_matrix_meta(.ms)
+
+      private$._tag <- switch(margin,
+                              "1" = .rowtag(.ms),
+                              "2" = .coltag(.ms),
+                              NULL)
+
+      private$._simplify <- simplify
+      private$._force_name <- force_name
+
+      private$._set_fn_meta(fns)
+      private$._set_long_col_order()
+
+
+      # where to eval the functions; pronouns are assigned too
+      private$._scope <- EvalScopeOfApply$new(.ms, margin, private$._loop_struct, env)
+    },
+
+
+    #' Evaluate the functions
+    #'
+    #' @returns
+    #' The outcome of the evaluated functions.
+    #'
+    #' A list for every matrix in the matrixset object. Each list is itself a
+    #' list, or `NULL` for `NULL` matrices. For `apply_matrix`, it is a list of
+    #' the function values. Otherwise, it is a list with one element for each
+    #' row/column. And finally, for `apply_row`/`apply_column`, each of these
+    #' sub-list is a list, the results of each function.
+    #'
+    #' When `.matrix_wise == FALSE`, the output format differs only in that
+    #' there is no list for matrices.
+    #'
+    #' For the dfl/dfw variants, if each function returns a `vector` of the same
+    #' dimension, returns a list of `tibble`s. The `dfl` version will stack the
+    #' function results in a long format while the `dfw` version will put them
+    #' side-by-side, in a wide format.
+    #'
+    #' If the functions returned vectors of more than one element, there will be
+    #' a column to store the values and one for the function ID (dfl), or one
+    #' column per combination of function/result (dfw)
+    #'
+    #' In grouping context, the output format is different. A list for every
+    #' matrix is still returned, but each of these lists now holds a tibble.
+    #'
+    #' Each tibble has a column called `.vals`, where the function results are
+    #' stored. This column is a list, one element per group. The group labels are
+    #' given by the other columns of the tibble. For a given group, things are like
+    #' the ungrouped version: further sub-lists for rows/columns - if applicable -
+    #' and function values.
+    #'
+    #' The dfl/dfw versions are more similar in their output format to their
+    #' ungrouped version. The format is almost identical, except that additional
+    #' columns are reported to identify the group labels..
+    eval = function() private$eval_()
+
+
+
+  ),
+
+
+  private = list(
+
+    ._scope = NULL,                  # an instance of class EvalScopeOfApply
+
+    ._margin = NULL,                 # margin provided as input to functions
+
+    ._mat_n = NULL,                  # number of matrices to use
+    ._mat_names = NULL,              # names of matrices to use
+
+    ._tag = NULL,                    # tag to refer to rownames/colnames
+
+    ._loop_struct = NULL,            # an instance of class LoopStruct
+
+    ._fns = list(function(x) x),     # list of functions to evaluate.
+    ._fns_n = 0,                     # number of functions to evaluate
+
+    ._fns_outcome = NULL,            # vector of raw function outcomes
+    ._fns_outcome_formatted = NULL,  # vector of formatted function outcomes
+    ._fns_outcome_names = NULL,      # names associated to each function outcome
+    ._fn_out_lens = NULL,            # length of each function outcome
+
+    ._mat_outcome = NULL,            # stores function outcomes, on a matrix level
+    ._row_outcome = NULL,            # stores function outcomes, on a row level
+    ._col_outcome = NULL,            # stores function outcomes, on a column level
+
+    ._long_order = NULL,             # order of the columns in 'long' format
+                                     # simplification.
+
+    ._simplify = "no",               # "no", "wide" or "long", the
+                                     # simplification status
+    ._force_name = FALSE,            # bool; Are function IDs provided in all
+                                     # situations?
+
+
+
+
+    #' Private method
+    #'
+    #' Initialize private fields that relates to matrix info:
+    #'
+    #' * number of matrices, accounting for those to ignore
+    #' * matrix names
+    #' * ._mat_oucome, the list that will store the evaluation outcome per
+    #'   matrix
+    #'
+    #' @param .ms    matrix_set object, used to extract matrix names.
+    #'
+    #' @returns
+    #' nothing; used for its side effects.
+    ._set_matrix_meta = function(.ms)
+    {
+      matidx <- private$._loop_struct$matrix_idx
+      nmat <- length(matidx)
+
+      matnms <- .matrixnames(.ms)
+      matnms <- matnms[matidx]
+
+      private$._mat_n <- nmat
+      private$._mat_names <- matnms
+
+      if (private$._loop_struct$matrix_wise && private$._mat_n > 0L) {
+        private$._mat_outcome <- vector('list', private$._mat_n)
+        names(private$._mat_outcome) <- private$._mat_names
+      }
+
+    },
+
+
+
+
+    #' Private method
+    #'
+    #' Sets private field `._fns_outcome_names` (the names associated to each
+    #' function outcome) to an empty vector.
+    #'
+    #' Serves both at initializing the vector and resetting the vector,
+    #' something necessary when iterating from a group to another.
+    #'
+    #' This applies only in the context of outcome simplification.
+    #'
+    #' @returns
+    #' nothing; used for its side effects.
+    ._reset_fns_outcome_names = function() {
+
+      if (private$._simplify != "no")
+        private$._fns_outcome_names <- vector('list', private$._fns_n)
+
+    },
+
+
+
+    #' Private method
+    #'
+    #' Sets private fields that relates to the functions to be evaluated.
+    #'
+    #' - ._fns
+    #' - ._fns_n
+    #' - ._fns_outcome
+    #' - ._fn_out_lens (if applicable)
+    #' - ._fns_outcome_names (if applicable, via ._reset_fns_outcome_names())
+    #' - ._long_order (if applicable)
+    #'
+    #'
+    #' Serves both at initializing the vector and resetting the vector,
+    #' something necessary when iterating from a group to another.
+    #'
+    #' This applies only in the context of outcome simplification.
+    #'
+    #' @param fns    the functions, provided as elements of a list
+    #'
+    #' @returns
+    #' nothing; used for its side effects.
+    ._set_fn_meta = function(fns) {
+
+      private$._fns <- fns
+      private$._fns_n <- length(fns)
+
+      private$._fns_outcome <- vector('list', length(fns))
+      names(private$._fns_outcome) <- names(fns)
+
+      if (private$._simplify != "no")
+        private$._fn_out_lens <- integer(length(fns))
+
+      private$._reset_fns_outcome_names()
+
+    },
+
+
+    #' Private method
+    #'
+    #' order of the columns in 'long' format simplification. It makes sure the
+    #' column with the names are just before their respective outcome column,
+    #' and it keeps the original function order.
+    #'
+    #' For a given n, it generates a vector of length 2n: 1 (n+1) 2 (n+2)... 2*n
+    #'
+    #' @returns
+    #' nothing; used for its side effects.
+    #'
+    #' @examples
+    #' For n = 5, it generates the vector 1  6  2  7  3  8  4  9  5 10
+    ._set_long_col_order = function() {
+
+      if (private$._simplify == "long") {
+        n <- private$._fns_n
+        rder <- as.vector(rbind(1:n, n+(1:n)))
+        private$._long_order <- rder
+      }
+
+    },
+
+
+
+
+    #' Private method
+    #'
+    #' Sets private field `._row_outcome` (the vector that stores outcome on a
+    #' row level).
+    #'
+    #' Serves both at initializing the vector and resetting the vector,
+    #' something necessary when row groups is an inner loop to the column outer
+    #' loop, where a reset is necessary.
+    #'
+    #' @returns
+    #' nothing; used for its side effects.
+    ._reset_row_outcome = function() {
+
+      private$._row_outcome <- vector('list',
+                                      length(private$._loop_struct$row_groups_for_loop))
+      names(private$._row_outcome) <- names(private$._loop_struct$row_groups_for_loop)
+
+    },
+
+
+
+    #' Private method
+    #'
+    #' Sets private field `._col_outcome` (the vector that stores outcome on a
+    #' column level).
+    #'
+    #' Serves both at initializing the vector and resetting the vector,
+    #' something necessary when column groups is an inner loop to the row outer
+    #' loop, where a reset is necessary.
+    #'
+    #' @returns
+    #' nothing; used for its side effects.
+    ._reset_col_outcome = function() {
+
+      private$._col_outcome <- vector('list',
+                                      length(private$._loop_struct$col_groups_for_loop))
+      names(private$._col_outcome) <- names(private$._loop_struct$col_groups_for_loop)
+
+    },
+
+
+
+
+
+    #' Private method
+    #'
+    #' Execute the function evaluation process and returns the formatted
+    #' outcome.
+    #'
+    #' This function "subcontracts" to the appropriate process, based on the
+    #' value of matrix_wise.
+    #'
+    #' @returns
+    #' The formatted outcome of the evaluated functions. See `eval` of this very
+    #' `Applyer` class for details of the format.
+    eval_ = function() {
+
+      if (private$._mat_n == 0L) return(invisible())
+
+      if (!private$._loop_struct$matrix_wise) {
+        return(private$._eval_multi())
+      }
+
+      private$._eval_by_matrix()
+      private$._mat_outcome
+    },
+
+
+    #' Private method
+    #'
+    #' Execute the function evaluation process and creates the formatted
+    #' outcome.
+    #'
+    #' This function is a subcontractor and handles the loops across matrices.
+    #'
+    #' Based on the looping template structure, it will also perform the loops
+    #' across rows and/or across columns (in the order that is the most
+    #' efficient), by subcontracting the job to ._eval_by_row_groups() or
+    #' ._eval_by_col_groups().
+    #'
+    #' Note: The first loop (after the matrix loop) is almost always loop on
+    #' row. Exception only if there is column grouping - but not row grouping
+    #' (or not rowwise). But this is handled by loop_struct and ._eval_by_matrix
+    #' only needs to know what to call first, not why.
+    #'
+    #' @returns
+    #' nothing; used for its side effects.
+    ._eval_by_matrix = function() {
+
+      for (midx in seq_len(private$._mat_n)) {
+
+        if (!private$._loop_struct$matrix_eval[midx]) {
+          private$._mat_outcome[midx] <- list(NULL)
+          next
+        }
+
+
+        private$._scope$k <- private$._loop_struct$matrix_idx[midx]
+
+        if (!private$._loop_struct$looping) {
+
+          private$._eval_fns()
+          private$._mat_outcome[[midx]] <- private$._format_list_of_evals(private$._fns_outcome_formatted)
+          next
+        }
+
+
+        if (private$._loop_struct$col_looping_first) {
+
+          private$._eval_by_col_groups(inner = FALSE)
+          private$._mat_outcome[[midx]] <- private$._col_outcome
+          next
+
+        }
+
+        private$._eval_by_row_groups(inner = FALSE)
+        private$._mat_outcome[[midx]] <- private$._row_outcome
+
+
+        if (private$._margin == 0 && private$._loop_struct$row_grouped &&
+            private$._loop_struct$col_grouped && private$._simplify == "no") {
+
+          private$._mat_outcome[[midx]] <- tidyr::unnest(private$._mat_outcome[[midx]],
+                                                         cols = .vals)
         }
 
       }
 
-      vmt[[k]] <- vf
-
-    }
-    v[[gr]] <- vmt
-  }
 
 
-  ans <- group_meta(mrg_compl)(ms)
-  ans$.rows <- NULL
-  v <- lapply(seq_mats, function(k) {
-    ans$.vals <- lapply(1:ngroup, function(gr) {
-      v[[gr]][[k]]
-    })
-    ans
-  })
-
-  if (.simplify) attr(v, "group_vars") <- margin_group_vars(mrg_compl)(ms)
-
-  v
-
-}
+    },
 
 
 
 
-eval_fun_matrix_dgms <- function(ms, ..., matidx, .simplify, env)
-{
-  cl <- sys.call()
-  cash_status$set(cl)
-  on.exit(cash_status$clear(cl))
 
-  nmat <- NULL
-  seq_mats <- NULL
-  matnms <- NULL
-  mask <- NULL
+    #' Private method
+    #'
+    #' Execute the function evaluation process and creates the formatted
+    #' outcome.
+    #'
+    #' This function performs similar tasks to ._eval_by_matrix(), but does not
+    #' loop across matrices as it handles the calls (apply_matrix, apply_row,
+    #' apply_column and dfw/dfl variants) with .matrix_wise = FALSE, i.e., all
+    #' matrices are available for function input at once.
+    #'
+    #' This function is a subcontractor and handles loops across rows and
+    #' columns, if applicable, by subcontracting to ._eval_by_row_groups() and
+    #' ._eval_by_col_groups().
+    #'
+    #' Note: The first loop is almost always loop on row. Exception only if
+    #' there is column grouping - but not row grouping (or not rowwise). But
+    #' this is handled by loop_struct and ._eval_by_matrix only needs to know
+    #' what to call first, not why.
+    #'
+    #' @returns
+    #' nothing; used for its side effects.
+    ._eval_multi = function() {
 
-  if (is.null(ms$matrix_set)) return(NULL)
+      private$._scope$k <- private$._loop_struct$matrix_idx
 
-  var_lab <- var_lab_mat
+      if (!private$._loop_struct$looping) {
 
-  nr <- nrow(ms)
-  nc <- ncol(ms)
-  rinf <- row_info(ms)
-  cinf <- column_info(ms)
-
-  gr_idx_row <- row_group_where(ms)
-  gr_idx_col <- column_group_where(ms)
-  ngroup_row <- length(gr_idx_row)
-  ngroup_col <- length(gr_idx_col)
-
-  eval(context_matidx)
-
-  quosures <- rlang::enquos(..., .named = TRUE, .ignore_empty = "all")
-
-
-  nmfn <- names(quosures)
-  assess_fun_names(nmfn, .rowtag(ms), .simplify)
-  assess_fun_names(nmfn, .coltag(ms), .simplify)
-
-  nfn <- length(quosures)
-  seq_fn <- stats::setNames(seq_len(nfn), nmfn)
-  for (i in seq_fn) {
-    quosures[[i]] <- norm_call(quosures[[i]], var_lab)
-  }
-
-  eval(set_env_expr)
-
-  eval(funs_context_expr)
-  eval(context_enclos_expr)
-
-  ans_col <- column_group_meta(ms)
-  ans_col$.rows <- NULL
-
-  v <- vector('list', ngroup_row)
-  vr <- vector('list', ngroup_col)
-
-  vmt <- vector('list', nmat)
-  names(vmt) <- matnms
-
-  vf <- vector('list', nfn)
-  names(vf) <- nmfn
-
-  for (grr in 1:ngroup_row) {
+        private$._eval_fns()
+        return(
+          private$._format_list_of_evals(private$._fns_outcome_formatted)
+        )
+      }
 
 
-    for (grc in 1:ngroup_col) {
+      if (private$._loop_struct$col_looping_first) {
 
-      idx_row <- gr_idx_row[[grr]]
-      idx_col <- gr_idx_col[[grc]]
+        private$._eval_by_col_groups(inner = FALSE)
+        return(private$._col_outcome)
+      }
 
-      inf_idx <- rinf[idx_row, , drop = FALSE]
-      inf_compl <- cinf[idx_col, , drop = FALSE]
-      top <- list2env(inf_idx, top)
-      top <- list2env(inf_compl, top)
+      private$._eval_by_row_groups(inner = FALSE)
 
-      eval(context_funs_assign_expr("row", quote(inf_idx), quote(idx_row),
-                                    quote(rownames(ms)[idx_row])))
-      eval(context_funs_assign_expr("col", quote(inf_compl), quote(idx_col),
-                                    quote(colnames(ms)[idx_col])))
+      if (private$._margin == 0 && private$._loop_struct$row_grouped &&
+          private$._loop_struct$col_grouped && private$._simplify == "no") {
 
-      for (k in seq_mats) {
+        return(tidyr::unnest(private$._row_outcome, cols = .vals))
+      }
 
-        M <- ms$matrix_set[[matidx[[k]]]]
+      private$._row_outcome
+
+    },
 
 
-        if (!is.null(M)) {
-          M <- M[idx_row, idx_col, drop = FALSE]
-          middle[[var_lab]] <- M
+
+
+    #' Private method
+    #'
+    #' Execute the function evaluation process by looping across row groups
+    #' (which would mean looping across all rows for the case of apply_row and
+    #' dfw/dfl variants) and returns the formatted outcome.
+    #'
+    #' This function is a subcontractor and is called by either
+    #' 1. ._eval_by_matrix() or ._eval_multi(), with the former handling the
+    #'    loops upon matrices, when row looping is the outer loop (or second
+    #'    loop when there is also matrix looping.
+    #' 2. ._eval_by_col_groups(), when the row looping is the inner loop.
+    #'
+    #' Based on the looping template structure, it will also perform the loops
+    #' across columns , by subcontracting the job to ._eval_by_col_groups(),
+    #' when both loops are necessary and the row loop is the outer loop.
+    #'
+    #' @param inner    bool; is the row loop the outer loop (FALSE) or inner
+    #'                 loop (TRUE)?
+    #'
+    #' @returns
+    #' nothing; used for its side effects.
+    ._eval_by_row_groups = function(inner = FALSE) {
+
+      private$._reset_row_outcome()
+
+      for (ridx in seq_along(private$._loop_struct$row_groups_for_loop)) {
+
+        if (private$._loop_struct$row_grouped)
+          private$._reset_fns_outcome_names()
+
+        private$._scope$i <- private$._loop_struct$row_groups_for_loop[[ridx]]
+
+        if (inner || is.null(private$._loop_struct$col_groups_for_loop)) {
+          private$._eval_fns(private$._loop_struct$row_grouped)
+          private$._row_outcome[[ridx]] <- private$._fns_outcome_formatted
+          next
         }
 
-        for (vidx in seq_fn) {
-
-          if (is.null(M)) {
-            vf[vidx] <- list(NULL)
-          } else {
-            vf[[vidx]] <- rlang::eval_tidy(quosures[[vidx]], mask, env)
-          }
-
-        }
-
-        vmt[[k]] <- vf
+        private$._eval_by_col_groups(!inner)
+        private$._row_outcome[[ridx]] <- private$._col_outcome
 
       }
 
-      vr[[grc]] <- vmt
+      private$._format_margin_outcome("row")
+
+    },
+
+
+
+    #' Private method
+    #'
+    #' Execute the function evaluation process by looping across column groups
+    #' (which would mean looping across all columns for the case of
+    #' apply_column and dfw/dfl variants) and returns the formatted outcome.
+    #'
+    #' This function is a subcontractor and is called by either
+    #' 1. ._eval_by_matrix() or ._eval_multi(), with the former handling the
+    #'    loops upon matrices, when column looping is the outer loop (or second
+    #'    loop when there is also matrix looping.
+    #' 2. ._eval_by_row_groups(), when the column looping is the inner loop.
+    #'
+    #' Based on the looping template structure, it will also perform the loops
+    #' across rows , by subcontracting the job to ._eval_by_row_groups(),
+    #' when both loops are necessary and the column loop is the outer loop.
+    #'
+    #' @param inner    bool; is the column loop the outer loop (FAlSE) or the
+    #'                 inner loop (TRUE)?
+    #'
+    #' @returns
+    #' nothing; used for its side effects.
+    ._eval_by_col_groups = function(inner = TRUE) {
+
+      private$._reset_col_outcome()
+
+      for (cidx in seq_along(private$._loop_struct$col_groups_for_loop)) {
+
+        if (private$._loop_struct$col_grouped)
+          private$._reset_fns_outcome_names()
+
+        private$._scope$j <- private$._loop_struct$col_groups_for_loop[[cidx]]
+
+        if (inner || is.null(private$._loop_struct$row_groups_for_loop)) {
+          private$._eval_fns(private$._loop_struct$col_grouped)
+          private$._col_outcome[[cidx]] <- private$._fns_outcome_formatted
+          next
+        }
+
+        private$._eval_by_row_groups(!inner)
+        private$._col_outcome[[cidx]] <- private$._row_outcome
+      }
+
+
+      private$._format_margin_outcome("col")
+
+    },
+
+
+
+
+    #' Private method
+    #'
+    #' Formats the outcome vector of a margin.
+    #'
+    #' It is essentially a wrapper to ._format_list_of_evals(), where it is
+    #' applied per group when it applies. In the latter case, row binding is
+    #' applied without column id, as it is not necessary in the context of
+    #' grouping, given that the groups are already identified by a set of
+    #' columns.
+    #'
+    #' In the case of simplification in grouping context, an unnest step is
+    #' perform because otherwise, the output tibble will contains tibbles and
+    #' the simplification steps that comes later won't work.
+    #'
+    #' @param margin    one of "row" or "col", margin to format
+    #'
+    #' @returns
+    #' nothing; used for its side effects.
+    ._format_margin_outcome = function(margin) {
+
+      grouped <- private$._loop_struct[[paste(margin, "grouped", sep = "_")]]
+      outcome_id <- paste(".", margin, "outcome", sep = "_")
+
+      if (grouped) {
+        outcome_tmp <- private$._loop_struct[[paste(margin, "group_df", sep = "_")]]
+
+        outcome_tmp$.rows <- lapply(private[[outcome_id]], function(o) {
+          private$._format_list_of_evals(o, no_id = TRUE)
+        })
+
+        private[[outcome_id]] <- dplyr::rename(outcome_tmp, .vals = .rows)
+        if (private$._simplify != "no") {
+          private[[outcome_id]] <- tidyr::unnest(private[[outcome_id]],
+                                                 cols = .vals)
+        }
+        return()
+
+      }
+
+      private[[outcome_id]] <- private$._format_list_of_evals(private[[outcome_id]])
+
+    },
+
+
+
+
+    #' Private method
+    #'
+    #' Formats the outcome vector of function evaluation.
+    #'
+    #' It does one of two things:
+    #'
+    #' 1. returns the vector unchanged or
+    #' 2. returns a tibble that is the result of row binding the elements. This
+    #'    is done if simplification is requested by the user.
+    #'
+    #'  The default in row binding is to provide an identifyer column, but this
+    #'  can be disabled with `no_id = TRUE`. This is used for instance in the
+    #'  context of grouping, where the identifyer column is not needed.
+    #'
+    #' @param lst    a list, although any vector can technically do. This is the
+    #'               outcome vector of the evaluated functions.
+    #' @param no_id  bool, if TRUE, no column identifyer is created when row
+    #'               binding. Applies only in the context of simplification.
+    #'
+    #' @returns
+    #' a list or a tibble; see function description.
+    ._format_list_of_evals = function(lst, no_id = FALSE) {
+
+      if (private$._simplify == "no") return(lst)
+      if (no_id) return(dplyr::bind_rows(lst))
+      dplyr::bind_rows(lst, .id = private$._tag)
+
+    },
+
+
+
+
+    #' Private method
+    #'
+    #' Evaluates the functions and performs initial formatting.
+    #'
+    #' The formatting at this stage is minimal and is simply staging the real
+    #' formatting that will come later.
+    #'
+    #' 1. In the context of simplification in long format, removes the vector
+    #'    names, as they are not needed given the ID column that is created in
+    #'    that context.
+    #'    ._format_fn_outcome() performs that action
+    #' 2. Once all the functions have been evaluated, if simplification is
+    #'    needed, assesses that all lengths are the same (via ._assess_length()),
+    #'    a necessary condition to perform the following formatting
+    #' 3. In the context of simplification, reformat as lists where elements
+    #'    will be tibble columns once gone through the bind_rows step. This is
+    #'    done via ._format_list_of_fns(); see that function for details.
+    #'
+    #' @param grouped    bool, TRUE if one of row or column grouping is on.
+    #'                   Needed for final formatting.
+    #'
+    #' @returns
+    #' nothing; used for its side effects.
+    ._eval_fns = function(grouped = FALSE) {
+
+      for (fidx in seq_len(private$._fns_n)) {
+
+        fn <- private$._fns[[fidx]]
+        private$._scope$register_function(fn)
+        private$._fns_outcome[[fidx]] <- private$._scope$eval()
+        private$._set_out_lens(fidx)
+        private$._format_fn_outcome(fidx)
+
+      }
+
+      private$._assess_length()
+      private$._format_list_of_fns(grouped)
+
+    },
+
+
+
+
+    #' Private method
+    #'
+    #' Updates the idx^th function outcome length
+    #'
+    #' @param idx   index (integer), which function to update
+    #'
+    #' @returns
+    #' nothing; used for its side effects.
+    ._set_out_lens = function(idx) {
+
+      private$._fn_out_lens[idx] <- length(private$._fns_outcome[[idx]])
+
+    },
+
+
+
+    #' Private method
+    #'
+    #' Updates the idx^th function outcome names.
+    #'
+    #' These are the names that will make the function IDs unique within the
+    #' outcome of the same function (e.g., range returns of vector of length 2,
+    #' the naming will be unique after ._set_fns_names).
+    #'
+    #' Done only if:
+    #'
+    #' 1. Simplification
+    #' 2. function returns a vector of length > 1 - or if force_name is TRUE
+    #' 3. the names have not been set already. This is for optimization purpose,
+    #'    as this step is peformed within loops
+    #'
+    #' @param idx   index (integer), which function to update
+    #'
+    #' @returns
+    #' nothing; used for its side effects.
+    ._set_fns_names = function(idx) {
+
+      if (private$._simplify != "no" &&
+          (private$._fn_out_lens[idx] != 1L || private$._force_name) &&
+          is.null(out_names <- private$._fns_outcome_names[[idx]])) {
+
+        out_names <- make_names(private$._fns_outcome[[idx]], .name = "")
+        private$._fns_outcome_names[[idx]] <- out_names
+      }
+
+    },
+
+
+
+
+    #' Private method
+    #'
+    #' In the context of simplification in long format, removes the outcome
+    #' vector names of the idx^th element, as they are not needed given the ID
+    #' column that is created in that context.
+    #'
+    #' @param idx    index of the outcome element to update.
+    #'
+    #' @returns
+    #' nothing; used for its side effects.
+    ._format_fn_outcome = function(idx) {
+
+      private$._set_fns_names(idx)
+
+      if (private$._simplify == "long") {
+        private$._fns_outcome[[idx]] <- unname(private$._fns_outcome[[idx]])
+        return()
+      }
+
+      invisible()
+
+    },
+
+
+
+    #' Private method
+    #'
+    #' If simplification is needed, assesses that all lengths of the outcome
+    #' vector are the same (via ._assess_length()), a necessary condition in
+    #' order to perform simplification.
+    #'
+    #' @returns
+    #' nothing; used for its side effects.
+    ._assess_length = function() {
+
+      if (private$._simplify == "no") return(invisible())
+
+
+      lens <- private$._fn_out_lens
+
+      any0 <- any(l0 <- lens == 0L)
+      if (any0) lens <- lens[-l0]
+      multi <- if (length(lens) > 0) {
+        length(unique(lens)) > 1
+      } else FALSE
+
+      if (multi) stop("vectors must be of the same length", call. = FALSE)
+
+      invisible()
+
+    },
+
+
+
+
+    #' Private method
+    #'
+    #' In the context of simplification, performs formatting so that the
+    #' bind_rows step will work and yield the long/wide format that is needed.
+    #'
+    #' Otherwise, or when formatting is irrelevant (i.e., when the outcomes
+    #' are all of length 1 without name forcing), ._fns_outcome_formatted is
+    #' simply equal to ._fns_outcome.
+    #'
+    #' See the comments in the function for the long and wide specificity of
+    #' the formats.
+    #'
+    #' Finally, when grouped, the outcome is wrapped in a list as a measure of
+    #' protection against bind_rows.
+    #'
+    #' @param idx    bool; was there row or column grouping?
+    #'
+    #' @returns
+    #' nothing; used for its side effects.
+    ._format_list_of_fns = function(grouped) {
+
+
+      if (private$._simplify == "no") {
+        private$._fns_outcome_formatted <- private$._fns_outcome
+        return()
+      }
+
+      # with length == 1 and no name forcing, it long/wide format is irrelevant
+      if (unique(private$._fn_out_lens) == 1L && !private$._force_name) {
+        if (private$._margin == 0) {
+          private$._fns_outcome_formatted <- list(private$._fns_outcome)
+          return()
+        }
+        private$._fns_outcome_formatted <- private$._fns_outcome
+        return()
+      }
+
+
+      # creates new elements - that will later become new columns - that
+      # contains the IDs of the outcomes. It is also ordered to make sure the
+      # "name" element always comes right before its corresponding outcome, as
+      # well as keeping the original outcome order.
+      if (private$._simplify == "long") {
+        nms <- setNames(private$._fns_outcome_names,
+                        paste0(names(private$._fns_outcome), ".name"))
+        private$._fns_outcome_formatted <- c(nms, private$._fns_outcome)[private$._long_order]
+
+        if (grouped || private$._margin == 0) {
+          private$._fns_outcome_formatted <- list(private$._fns_outcome_formatted)
+        }
+        return()
+      }
+
+      # wide
+
+      # The function outcomes are in a list where each element corresponds to
+      # a function. The flattening step creates a single vector (which could be
+      # a list) where each element will be converted to a wide-wise column
+      # later. In addition, based on ._fns_outcome_names, the new "columns" are
+      # renamed so that their names are unique.
+      #
+      # As for list_row, it wraps lists in an additional layer of list but
+      # doesn't do anything to vectors. This is to protect lists against the
+      # unnesting step that comes later.
+      private$._fns_outcome_formatted <- list_row(
+        flatten_and_name(private$._fns_outcome,
+                         private$._fns_outcome_names))
+
+      if (grouped || private$._margin == 0) {
+        private$._fns_outcome_formatted <- list(private$._fns_outcome_formatted)
+      }
 
     }
 
-    vtmp <- lapply(seq_mats, function(k) {
-      ans_col$.vals <- lapply(1:ngroup_col, function(gr) {
-        vr[[gr]][[k]]
+  )
+)
+
+
+
+
+#' FnMaker: Harmonizes provided functions into function expressions.
+#'
+#' Turns functions and formulas into function expressions, as well as making
+#' sure that provided function names do not clash with matrixset row/column
+#' tags - though the later is relevant only in context of simplification.
+#'
+#' @docType class
+#' @noRd
+#' @name FnMaker
+FnMaker <- R6::R6Class(
+  "FnMaker",
+
+  public = list(
+
+
+    #' Constructor for FnMaker
+    #'
+    #' @param .ms       The matrix_set object in which to get row and/or column
+    #'                  tag and thus, to which the FnMaker class is assigned to
+    #' @param quos      the functions provided by the user, given to FnMaker as
+    #'                  quosures.
+    #' @param margin    0, 1 or 2. 0 = `apply_matrix` has been called.
+    #'                  1 = `apply_row` and 2 = `apply_column`. The dfw/dfl
+    #'                  versions are covered as well. For FnMaker, the margin
+    #'                  is needed to know which tag (row or column) to use to
+    #'                  check that no function names are clashing with the tags.
+    #' @param simplify  single character, one of "no", "long" or "wide".
+    #'                  For FnMaker, simply needed to know if simplification is
+    #'                  required to know if it is required to prevent function
+    #'                  names clashing with row and/or column tag (typically,
+    #'                  .rowname or .colname). Without simplification, there is
+    #'                  no such constraints.
+    #' @param call_env  The calling environment of the apply_* functions. This
+    #'                  will only be used in an error message if any functions,
+    #'                  provided as formulas, can't be converted to actual
+    #'                  functions.
+    #'
+    initialize = function(.ms, quos, margin, simplify,
+                          call_env = rlang::caller_env()) {
+
+      private$._fn_names <- private$._get_fn_names(quos)
+      private$._assess_fun_names(.ms, margin, simplify)
+
+      var_tag <- get_var_tag(margin)
+      private$fns_ <- lapply(quos, function(q) {
+        private$._as_fn_expr(q, var_tag, call_env)
       })
-      ans_col
-    })
-    v[[grr]] <- vtmp
 
+      names(private$fns_) <- private$._fn_names
 
-  }
+    }
 
+  ),
 
-  ans <- row_group_meta(ms)
-  ans$.rows <- NULL
-  vans <- lapply(seq_mats, function(k) {
-    ans$.___tmp___ <- lapply(1:ngroup_row, function(gr) {
-      v[[gr]][[k]]
-    })
-    tidyr::unnest(ans, ".___tmp___")
-  })
+  active = list(
 
-  if (.simplify) attr(vans, "group_vars") <- margin_group_vars("row")(ms)
+    #' Functions
+    #'
+    #' @field fns    expressions representing the functions to evaluate, in a
+    #'               list format. Each list name is the function name, or label.
+    fns = function() private$fns_
 
-  vans
-
-}
+  ),
 
 
 
+  private = list(
+
+    fns_ = NULL,          # expressions representing the functions to evaluate,
+                          # in a list format.
+
+    ._fn_names = NULL,    # name, or label, of each function expression.
 
 
-eval_fun_matrix_mult <- function(ms, ..., matidx, as_list_mat, .simplify, env)
+
+    #' Private method
+    #'
+    #' Test if a quosure is a formula.
+    #'
+    #' @param quo    quosure to test
+    #'
+    #' @returns
+    #' bool, TRUE if the quosure is a formula, FALSE otherwise
+    ._quo_is_formula = function(quo) {
+      rlang::is_formula(rlang::quo_get_expr(quo))
+    },
+
+
+
+    #' Private method
+    #'
+    #' Test if a quosure is a function.
+    #'
+    #' @param quo    quosure to test
+    #'
+    #' @returns
+    #' bool, TRUE if the quosure is a function, FALSE otherwise
+    ._quo_is_function = function(quo) {
+      if (!rlang::quo_is_symbolic(quo)) return(FALSE)
+      test_for_fn <- tryCatch(rlang::eval_tidy(quo), error = function(e) e)
+      if (inherits(test_for_fn, "error")) return(FALSE)
+      rlang::is_function(test_for_fn)
+    },
+
+
+
+    #' Private method
+    #'
+    #' Get names (labels) of provided functions. For formulas, the ~ character
+    #' is removed.
+    #'
+    #' @param quos    the quosures with the function expressions
+    #'
+    #' @returns
+    #' character vector
+    ._get_fn_names = function(quos) {
+      nmfn <- names(quos)
+      is_a_formula <- vapply(quos, private$._quo_is_formula, FALSE)
+      if (any(form_idx <- is_a_formula)) {
+        nmfn[form_idx] <- gsub("^~", "", nmfn[form_idx])
+      }
+      nmfn
+    },
+
+
+
+    #' Private method
+    #'
+    #' Workhorse of ._assess_fun_names(); provides the assessment for a given
+    #' margin tag.
+    #'
+    #' @param tag       string, the tag to check. If NULL, no check is performed
+    #' @param simplify  logical (no default). If TRUE, the test is performed,
+    #'                  otherwise it is skipped.
+    #'
+    #' @returns
+    #' used for its side effect.
+    ._assess_fun_names_for_tag = function(tag, simplify) {
+      if (is.na(tag) || !simplify) return(invisible(NULL))
+      if (any(private$._fn_names == tag))
+        stop(paste("the function results can't be named", shQuote(tag)))
+    },
+
+
+
+
+
+    #' Private method
+    #'
+    #' Assess if the name (i.e., label) attributed to function result in apply_*
+    #' (e.g. avr in apply_row_dfl(ms_object, avr = mean)) matches the matrixset
+    #' object's relevant tag (tag). In the example, the relevant tag is the row
+    #' tag (because apply_row), which unless changed by user, is .rowname.
+    #'
+    #' Note that this name is used as column name in the dfl/dfw versions of the
+    #' apply functions. Consequently, the test is relevant only for these apply
+    #' versions.
+    #'
+    #' @param .ms       The matrix_set object in which to get row and/or column
+    #'                  tag.
+    #' @param margin    0, 1 or 2. 0 = `apply_matrix` has been called.
+    #'                  1 = `apply_row` and 2 = `apply_column`. The dfw/dfl
+    #'                  versions are covered as well. For FnMaker, the margin
+    #'                  is needed to know which tag (row or column) to use to
+    #'                  check that no function names are clashing with the tags.
+    #' @param simplify  One of "no", "long" or "wide". Will be turned into a
+    #'                  bool by simplify != "no".
+    #'
+    #' @returns
+    #' used for its side effect.
+    ._assess_fun_names = function(.ms, margin, simplify) {
+
+      # make sure we're not giving it the same name as tag. The check is skipped
+      # if simplify is FALSE (not dfl/dfw), as this restriction is necessary
+      # only to make sure the result tibble in dfl/dfw have column name conflict.
+      if (!is.null(margin) && (margin == 0 || margin == 1)) {
+        private$._assess_fun_names_for_tag(.rowtag(.ms), simplify != "no")
+      }
+      if (!is.null(margin) && (margin == 0 || margin == 2)) {
+        private$._assess_fun_names_for_tag(.coltag(.ms), simplify != "no")
+      }
+
+    },
+
+
+
+    #' Private method
+    #'
+    #' Turn a quosure representing a function into an expression representing a
+    #' function.
+    #'
+    #' The quosure can be either a formula or a function.
+    #'
+    #' @param x          quosure to convert
+    #' @param dot_arg    the pronoun that is available to use (typically, .m, .i
+    #'                   or .j) by the functions. Only used if need to convert
+    #'                   the function into an expression.
+    #'                   E.g., mean will become mean(.i) for apply_row.
+    #' @param call       The calling environment of the apply_* functions. This
+    #'                   will only be used in an error message if any functions,
+    #'                   provided as formulas, can't be converted to actual
+    #'                   functions.
+    #' @param arg        This argument will be mentioned in error messages as
+    #'                   the input that is at the origin of a problem.
+    #'
+    #' @returns
+    #' bool, TRUE if the quosure is a formula, FALSE otherwise
+    ._as_fn_expr = function(x, dot_arg, call, arg = rlang::caller_arg(x)) {
+
+      if (private$._quo_is_function(x)) {
+        return(rlang::call2(rlang::quo_get_expr(x), as.name(dot_arg)))
+
+      }
+
+      if (private$._quo_is_formula(x)) {
+
+        fn <- rlang::as_function(rlang::eval_tidy(x), env = globalenv(),
+                                 arg = arg, call = call)
+        return(body(fn))
+
+      }
+
+      lifecycle::deprecate_warn("0.4.0",
+                                I("Providing expressions"),
+                                with = I("a formula"),
+                                always = TRUE)
+      return(rlang::quo_get_expr(x))
+
+
+      # will be active once the lifecycle permanently disallows expressions
+      rlang::abort("Functions must be provided as formulas or function names.")
+
+    }
+
+  ))
+
+
+
+
+
+
+# margin = NULL: mult
+#          0: whole matrix
+#          1: rowwise
+#          2: colwise
+eval_function <- function(.ms, ..., margin = NULL, matidx = NULL,
+                          .matrix_wise = TRUE, .input_list = FALSE,
+                          .simplify = "no", .force_name = FALSE,
+                          env = rlang::caller_env(2))
 {
-  cl <- sys.call()
-  cash_status$set(cl)
-  on.exit(cash_status$clear(cl))
-
-  nmat <- NULL
-  seq_mats <- NULL
-  matnms <- NULL
-  mask <- NULL
-
-  if (is.null(ms$matrix_set)) return(NULL)
-
-  var_lab <- var_lab_mat
-
-  nr <- nrow(ms)
-  nc <- ncol(ms)
-  rinf <- row_info(ms)
-  cinf <- column_info(ms)
-
-  eval(context_matidx)
+  lifecycle::deprecate_soft("0.4.0", I("Formatting NULL matrices"), user_env = env)
 
   quosures <- rlang::enquos(..., .named = TRUE, .ignore_empty = "all")
-
-  if (!as_list_mat) mat_lab <- paste0(var_lab, seq_mats)
-
-  nmfn <- names(quosures)
-  assess_fun_names(nmfn, .rowtag(ms), .simplify)
-  assess_fun_names(nmfn, .coltag(ms), .simplify)
-
-  nfn <- length(quosures)
-  seq_fn <- stats::setNames(seq_len(nfn), nmfn)
-  for (i in seq_fn) {
-    quosures[[i]] <- norm_call(quosures[[i]], var_lab)
-  }
+  fn_maker <- FnMaker$new(.ms, quosures, margin, .simplify)
 
 
-  eval(set_env_expr)
+  applyer <- Applyer$new(.ms, matidx, margin, fn_maker$fns, .matrix_wise,
+                         .input_list, .simplify, .force_name, env)
 
-  eval(funs_context_expr)
-  eval(context_enclos_expr)
-
-
-
-  mat_list <- vector("list", nmat)
-  names(mat_list) <- matnms
-
-  v <- vector('list', nfn)
-  names(v) <- nmfn
-
-
-  top <- list2env(cinf, top)
-  top <- list2env(rinf, top)
-  eval(context_funs_assign_expr("col", quote(cinf), quote(seq_len(ncol(ms))),
-                                quote(colnames(ms))))
-  eval(context_funs_assign_expr("row", quote(rinf), quote(seq_len(nrow(ms))),
-                                quote(rownames(ms))))
-
-
-  for (k in seq_mats) {
-    M <- ms$matrix_set[[matidx[[k]]]]
-    if (!is.null(M)) mat_list[[k]] <- M
-  }
-
-  if (as_list_mat) {
-    middle[[var_lab]] <- mat_list
-  } else {
-    names(mat_list) <- mat_lab
-    middle <- list2env(mat_list, envir = middle)
-  }
-
-
-  for (vidx in seq_fn)
-    v[[vidx]] <- rlang::eval_tidy(quosures[[vidx]], mask, env)
-
-  v
+  applyer$eval()
 
 }
 
-
-
-
-
-#sgms = singly grouped matrixset
-eval_fun_matrix_sgms_mult <- function(ms, mrg, ..., matidx, as_list_mat,
-                                      .simplify, env)
-{
-  cl <- sys.call()
-  cash_status$set(cl)
-  on.exit(cash_status$clear(cl))
-
-  nmat <- NULL
-  seq_mats <- NULL
-  matnms <- NULL
-  mask <- NULL
-
-  if (is.null(ms$matrix_set)) return(NULL)
-
-  var_lab <- var_lab_mat
-  mrg_compl <- switch(mrg, row = "col", col = "row", "oops")
-  if (mrg_compl == "oops") stop("wrong margin specification")
-
-  nr <- nrow(ms)
-  nc <- ncol(ms)
-  inf <- switch(mrg, row = row_info(ms), column_info(ms))
-  inf_compl <- switch(mrg_compl, row = row_info(ms), column_info(ms))
-
-  gr_idx <- switch(mrg, "row"=row_group_where(ms), column_group_where(ms))
-  ngroup <- length(gr_idx)
-
-  eval(context_matidx)
-
-  quosures <- rlang::enquos(..., .named = TRUE, .ignore_empty = "all")
-
-  if (!as_list_mat) mat_lab <- paste0(var_lab, seq_mats)
-
-  nmfn <- names(quosures)
-  assess_fun_names(nmfn, .rowtag(ms), .simplify)
-  assess_fun_names(nmfn, .coltag(ms), .simplify)
-
-  nfn <- length(quosures)
-  seq_fn <- stats::setNames(seq_len(nfn), nmfn)
-  for (i in seq_fn) {
-    quosures[[i]] <- norm_call(quosures[[i]], var_lab)
-  }
-
-
-  eval(set_env_expr)
-
-  eval(funs_context_expr)
-  eval(context_enclos_expr)
-
-  mat_list <- vector("list", nmat)
-  names(mat_list) <- matnms
-
-  val <- vector("list", ngroup)
-
-  v <- vector('list', nfn)
-  names(v) <- nmfn
-
-  for (gr in 1:ngroup) {
-    idx <- gr_idx[[gr]]
-
-    inf_idx <- inf[idx, , drop = FALSE]
-    top <- list2env(inf_idx, top)
-
-    eval(context_funs_assign_expr(mrg, quote(inf_idx), quote(idx),
-                                  quote(margin_nms(mrg)(ms)[idx])))
-
-    top <- list2env(inf_compl, top)
-
-    eval(context_funs_assign_expr(mrg_compl, quote(inf_compl),
-                                  quote(seq_len(margin(mrg_compl)(ms))),
-                                  quote(margin_nms(mrg_compl)(ms))))
-
-    for (k in seq_mats) {
-
-      M <- ms$matrix_set[[matidx[[k]]]]
-      M <- switch(mrg, row=M[idx, , drop = FALSE], M[, idx, drop = FALSE])
-
-      if (!is.null(M)) mat_list[[k]] <- M
-    }
-
-    if (as_list_mat) {
-      middle[[var_lab]] <- mat_list
-    } else {
-      names(mat_list) <- mat_lab
-      middle <- list2env(mat_list, envir = middle)
-    }
-
-
-    for (vidx in seq_fn)
-      v[[vidx]] <- rlang::eval_tidy(quosures[[vidx]], mask, env)
-
-    val[[gr]] <- v
-  }
-
-
-  ans <- group_meta(mrg_compl)(ms)
-  ans$.rows <- NULL
-  ans$.vals <- val
-
-  if (.simplify) attr(ans, "group_vars") <- margin_group_vars(mrg_compl)(ms)
-
-  ans
-
-}
-
-
-
-
-
-
-eval_fun_matrix_dgms_mult <- function(ms, ..., matidx, as_list_mat, .simplify,
-                                      env)
-{
-  cl <- sys.call()
-  cash_status$set(cl)
-  on.exit(cash_status$clear(cl))
-
-  nmat <- NULL
-  seq_mats <- NULL
-  matnms <- NULL
-  mask <- NULL
-
-  if (is.null(ms$matrix_set)) return(NULL)
-
-  var_lab <- var_lab_mat
-
-  nr <- nrow(ms)
-  nc <- ncol(ms)
-  rinf <- row_info(ms)
-  cinf <- column_info(ms)
-
-  gr_idx_row <- row_group_where(ms)
-  gr_idx_col <- column_group_where(ms)
-  ngroup_row <- length(gr_idx_row)
-  ngroup_col <- length(gr_idx_col)
-
-  eval(context_matidx)
-
-  quosures <- rlang::enquos(..., .named = TRUE, .ignore_empty = "all")
-
-  if (!as_list_mat) mat_lab <- paste0(var_lab, seq_mats)
-
-  nmfn <- names(quosures)
-  assess_fun_names(nmfn, .rowtag(ms), .simplify)
-  assess_fun_names(nmfn, .coltag(ms), .simplify)
-
-  nfn <- length(quosures)
-  seq_fn <- stats::setNames(seq_len(nfn), nmfn)
-  for (i in seq_fn) {
-    quosures[[i]] <- norm_call(quosures[[i]], var_lab)
-  }
-
-
-  eval(set_env_expr)
-
-  eval(funs_context_expr)
-  eval(context_enclos_expr)
-
-  mat_list <- vector("list", nmat)
-  names(mat_list) <- matnms
-
-  v <- vector('list', ngroup_row)
-  vr <- vector('list', ngroup_col)
-
-  val <- vector('list', nfn)
-  names(val) <- nmfn
-
-  for (grr in 1:ngroup_row) {
-
-
-    for (grc in 1:ngroup_col) {
-
-      idx_row <- gr_idx_row[[grr]]
-      idx_col <- gr_idx_col[[grc]]
-
-      inf_idx <- rinf[idx_row, , drop = FALSE]
-      inf_compl <- cinf[idx_col, , drop = FALSE]
-      top <- list2env(inf_idx, top)
-      top <- list2env(inf_compl, top)
-
-      eval(context_funs_assign_expr("row", quote(inf_idx), quote(idx_row),
-                                    quote(rownames(ms)[idx_row])))
-      eval(context_funs_assign_expr("col", quote(inf_compl), quote(idx_col),
-                                    quote(colnames(ms)[idx_col])))
-
-
-      for (k in seq_mats) {
-
-        M <- ms$matrix_set[[matidx[[k]]]]
-        M <- M[idx_row, idx_col, drop = FALSE]
-
-        if (!is.null(M)) mat_list[[k]] <- M
-      }
-
-
-      if (as_list_mat) {
-        middle[[var_lab]] <- mat_list
-      } else {
-        names(mat_list) <- mat_lab
-        middle <- list2env(mat_list, envir = middle)
-      }
-
-
-      for (k in seq_mats) {
-
-        M <- ms$matrix_set[[matidx[[k]]]]
-
-
-        if (!is.null(M)) {
-          M <- M[idx_row, idx_col, drop = FALSE]
-          middle[[var_lab]] <- M
-        }
-
-        for (vidx in seq_fn) {
-
-          if (is.null(M)) {
-            val[vidx] <- list(NULL)
-          } else {
-            val[[vidx]] <- rlang::eval_tidy(quosures[[vidx]], mask, env)
-          }
-
-        }
-
-        vr[[grc]] <- val
-
-
-        ans <- column_group_meta(ms)
-        ans$.rows <- NULL
-        ans$.vals <- vr
-
-      }
-
-      v[[grr]] <- ans
-
-    }
-
-
-  }
-
-
-  ans <- row_group_meta(ms)
-  ans$.rows <- NULL
-  ans$.___tmp___ <- v
-  ans <- tidyr::unnest(ans, ".___tmp___")
-
-  if (.simplify) attr(ans, "group_vars") <- row_group_vars(ms)
-  ans
-}
-
-
-
-
-
-
-
-
-make_longer_val <- function(.v, force_name)
-{
-  tbls <- purrr::imap(.v,
-                      ~ {
-                        ln <- length(.x)
-                        if (ln > 1 && is.null(names(.x))) names(.x) <- make_names(.x, "")
-                        if (ln > 1L || force_name) {
-                          stats::setNames(tibble::tibble(names(.x), unname(.x)),
-                                          c(paste0(.y, ".name"), .y))
-                        } else {
-                          stats::setNames(tibble::tibble(.x), .y)
-                        }
-                      })
-  dplyr::bind_cols(tbls)
-}
-
-
-
-
-make_longer <- function(val, force_name)
-{
-  lapply(val, function(x) {
-    len <- unique(sapply(x, length))
-
-    if (length(len) > 1) stop("vectors must be of the same length",
-                              call. = FALSE)
-
-    is_null <- sapply(x, is.null)
-    if (any(is_null)) x[is_null] <- list(logical(0))
-
-    make_longer_val(x, force_name)
-
-  })
-}
-
-
-
-
-
-
-make_wider_val <- function(.v, force_name)
-{
-  tbls <- purrr::imap(.v,
-                      ~ {
-                        ln <- length(.x)
-                        if (ln > 1L || force_name) {
-                          nms <- names(.x)
-                          if (is.null(nms) || any(nms == ""))
-                            names(.x) <- make_names(.x, "")
-                          names(.x) <- paste(.y, names(.x))
-                          tibble::new_tibble(list_row(.x))
-                        } else if (ln > 0L) {
-                          stats::setNames(tibble::tibble(.x), .y)
-                        } else {
-                          mpty <- tibble::tibble()
-                          mpty[[.y]] <- logical(0)
-                          mpty
-                        }
-                      })
-  dplyr::bind_cols(tbls)
-}
-
-
-
-make_wider <- function(val, force_name)
-{
-  lapply(val, function(x) {
-    len <- unique(sapply(x, length))
-
-    if (length(len) > 1) stop("vectors must be of the same length",
-                              call. = FALSE)
-
-    is_null <- sapply(x, is.null)
-    if (any(is_null)) x[is_null] <- list(logical(0))
-
-    make_wider_val(x, force_name)
-
-  })
-}
-
-
-
-
-tblize_lg <- function(fna, mrg_tag, matrix = FALSE, mult = FALSE, force_name = FALSE)
-{
-  bind_long <- function(v, force_name, mrg_tag)
-    dplyr::bind_rows(make_longer(v, force_name), .id = mrg_tag)
-
-  if (is.null(fna)) return(NULL)
-  grp_vars <- attr(fna, "group_vars")
-
-  if (is.null(grp_vars)) {
-
-    if (matrix) {
-      if (mult) {
-        make_longer_val(fna, force_name)
-      } else make_longer(fna, force_name)
-    } else {
-
-      if (mult) {
-        bind_long(fna, force_name, mrg_tag)
-      } else {
-        lapply(fna, function(m) {
-          bind_long(m, force_name, mrg_tag)
-        })
-      }
-
-    }
-
-  } else {
-
-    if (matrix) {
-      if (mult) {
-        unfold <- lapply(fna$.vals, function(v) make_longer_val(v, force_name))
-        fna$.vals <- unfold
-        tidyr::unnest(fna, ".vals")
-      } else {
-        lapply(fna, function(v) {
-          .vals <- make_longer(v$.vals, force_name)
-          v$.vals <- .vals
-          tidyr::unnest(v, ".vals")
-        })
-      }
-
-    } else {
-
-      if (mult) {
-        unfold <- lapply(fna$.vals, function(v) bind_long(v, force_name, mrg_tag))
-        fna$.vals <- unfold
-        tidyr::unnest(fna, ".vals")
-
-      } else {
-        lapply(fna, function(m) {
-          unfold <- lapply(m$.vals, function(v) bind_long(v, force_name, mrg_tag))
-          m$.vals <- unfold
-          tidyr::unnest(m, ".vals")
-        })
-      }
-
-    }
-
-  }
-
-}
-
-
-
-
-
-tblize_wd <- function(fna, mrg_tag, matrix = FALSE, mult = FALSE, force_name = FALSE)
-{
-  bind_wide <- function(v, force_name, mrg_tag)
-    dplyr::bind_rows(make_wider(v, force_name), .id = mrg_tag)
-
-  if (is.null(fna)) return(NULL)
-  grp_vars <- attr(fna, "group_vars")
-  if (is.null(grp_vars)) {
-    if (matrix) {
-      if (mult) {
-        make_wider_val(fna, force_name)
-      } else {
-        make_wider(fna, force_name)
-      }
-
-    } else {
-      if (mult) {
-        bind_wide(fna, force_name, mrg_tag)
-      } else {
-        lapply(fna, function(m) {
-          bind_wide(m, force_name, mrg_tag)
-        })
-      }
-
-    }
-
-  } else {
-    if (matrix) {
-      if (mult) {
-        unfold <- lapply(fna$.vals, function(v) make_wider_val(v, force_name))
-        fna$.vals <- unfold
-        tidyr::unnest(fna, ".vals")
-      } else {
-        lapply(fna, function(m) {
-          .vals <- make_wider(m$.vals, force_name)
-          m$.vals <- .vals
-          tidyr::unnest(m, ".vals")
-        })
-      }
-
-    } else {
-      if (mult) {
-        unfold <- lapply(fna$.vals, function(v) bind_wide(v, force_name, mrg_tag))
-        fna$.vals <- unfold
-        tidyr::unnest(fna, ".vals")
-      } else {
-        lapply(fna, function(m) {
-          unfold <- lapply(m$.vals, function(v) bind_wide(v, force_name, mrg_tag))
-          m$.vals <- unfold
-          tidyr::unnest(m, ".vals")
-        })
-      }
-
-    }
-
-  }
-
-}
 
 
 
@@ -1511,7 +2579,7 @@ tblize_wd <- function(fna, mrg_tag, matrix = FALSE, mult = FALSE, force_name = F
 #' row/column. The functions can be applied to all matrices or only a subset.
 #'
 #' The `dfl`/`dfw` versions differ in their output format and when possible,
-#' always return a [tibble()].
+#' always return a [tibble::tibble()].
 #'
 #' Empty matrices are simply left unevaluated. How that impacts the returned
 #' result depends on which flavor of apply_* has been used. See \sQuote{Value}
@@ -1533,7 +2601,8 @@ tblize_wd <- function(fna, mrg_tag, matrix = FALSE, mult = FALSE, force_name = F
 #'      annotation. You can use `.env[[var]]` or `.env$var` to make sure to use
 #'      the proper variable.
 #'
-#' The matrixset package defines its own pronouns: `r var_lab_mat`, `r var_lab_row` and `r var_lab_col`, which
+#' The matrixset package defines its own pronouns: `r var_lab_mat`,
+#' `r var_lab_row` and `r var_lab_col`, which
 #' are discussed in the function specification argument (`...`).
 #'
 #' It is not necessary to import any of the pronouns (or load `rlang` in the
@@ -1603,17 +2672,19 @@ tblize_wd <- function(fna, mrg_tag, matrix = FALSE, mult = FALSE, force_name = F
 #'     the following way:
 #'
 #'    * a function name, e.g., `mean`.
-#'    * a function call, where you can use `r var_lab_mat` to represent the current matrix
-#'       (for `apply_matrix`), `r var_lab_row` to represent the current row (for `apply_row`)
-#'       and `r var_lab_col` for the current column (`apply_column`). Bare names of object
-#'       traits can be used as well. For instance, `lm(.i ~ program)`.
+#'    * An anonymous function, e.g., `function(x) mean(x)` or `\(x) mean(x)`
+#'    * a formula expression, which may represent a function call, where you can
+#'       use `r var_lab_mat` to represent the current matrix (for `apply_matrix`),
+#'       `r var_lab_row` to represent the current row (for `apply_row`) and
+#'       `r var_lab_col` for the current column (`apply_column`). Bare names of
+#'       object traits can be used as well. For instance, `~ lm(.i ~ program)`.
 #'
 #'       The pronouns are also available for the multivariate version, under
 #'       certain circumstances, but they have a different meaning. See the
 #'       "Multivariate" section for more details.
-#'    * a formula expression. The pronouns `r var_lab_mat`, `r var_lab_row` and
-#'       `r var_lab_col` can be used as well. See examples to see the usefulness
-#'       of this.
+#'    * `r lifecycle::badge("superseded")`  an expression. Superseded in favor
+#'       of using a formula. The usage is almost identical and the formula is
+#'       more clear.
 #'
 #'    The expressions can be named; these names will be used to provide names to
 #'    the results.
@@ -1658,12 +2729,14 @@ tblize_wd <- function(fna, mrg_tag, matrix = FALSE, mult = FALSE, force_name = F
 #'    See examples.
 #'
 #' @returns
-#' A list for every matrix in the matrixset object. Each list is itself a list.
-#' For `apply_matrix`, it is a list of the function values - `NULL` if the matrix
-#' was empty. Otherwise, it is a list with one element for each row/column -
-#' these elements will be `NULL` if the corresponding matrix was empty. And
-#' finally, for `apply_row`/`apply_column`, each of these sub-list is a list,
-#' the results of each function.
+#' A list for every matrix in the matrixset object. Each list is itself a
+#' list, or `NULL` for `NULL` matrices. For `apply_matrix`, it is a list of
+#' the function values. Otherwise, it is a list with one element for each
+#' row/column. And finally, for `apply_row`/`apply_column`, each of these
+#' sub-list is a list, the results of each function.
+#'
+#' When `.matrix_wise == FALSE`, the output format differs only in that there is
+#' no list for matrices.
 #'
 #' If each function returns a `vector` of the same dimension, you can use either
 #' the `_dfl` or the `_dfw` version. What they do is to return a list of
@@ -1699,13 +2772,13 @@ tblize_wd <- function(fna, mrg_tag, matrix = FALSE, mult = FALSE, force_name = F
 #' (rg_w <- apply_column_dfw(student_results, rg=range))
 #'
 #' # More complex examples can be used, by using pronouns and data annotation
-#' (vals <- apply_column(student_results, avr=mean, avr_trim=mean(.j, trim=.05),
-#'                                       reg=lm(.j ~ teacher)))
+#' (vals <- apply_column(student_results, avr=mean, avr_trim=~mean(.j, trim=.05),
+#'                                       reg=~lm(.j ~ teacher)))
 #'
 #' # You can wrap complex function results, such as for lm, into a list, to use
 #' # the dfl/dfr version
-#' (vals_tidy <- apply_column_dfw(student_results, avr=mean, avr_trim=mean(.j, trim=.05),
-#'                                                reg=list(lm(.j ~ teacher))))
+#' (vals_tidy <- apply_column_dfw(student_results, avr=mean, avr_trim=~mean(.j, trim=.05),
+#'                                                reg=~list(lm(.j ~ teacher))))
 #'
 #' # You can provide complex expressions by using formulas
 #' (r <- apply_column(student_results,
@@ -1718,7 +2791,7 @@ tblize_wd <- function(fna, mrg_tag, matrix = FALSE, mult = FALSE, force_name = F
 #' # the .data pronoun can be useful to use names stored in variables
 #' fn <- function(nm) {
 #'   if (!is.character(nm) && length(nm) != 1) stop("this example won't work")
-#'   apply_column(student_results, lm(.j ~ .data[[nm]]))
+#'   apply_column(student_results, ~lm(.j ~ .data[[nm]]))
 #' }
 #' fn("teacher")
 #'
@@ -1748,17 +2821,20 @@ tblize_wd <- function(fna, mrg_tag, matrix = FALSE, mult = FALSE, force_name = F
 #'                                  ct = ~ c(avr = mean(.j), med = median(.j)),
 #'                                  rg = range))
 #' (summ_gr_wide <- apply_column_dfw(cl_prof_program_gr,
-#'                                  ct = c(avr = mean(.j), med = median(.j)),
+#'                                  ct = ~ c(avr = mean(.j), med = median(.j)),
 #'                                  rg = range))
 #'
 #'
 #' # This is an example where you may want to use the .force_name argument
-#' (apply_matrix_dfl(column_group_by(student_results, program), FC = colMeans(.m)))
-#' (apply_matrix_dfl(column_group_by(student_results, program), FC = colMeans(.m),
+#' (apply_matrix_dfl(column_group_by(student_results, program), FC = ~ colMeans(.m)))
+#' (apply_matrix_dfl(column_group_by(student_results, program), FC = ~ colMeans(.m),
 #'                   .force_name = TRUE))
 #'
 #' @name loop
 NULL
+
+
+
 
 
 
@@ -1770,52 +2846,12 @@ apply_row <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
 
 #' @export
 apply_row.matrixset <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
-                      .input_list = FALSE)
-{
-  if (.matrix_wise) {
-    warn_if(.matrix_wise, .input_list)
-    eval_fun_margin(.ms, mrg="row", var_lab=var_lab_row, ..., matidx = .matrix,
-                    .simplify = FALSE, env = rlang::caller_env())
-  } else {
-    eval_fun_margin_mult(.ms, mrg="row", var_lab=var_lab_row, ...,
-                         matidx = .matrix, as_list_mat = .input_list,
-                         .simplify = FALSE, env = rlang::caller_env())
-  }
-}
-
-#' @export
-apply_row.row_grouped_ms <- function(.ms, ..., .matrix = NULL,
-                                     .matrix_wise = TRUE, .input_list = FALSE)
-{
-  NextMethod()
-}
-
-#' @export
-apply_row.col_grouped_ms <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
                                 .input_list = FALSE)
 {
-  if (.matrix_wise) {
-    warn_if(.matrix_wise, .input_list)
-    eval_fun_margin_grp(.ms, mrg="row", var_lab=var_lab_row, ...,
-                        matidx = .matrix, .simplify = FALSE,
-                        env = rlang::caller_env())
-  } else {
-    eval_fun_margin_grp_mult(.ms, mrg="row", var_lab=var_lab_row, ...,
-                             matidx = .matrix, as_list_mat = .input_list,
-                             .simplify = FALSE, env = rlang::caller_env())
-  }
+  warn_if(.matrix_wise, .input_list)
+  eval_function(.ms, ..., margin = 1, matidx = .matrix,
+                .matrix_wise = .matrix_wise, .input_list = .input_list)
 }
-
-#' @export
-apply_row.dual_grouped_ms <- function(.ms, ..., .matrix = NULL,
-                                     .matrix_wise = TRUE, .input_list = FALSE)
-{
-  apply_row.col_grouped_ms(.ms, ..., .matrix = .matrix,
-                           .matrix_wise = .matrix_wise,
-                           .input_list = .input_list)
-}
-
-
 
 
 
@@ -1831,57 +2867,10 @@ apply_row_dfl.matrixset <- function(.ms, ..., .matrix = NULL,
                                     .force_name = FALSE)
 {
   warn_if(.matrix_wise, .input_list)
-  appl <- if (.matrix_wise) {
-    eval_fun_margin(.ms, mrg="row", var_lab=var_lab_row, ..., matidx = .matrix,
-                    .simplify = TRUE, env = rlang::caller_env())
-  } else {
-    eval_fun_margin_mult(.ms, mrg="row", var_lab=var_lab_row, ...,
-                         matidx = .matrix, as_list_mat = .input_list,
-                         .simplify = TRUE, env = rlang::caller_env())
-  }
-  tblize_lg(appl, .rowtag(.ms), mult = !.matrix_wise, force_name = .force_name)
+  eval_function(.ms, ..., margin=1, matidx = .matrix, .simplify = "long",
+                .force_name = .force_name, .matrix_wise = .matrix_wise,
+                .input_list = .input_list)
 }
-
-#' @export
-apply_row_dfl.row_grouped_ms <- function(.ms, ..., .matrix = NULL,
-                                         .matrix_wise = TRUE,
-                                         .input_list = FALSE,
-                                         .force_name = FALSE)
-{
-  NextMethod()
-}
-
-#' @export
-apply_row_dfl.col_grouped_ms <- function(.ms, ..., .matrix = NULL,
-                                         .matrix_wise = TRUE,
-                                         .input_list = FALSE,
-                                         .force_name = FALSE)
-{
-  warn_if(.matrix_wise, .input_list)
-  appl <- if (.matrix_wise) {
-    eval_fun_margin_grp(.ms, mrg="row", var_lab=var_lab_row, ...,
-                        matidx = .matrix, .simplify = TRUE,
-                        env = rlang::caller_env())
-  } else {
-    eval_fun_margin_grp_mult(.ms, mrg="row", var_lab=var_lab_row, ...,
-                             matidx = .matrix, as_list_mat = .input_list,
-                             .simplify = TRUE, env = rlang::caller_env())
-  }
-  tblize_lg(appl, .rowtag(.ms), mult = !.matrix_wise, force_name = .force_name)
-}
-
-#' @export
-apply_row_dfl.dual_grouped_ms <- function(.ms, ..., .matrix = NULL,
-                                          .matrix_wise = TRUE,
-                                          .input_list = FALSE,
-                                          .force_name = FALSE)
-{
-  apply_row_dfl.col_grouped_ms(.ms, ..., .matrix = .matrix,
-                           .matrix_wise = .matrix_wise,
-                           .input_list = .input_list)
-}
-
-
 
 
 
@@ -1897,54 +2886,9 @@ apply_row_dfw.matrixset <- function(.ms, ..., .matrix = NULL,
                                     .force_name = FALSE)
 {
   warn_if(.matrix_wise, .input_list)
-  appl <- if (.matrix_wise) {
-    eval_fun_margin(.ms, mrg="row", var_lab=var_lab_row, ..., matidx = .matrix,
-                    .simplify = TRUE, env = rlang::caller_env())
-  } else {
-    eval_fun_margin_mult(.ms, mrg="row", var_lab=var_lab_row, ...,
-                         matidx = .matrix, as_list_mat = .input_list,
-                         .simplify = TRUE, env = rlang::caller_env())
-  }
-  tblize_wd(appl, .rowtag(.ms), mult = !.matrix_wise, force_name = .force_name)
-}
-
-#' @export
-apply_row_dfw.row_grouped_ms <- function(.ms, ..., .matrix = NULL,
-                                         .matrix_wise = TRUE,
-                                         .input_list = FALSE,
-                                         .force_name = FALSE)
-{
-  NextMethod()
-}
-
-#' @export
-apply_row_dfw.col_grouped_ms <- function(.ms, ..., .matrix = NULL,
-                                         .matrix_wise = TRUE,
-                                         .input_list = FALSE,
-                                         .force_name = FALSE)
-{
-  warn_if(.matrix_wise, .input_list)
-  appl <- if (.matrix_wise) {
-    eval_fun_margin_grp(.ms, mrg="row", var_lab=var_lab_row, ...,
-                        matidx = .matrix, .simplify = TRUE,
-                        env = rlang::caller_env())
-  } else {
-    eval_fun_margin_grp_mult(.ms, mrg="row", var_lab=var_lab_row, ...,
-                             matidx = .matrix, as_list_mat = .input_list,
-                             .simplify = TRUE, env = rlang::caller_env())
-  }
-  tblize_wd(appl, .rowtag(.ms), mult = !.matrix_wise, force_name = .force_name)
-}
-
-#' @export
-apply_row_dfw.dual_grouped_ms <- function(.ms, ..., .matrix = NULL,
-                                          .matrix_wise = TRUE,
-                                          .input_list = FALSE,
-                                          .force_name = FALSE)
-{
-  apply_row_dfw.col_grouped_ms(.ms, ..., .matrix = .matrix,
-                               .matrix_wise = .matrix_wise,
-                               .input_list = .input_list)
+  eval_function(.ms, ..., margin = 1, matidx = .matrix, .simplify = "wide",
+                .force_name = .force_name, .matrix_wise = .matrix_wise,
+                .input_list = .input_list)
 }
 
 
@@ -1961,49 +2905,10 @@ apply_column <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
 apply_column.matrixset <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
                                    .input_list = FALSE)
 {
-  if (.matrix_wise) {
-    warn_if(.matrix_wise, .input_list)
-    eval_fun_margin(.ms, mrg="col", var_lab=var_lab_col, ..., matidx = .matrix,
-                    .simplify = FALSE, env = rlang::caller_env())
-  } else {
-    eval_fun_margin_mult(.ms, mrg="col", var_lab=var_lab_col, ...,
-                         matidx = .matrix, as_list_mat = .input_list,
-                         .simplify = FALSE, env = rlang::caller_env())
-  }
+  warn_if(.matrix_wise, .input_list)
+  eval_function(.ms, ..., margin=2, matidx = .matrix,
+                .matrix_wise = .matrix_wise, .input_list = .input_list)
 }
-
-#' @export
-apply_column.row_grouped_ms <- function(.ms, ..., .matrix = NULL,
-                                        .matrix_wise = TRUE, .input_list = FALSE)
-{
-  if (.matrix_wise) {
-    warn_if(.matrix_wise, .input_list)
-    eval_fun_margin_grp(.ms, mrg="col", var_lab=var_lab_col, ...,
-                        matidx = .matrix, .simplify = FALSE,
-                        env = rlang::caller_env())
-  } else {
-    eval_fun_margin_grp_mult(.ms, mrg="col", var_lab=var_lab_col, ...,
-                             matidx = .matrix, as_list_mat = .input_list,
-                             .simplify = FALSE, env = rlang::caller_env())
-  }
-}
-
-#' @export
-apply_column.col_grouped_ms <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE,
-                                        .input_list = FALSE)
-{
-  NextMethod()
-}
-
-#' @export
-apply_column.dual_grouped_ms <- function(.ms, ..., .matrix = NULL,
-                                         .matrix_wise = TRUE, .input_list = FALSE)
-{
-  apply_column.row_grouped_ms(.ms, ..., .matrix = .matrix,
-                              .matrix_wise = .matrix_wise,
-                              .input_list = .input_list)
-}
-
 
 
 
@@ -2019,54 +2924,9 @@ apply_column_dfl.matrixset <- function(.ms, ..., .matrix = NULL,
                                        .force_name = FALSE)
 {
   warn_if(.matrix_wise, .input_list)
-  appl <- if (.matrix_wise) {
-    eval_fun_margin(.ms, mrg="col", var_lab=var_lab_col, ..., matidx = .matrix,
-                    .simplify = TRUE, env = rlang::caller_env())
-  } else {
-    eval_fun_margin_mult(.ms, mrg="col", var_lab=var_lab_col, ...,
-                         matidx = .matrix, as_list_mat = .input_list,
-                         .simplify = TRUE, env = rlang::caller_env())
-  }
-  tblize_lg(appl, .coltag(.ms), mult = !.matrix_wise, force_name = .force_name)
-}
-
-#' @export
-apply_column_dfl.row_grouped_ms <- function(.ms, ..., .matrix = NULL,
-                                            .matrix_wise = TRUE,
-                                            .input_list = FALSE,
-                                            .force_name = FALSE)
-{
-  warn_if(.matrix_wise, .input_list)
-  appl <- if (.matrix_wise) {
-    eval_fun_margin_grp(.ms, mrg="col", var_lab=var_lab_col, ...,
-                        matidx = .matrix, .simplify = TRUE,
-                        env = rlang::caller_env())
-  } else {
-    eval_fun_margin_grp_mult(.ms, mrg="col", var_lab=var_lab_col, ...,
-                             matidx = .matrix, as_list_mat = .input_list,
-                             .simplify = TRUE, env = rlang::caller_env())
-  }
-  tblize_lg(appl, .coltag(.ms), mult = !.matrix_wise, force_name = .force_name)
-}
-
-#' @export
-apply_column_dfl.col_grouped_ms <- function(.ms, ..., .matrix = NULL,
-                                            .matrix_wise = TRUE,
-                                            .input_list = FALSE,
-                                            .force_name = FALSE)
-{
-  NextMethod()
-}
-
-#' @export
-apply_column_dfl.dual_grouped_ms <- function(.ms, ..., .matrix = NULL,
-                                             .matrix_wise = TRUE,
-                                             .input_list = FALSE,
-                                             .force_name = FALSE)
-{
-  apply_column_dfl.row_grouped_ms(.ms, ..., .matrix = .matrix,
-                                  .matrix_wise = .matrix_wise,
-                                  .input_list = .input_list)
+  eval_function(.ms, ..., margin=2, matidx = .matrix, .simplify = "long",
+                .force_name = .force_name, .matrix_wise = .matrix_wise,
+                .input_list = .input_list)
 }
 
 
@@ -2084,54 +2944,9 @@ apply_column_dfw.matrixset <- function(.ms, ..., .matrix = NULL,
                                        .force_name = FALSE)
 {
   warn_if(.matrix_wise, .input_list)
-  appl <- if (.matrix_wise) {
-    eval_fun_margin(.ms, mrg="col", var_lab=var_lab_col, ..., matidx = .matrix,
-                    .simplify = TRUE, env = rlang::caller_env())
-  } else {
-    eval_fun_margin_mult(.ms, mrg="col", var_lab=var_lab_col, ...,
-                         matidx = .matrix, as_list_mat = .input_list,
-                         .simplify = TRUE, env = rlang::caller_env())
-  }
-  tblize_wd(appl, .coltag(.ms), mult = !.matrix_wise, force_name = .force_name)
-}
-
-#' @export
-apply_column_dfw.row_grouped_ms <- function(.ms, ..., .matrix = NULL,
-                                            .matrix_wise = TRUE,
-                                            .input_list = FALSE,
-                                            .force_name = FALSE)
-{
-  warn_if(.matrix_wise, .input_list)
-  appl <- if (.matrix_wise) {
-    eval_fun_margin_grp(.ms, mrg="col", var_lab=var_lab_col, ...,
-                        matidx = .matrix, .simplify = TRUE,
-                        env = rlang::caller_env())
-  } else {
-    eval_fun_margin_grp_mult(.ms, mrg="col", var_lab=var_lab_col, ...,
-                             matidx = .matrix, as_list_mat = .input_list,
-                             .simplify = TRUE, env = rlang::caller_env())
-  }
-  tblize_wd(appl, .coltag(.ms), mult = !.matrix_wise, force_name = .force_name)
-}
-
-#' @export
-apply_column_dfw.col_grouped_ms <- function(.ms, ..., .matrix = NULL,
-                                            .matrix_wise = TRUE,
-                                            .input_list = FALSE,
-                                            .force_name = FALSE)
-{
-  NextMethod()
-}
-
-#' @export
-apply_column_dfw.dual_grouped_ms <- function(.ms, ..., .matrix = NULL,
-                                             .matrix_wise = TRUE,
-                                             .input_list = FALSE,
-                                             .force_name = FALSE)
-{
-  apply_column_dfw.row_grouped_ms(.ms, ..., .matrix = .matrix,
-                                  .matrix_wise = .matrix_wise,
-                                  .input_list = .input_list)
+  eval_function(.ms, ..., margin=2, matidx = .matrix, .simplify = "wide",
+                .force_name = .force_name, .matrix_wise = .matrix_wise,
+                .input_list = .input_list)
 }
 
 
@@ -2149,64 +2964,10 @@ apply_matrix.matrixset <- function(.ms, ..., .matrix = NULL, .matrix_wise = TRUE
                                    .input_list = FALSE)
 {
   warn_if(.matrix_wise, .input_list)
-  if (.matrix_wise) {
-    eval_fun_matrix(.ms, ..., matidx = .matrix, .simplify = FALSE,
-                    env = rlang::caller_env())
-  } else {
-    eval_fun_matrix_mult(.ms, ..., matidx=.matrix, as_list_mat=.input_list,
-                         .simplify=FALSE, env=rlang::caller_env())
-  }
+  eval_function(.ms, ..., margin = 0, matidx = .matrix,
+                .matrix_wise = .matrix_wise, .input_list = .input_list)
 }
 
-
-#' @export
-apply_matrix.row_grouped_ms <- function(.ms, ..., .matrix = NULL,
-                                        .matrix_wise = TRUE, .input_list = FALSE)
-{
-  warn_if(.matrix_wise, .input_list)
-  if (.matrix_wise) {
-    eval_fun_matrix_sgms(.ms, "row", ..., matidx = .matrix, .simplify = FALSE,
-                         env = rlang::caller_env())
-
-  } else {
-    eval_fun_matrix_sgms_mult(.ms, "row", ..., matidx=.matrix,
-                              as_list_mat=.input_list, .simplify=FALSE,
-                              env=rlang::caller_env())
-  }
-}
-
-
-#' @export
-apply_matrix.col_grouped_ms <- function(.ms, ..., .matrix = NULL,
-                                        .matrix_wise = TRUE, .input_list = FALSE)
-{
-  warn_if(.matrix_wise, .input_list)
-  if (.matrix_wise) {
-    eval_fun_matrix_sgms(.ms, "col", ..., matidx = .matrix, .simplify = FALSE,
-                         env = rlang::caller_env())
-
-  } else {
-    eval_fun_matrix_sgms_mult(.ms, "col", ..., matidx=.matrix,
-                              as_list_mat=.input_list, .simplify=FALSE,
-                              env=rlang::caller_env())
-  }
-}
-
-
-#' @export
-apply_matrix.dual_grouped_ms <- function(.ms, ..., .matrix = NULL,
-                                        .matrix_wise = TRUE, .input_list = FALSE)
-{
-  warn_if(.matrix_wise, .input_list)
-  if (.matrix_wise) {
-    eval_fun_matrix_dgms(.ms, ..., matidx = .matrix, .simplify = FALSE,
-                         env = rlang::caller_env())
-
-  } else {
-    eval_fun_matrix_dgms_mult(.ms, ..., matidx=.matrix, as_list_mat=.input_list,
-                              .simplify=FALSE, env=rlang::caller_env())
-  }
-}
 
 
 
@@ -2224,78 +2985,12 @@ apply_matrix_dfl.matrixset <- function(.ms, ..., .matrix = NULL,
                                        .force_name = FALSE)
 {
   warn_if(.matrix_wise, .input_list)
-  appl <- if (.matrix_wise) {
-    eval_fun_matrix(.ms, ..., matidx = .matrix, .simplify = TRUE,
-                    env = rlang::caller_env())
-  } else {
-    eval_fun_matrix_mult(.ms, ..., matidx=.matrix, as_list_mat=.input_list,
-                         .simplify=TRUE, env=rlang::caller_env())
-  }
-  tblize_lg(appl, "", matrix = TRUE, mult = !.matrix_wise,
-            force_name = .force_name)
+  eval_function(.ms, ..., margin = 0, matidx = .matrix, .simplify = "long",
+                .force_name = .force_name, .matrix_wise = .matrix_wise,
+                .input_list = .input_list)
 }
 
 
-#' @export
-apply_matrix_dfl.row_grouped_ms <- function(.ms, ..., .matrix = NULL,
-                                            .matrix_wise = TRUE,
-                                            .input_list = FALSE,
-                                            .force_name = FALSE)
-{
-  warn_if(.matrix_wise, .input_list)
-  appl <- if (.matrix_wise) {
-    eval_fun_matrix_sgms(.ms, "row", ..., matidx = .matrix, .simplify = TRUE,
-                         env = rlang::caller_env())
-
-  } else {
-    eval_fun_matrix_sgms_mult(.ms, "row", ..., matidx=.matrix,
-                              as_list_mat=.input_list, .simplify=TRUE,
-                              env=rlang::caller_env())
-  }
-  tblize_lg(appl, "", matrix = TRUE, mult = !.matrix_wise,
-            force_name = .force_name)
-}
-
-
-#' @export
-apply_matrix_dfl.col_grouped_ms <- function(.ms, ..., .matrix = NULL,
-                                            .matrix_wise = TRUE,
-                                            .input_list = FALSE,
-                                            .force_name = FALSE)
-{
-  warn_if(.matrix_wise, .input_list)
-  appl <- if (.matrix_wise) {
-    eval_fun_matrix_sgms(.ms, "col", ..., matidx = .matrix, .simplify = TRUE,
-                         env = rlang::caller_env())
-
-  } else {
-    eval_fun_matrix_sgms_mult(.ms, "col", ..., matidx=.matrix,
-                              as_list_mat=.input_list, .simplify=TRUE,
-                              env=rlang::caller_env())
-  }
-  tblize_lg(appl, "", matrix = TRUE, mult = !.matrix_wise,
-            force_name = .force_name)
-}
-
-
-#' @export
-apply_matrix_dfl.dual_grouped_ms <- function(.ms, ..., .matrix = NULL,
-                                             .matrix_wise = TRUE,
-                                             .input_list = FALSE,
-                                             .force_name = FALSE)
-{
-  warn_if(.matrix_wise, .input_list)
-  appl <- if (.matrix_wise) {
-    eval_fun_matrix_dgms(.ms, ..., matidx = .matrix, .simplify = TRUE,
-                         env = rlang::caller_env())
-
-  } else {
-    eval_fun_matrix_dgms_mult(.ms, ..., matidx=.matrix, as_list_mat=.input_list,
-                              .simplify=TRUE, env=rlang::caller_env())
-  }
-  tblize_lg(appl, "", matrix = TRUE, mult = !.matrix_wise,
-            force_name = .force_name)
-}
 
 
 
@@ -2313,82 +3008,10 @@ apply_matrix_dfw.matrixset <- function(.ms, ..., .matrix = NULL,
                                        .force_name = FALSE)
 {
   warn_if(.matrix_wise, .input_list)
-  appl <- if (.matrix_wise) {
-    eval_fun_matrix(.ms, ..., matidx = .matrix, .simplify = TRUE,
-                    env = rlang::caller_env())
-  } else {
-    eval_fun_matrix_mult(.ms, ..., matidx=.matrix, as_list_mat=.input_list,
-                         .simplify=TRUE, env=rlang::caller_env())
-  }
-  tblize_wd(appl, "", matrix = TRUE, mult = !.matrix_wise,
-            force_name = .force_name)
+  eval_function(.ms, ..., margin = 0, matidx = .matrix, .simplify = "wide",
+                .force_name = .force_name, .matrix_wise = .matrix_wise,
+                .input_list = .input_list)
 }
-
-
-#' @export
-apply_matrix_dfw.row_grouped_ms <- function(.ms, ..., .matrix = NULL,
-                                            .matrix_wise = TRUE,
-                                            .input_list = FALSE,
-                                            .force_name = FALSE)
-{
-  warn_if(.matrix_wise, .input_list)
-  appl <- if (.matrix_wise) {
-    eval_fun_matrix_sgms(.ms, "row", ..., matidx = .matrix, .simplify = TRUE,
-                         env = rlang::caller_env())
-
-  } else {
-    eval_fun_matrix_sgms_mult(.ms, "row", ..., matidx=.matrix,
-                              as_list_mat=.input_list, .simplify=TRUE,
-                              env=rlang::caller_env())
-  }
-  tblize_wd(appl, "", matrix = TRUE, mult = !.matrix_wise,
-            force_name = .force_name)
-}
-
-
-#' @export
-apply_matrix_dfw.col_grouped_ms <- function(.ms, ..., .matrix = NULL,
-                                            .matrix_wise = TRUE,
-                                            .input_list = FALSE,
-                                            .force_name = FALSE)
-{
-  warn_if(.matrix_wise, .input_list)
-  appl <- if (.matrix_wise) {
-    eval_fun_matrix_sgms(.ms, "col", ..., matidx = .matrix, .simplify = TRUE,
-                         env = rlang::caller_env())
-
-  } else {
-    eval_fun_matrix_sgms_mult(.ms, "col", ..., matidx=.matrix,
-                              as_list_mat=.input_list, .simplify=TRUE,
-                              env=rlang::caller_env())
-  }
-  tblize_wd(appl, "", matrix = TRUE, mult = !.matrix_wise,
-            force_name = .force_name)
-}
-
-
-#' @export
-apply_matrix_dfw.dual_grouped_ms <- function(.ms, ..., .matrix = NULL,
-                                             .matrix_wise = TRUE,
-                                             .input_list = FALSE,
-                                             .force_name = FALSE)
-{
-  warn_if(.matrix_wise, .input_list)
-  appl <- if (.matrix_wise) {
-    eval_fun_matrix_dgms(.ms, ..., matidx = .matrix, .simplify = TRUE,
-                         env = rlang::caller_env())
-
-  } else {
-    eval_fun_matrix_dgms_mult(.ms, ..., matidx=.matrix, as_list_mat=.input_list,
-                              .simplify=TRUE, env=rlang::caller_env())
-  }
-  tblize_wd(appl, "", matrix = TRUE, mult = !.matrix_wise,
-            force_name = .force_name)
-}
-
-
-
-
 
 
 

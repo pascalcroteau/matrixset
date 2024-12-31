@@ -1,5 +1,6 @@
 test_that("matrixset general loop works for Matrix", {
-  #
+
+  withr::local_options(lifecycle_verbosity = "quiet")
 
 
   student_results_M <- mutate_matrix(student_results,
@@ -501,6 +502,8 @@ test_that("matrixset general loop works for Matrix", {
 
 test_that("matrixset 'long' loop works for Matrix", {
 
+  withr::local_options(lifecycle_verbosity = "quiet")
+
   student_results_M <- mutate_matrix(student_results,
                                      failure = Matrix::Matrix(matrix_elm(student_results, 1)),
                                      remedial = Matrix::Matrix(matrix_elm(student_results, 2)))
@@ -787,6 +790,8 @@ test_that("matrixset 'long' loop works for Matrix", {
 
 test_that("matrixset 'wide' loop works", {
 
+  withr::local_options(lifecycle_verbosity = "quiet")
+
   student_results_M <- mutate_matrix(student_results,
                                      failure = Matrix::Matrix(matrix_elm(student_results, 1)),
                                      remedial = Matrix::Matrix(matrix_elm(student_results, 2)))
@@ -1041,6 +1046,8 @@ test_that("matrixset 'wide' loop works", {
 
 
 test_that("matrixset matrix loop works for Matrix", {
+
+  withr::local_options(lifecycle_verbosity = "quiet")
 
   student_results_M <- mutate_matrix(student_results,
                                      failure = Matrix::Matrix(matrix_elm(student_results, 1)),

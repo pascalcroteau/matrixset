@@ -1,5 +1,7 @@
 test_that("context functions work", {
 
+  withr::local_options(lifecycle_verbosity = "quiet")
+
   rowinf <- apply_row(student_results, ~ current_row_info())
   rowmeta <- row_info(student_results)
   rml <- lapply(setNames(seq(nrow(rowmeta)), rowmeta$.rowname),

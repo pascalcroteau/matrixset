@@ -1,5 +1,7 @@
 test_that("matrixset general loop works", {
 
+  withr::local_options(lifecycle_verbosity = "quiet")
+
   expect_identical(apply_row(matrixset(NULL), mean), NULL)
   expect_identical(apply_column(matrixset(NULL), mean), NULL)
 
@@ -705,6 +707,8 @@ test_that("matrixset general loop works", {
 
 test_that("matrixset 'long' loop works", {
 
+  withr::local_options(lifecycle_verbosity = "quiet")
+
   # with null
   expect_identical(apply_row_dfl(matrixset(NULL), mean), NULL)
   expect_identical(apply_column_dfl(matrixset(NULL), mean), NULL)
@@ -1129,6 +1133,8 @@ test_that("matrixset 'long' loop works", {
 
 
 test_that("matrixset 'wide' loop works", {
+
+  withr::local_options(lifecycle_verbosity = "quiet")
 
   # with null
   expect_identical(apply_row_dfw(matrixset(NULL), mean), NULL)
@@ -1569,6 +1575,8 @@ test_that("matrixset 'wide' loop works", {
 
 
 test_that("matrixset matrix loop works", {
+
+  withr::local_options(lifecycle_verbosity = "quiet")
 
   expect_identical(apply_matrix(matrixset(NULL), mean), NULL)
 

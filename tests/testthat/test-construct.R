@@ -209,6 +209,22 @@ test_that("matrixset creation works", {
 
 test_that("matrixset creation with expansion works", {
 
+  m1 <- matrix(1:6, 2, 3)
+  rownames(m1) <- c("r1", "r2")
+  colnames(m1) <- paste0("c", 1:3)
+
+  m2 <- m1[c(2,1), c(1,3,2)]
+
+  expect_identical(matrixset(a=m1, b=m2, match_names = TRUE),
+                   matrixset(a=m1, b=m1))
+
+})
+
+
+
+
+test_that("matrixset creation with expansion works", {
+
 
   m1 <- matrix(1:6, 2, 3)
   m1e <- matrix(c(1,2,NA,3,4,NA,5,6,NA,NA,NA,NA,NA,NA,NA),3,5)
@@ -393,6 +409,19 @@ test_that("matrixset properly fails", {
   expect_error(matrixset(lst, row_info = ri, column_info = ci),
                "some keys defined more than once in row meta info")
 
+
+
+
+  m1 <- matrix(1:6, 2, 3)
+  rownames(m1) <- c("r1", "r2")
+  colnames(m1) <- paste0("c", 1:3)
+
+  m2 <- m1[c(2,1), c(1,3,2)]
+  m3 <- m1[, c(1,3,2)]
+  expect_error(matrixset(a=m1, b=m2),
+               "All matrices must have the same row names \\(NULL accepted\\)")
+  expect_error(matrixset(a=m1, b=m3),
+               "All matrices must have the same column names \\(NULL accepted\\)")
 
 })
 

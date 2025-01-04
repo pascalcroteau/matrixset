@@ -386,7 +386,8 @@ replace_matrix_set <- function(old, new, nr, nc, i, j)
 
   }
 
-  x_matrix_info <- info_matrices(x_matrix_set)
+  # x_matrix_info <- info_matrices(x_matrix_set)
+  x_matrix_info <- MatrixMeta$new(x_matrix_set)
   x$matrix_set <- x_matrix_set
 
   row_names <-  x_matrix_info[["row_names"]]

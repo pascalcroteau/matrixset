@@ -360,7 +360,8 @@ mutate_matrix.matrixset <- function(.ms, ...)
     all_nms <- names(candidates)
   }
 
-  matrix_info <- info_matrices(candidates, NULL)
+  # matrix_info <- info_matrices(candidates, NULL)
+  matrix_info <- MatrixMeta$new(candidates)
 
   n_matrix <- length(candidates)
 

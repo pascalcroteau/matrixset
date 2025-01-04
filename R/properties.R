@@ -714,11 +714,13 @@ print_matrix <- function(m, nrow_print = NULL, ncol_print = NULL,
                          class_print = NULL)
   UseMethod("print_matrix")
 
+#' @export
 print_matrix.NULL <- function(m, nrow_print = NULL, ncol_print = NULL,
                               class_print = NULL)
   print(NULL)
 
 
+#' @export
 print_matrix.matrix <- function(m, nrow_print = NULL, ncol_print = NULL,
                                 class_print = NULL)
 {
@@ -813,7 +815,7 @@ print_matrix.matrix <- function(m, nrow_print = NULL, ncol_print = NULL,
 
 
 
-
+#' @export
 print_matrix.Matrix <- function(m, nrow_print = NULL, ncol_print = NULL,
                                 class_print = NULL)
 {

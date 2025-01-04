@@ -105,7 +105,9 @@ style_dim <- function(nms, dimmed)
 
 
 round2 <- function(x) UseMethod("round2")
+#' @export
 round2.default <- function(x) x
+#' @export
 round2.numeric <- function(x) round(x, 2)
 
 

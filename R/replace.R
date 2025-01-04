@@ -18,6 +18,7 @@
 
 
 # this in-house data frame allows controlling col compatibility
+#' @export
 `[<-.ms_data_frame` <- function(x, i, j, value)
 {
   same <- assess_cols(x, value, j)

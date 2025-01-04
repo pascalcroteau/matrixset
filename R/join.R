@@ -103,6 +103,8 @@ set_by_vars <- function(by, x_nms, y_nms)
 
 
 join_names <- function(obj, mrg = NULL) UseMethod("join_names")
+
+#' @export
 join_names.matrixset <- function(obj, mrg = NULL)
 {
   if (mrg == "row") {
@@ -111,10 +113,13 @@ join_names.matrixset <- function(obj, mrg = NULL)
     c(.coltag(obj), .coltraits(obj))
   }
 }
+#' @export
 join_names.data.frame <- function(obj, mrg = NULL) colnames(obj)
 
 
 join_tag <- function(obj, mrg = NULL) UseMethod("join_tag")
+
+#' @export
 join_tag.matrixset <- function(obj, mrg = NULL)
 {
   if (mrg == "row") {
@@ -123,10 +128,12 @@ join_tag.matrixset <- function(obj, mrg = NULL)
     .coltag(obj)
   }
 }
+#' @export
 join_tag.data.frame <- function(obj, mrg = NULL) NULL
 
 
 join_info <- function(obj, mrg = NULL) UseMethod("join_info")
+#' @export
 join_info.matrixset <- function(obj, mrg = NULL)
 {
   cl <- sys.call()
@@ -140,6 +147,7 @@ join_info.matrixset <- function(obj, mrg = NULL)
     obj$column_info
   }
 }
+#' @export
 join_info.data.frame <- function(obj, mrg = NULL) obj
 
 

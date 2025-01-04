@@ -1,13 +1,84 @@
+
+
+
+`%.==.%` <- function(x, y)
+{
+  if (is.null(x)) FALSE else if (is.null(y)) FALSE else x == y
+}
+
+
+
+
+
 is_matrixish <- function(x)
 {
   is.matrix(x) || is(x, "Matrix")
 }
 
 
+
+
+
 flatten_or <- function(str)
 {
   stringr::str_flatten(sQuote(str), collapse = ", ", last = " or ")
 }
+
+
+
+
+#' Determines tag value
+#'
+#' Determines and return the pronoun available to use in the apply* function.
+#'
+#' @param margin    One of 0 (no margin; whole matrix), 1 (row) or 2 (column)
+#'
+#' @returns
+#' string, the pronoun
+#'
+#' @noRd
+get_var_tag <- function(margin)
+{
+  if (is.null(margin) || margin == 0) {
+    var_lab_mat
+  } else if (margin == 1) {
+    var_lab_row
+  } else {
+    var_lab_col
+  }
+}
+
+
+
+#' Flatten and set names of a list
+#'
+#' @description
+#' Removes a layer to a list. Once flattened, sets the names of the flattened
+#' list, possibly using the list/vector `nm` to do so.
+#'
+#' @details
+#' If provided, `nm` is used to concatenate its values to the original names of
+#' `x`.
+#'
+#' @param x    list to flatten
+#' @param nm   vector or list of names to set the names of the flattened list.
+#'
+#'
+#' @noRd
+flatten_and_name <- function(x, nm) {
+
+  n <- length(x)
+  nms <- names(x)
+  r <- c()
+  for (i in 1:n) {
+    nmsi <- if (is.null(nm[[i]])) nms[i] else paste(nms[i], nm[[i]])
+    r <- c(r, setNames(x[[i]], nmsi))
+  }
+  r
+
+}
+
+
 
 
 match_option <- function(x, opts)
@@ -21,10 +92,6 @@ match_option <- function(x, opts)
 }
 
 
-times <- cli::symbol$times
-
-._NULL_ <- logical()
-attr(._NULL_, ".__NULL__") <- logical()
 
 is_null_obj <- function(x) !is.null(attr(x, ".__NULL__"))
 

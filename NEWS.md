@@ -1,4 +1,4 @@
-# matrixset (development version)
+# matrixset 0.4.0
 
 ## Changes to `apply_matrix()`, `apply_row()` and `apply_column()`
 

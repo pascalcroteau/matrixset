@@ -529,14 +529,24 @@ MatrixAdjuster <- R6::R6Class(
       NR <- nrow(private$._matrix_list[[mat_idx]])
       NC <- ncol(private$._matrix_list[[mat_idx]])
 
-      private$expanded_mats_[[mat_idx]] <- Matrix::Matrix(0,
-                                                          nrow = private$._target_info$n_row,
-                                                          ncol = private$._target_info$n_col)
-      # private$expanded_mats_[[mat_idx]][] <- padding_val
-
-      # private$expanded_mats_[[mat_idx]] <- Matrix::Matrix(padding_val,
+      # private$expanded_mats_[[mat_idx]] <- Matrix::Matrix(0,
       #                                                     nrow = private$._target_info$n_row,
       #                                                     ncol = private$._target_info$n_col)
+      # private$expanded_mats_[[mat_idx]][] <- padding_val
+
+      if (is.na(padding_val) && is.logical(padding_val)) padding_val <- NA_real_
+
+      private$expanded_mats_[[mat_idx]] <- Matrix::Matrix(padding_val,
+                                                          nrow = private$._target_info$n_row,
+                                                          ncol = private$._target_info$n_col)
+
+
+      if (is.na(padding_val) || ((is.integer(padding_val) && padding_val != 0L) ||
+          abs(padding_val) > .Machine$double.eps^.5)) {
+        private$expanded_mats_[[mat_idx]] <- methods::as(private$expanded_mats_[[mat_idx]],
+                                                         "generalMatrix")
+      }
+# print(class(private$expanded_mats_[[mat_idx]]))
 
       # private$expanded_mats_[[mat_idx]] <- methods::as(private$expanded_mats_[[mat_idx]],
       #                                                  class(private$._matrix_list[[mat_idx]]))
@@ -577,7 +587,7 @@ MatrixAdjuster <- R6::R6Class(
         setdiff(ci_from, comp_ci)
       }
 
-
+print(list(ri, comp_ri, ci,comp_ci))
       if (is.null(ri)) {
         if (is.null(ci)) return()
 
@@ -587,11 +597,12 @@ MatrixAdjuster <- R6::R6Class(
 
 
       if (is.null(ci)) {
-        private$expanded_mats_[[mat_idx]][ri, ] <- padding_val
+        # private$expanded_mats_[[mat_idx]][ri, ] <- padding_val
         return()
       }
 
-      private$expanded_mats_[[mat_idx]][ri, ci] <- padding_val
+      # private$expanded_mats_[[mat_idx]][ri, ci] <- padding_val
+      # print(c(ci, comp_ci))
 
     },
 
@@ -682,13 +693,13 @@ MatrixAdjuster <- R6::R6Class(
           if (expand_order_cols) {
 
             private$expanded_mats_[[m]][rti, cti] <- private$._matrix_list[[m]][roi, coi]
-            private$._finish_S4Matrix(m, padding_val, rti, cti)
+            # private$._finish_S4Matrix(m, padding_val, rti, cti)
             next
 
           }
 
           private$expanded_mats_[[m]][rti, ] <- private$._matrix_list[[m]][roi, ]
-          private$._finish_S4Matrix(m, padding_val, rti, NULL)
+          # private$._finish_S4Matrix(m, padding_val, rti, NULL)
           next
         }
 
@@ -696,7 +707,7 @@ MatrixAdjuster <- R6::R6Class(
         if (expand_order_cols) {
 
           private$expanded_mats_[[m]][, cti] <- private$._matrix_list[[m]][, coi]
-          private$._finish_S4Matrix(m, padding_val, NULL, cti)
+          # private$._finish_S4Matrix(m, padding_val, NULL, cti)
           next
 
         }

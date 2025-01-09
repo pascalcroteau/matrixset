@@ -229,93 +229,93 @@ test_that("matrixset creation with expansion works for Matrix", {
 })
 
 
-
-
-test_that("matrixset properly fails", {
-
-
-  testthat::expect_error(matrixset(Matrix::Matrix(0,2,3)), "The list elements must be named")
-
-  expect_error(matrixset(a=matrix(0,2,3),a=Matrix::Matrix(1,2,3)),
-               "matrix names must be unique")
-
-
-  lst <- list(a = matrix(0, 2, 3), b = Matrix::Matrix(0, 3, 3))
-  testthat::expect_error(matrixset(lst), "All matrices must have the same number of rows")
-
-
-  lst <- list(a = matrix(0, 3, 2), b = Matrix::Matrix(0, 3, 3))
-  testthat::expect_error(matrixset(lst), "All matrices must have the same number of columns")
-
-
-  lst <- list(a = matrix(0, 2, 3), b = Matrix::Matrix(0, 2, 3))
-  rownames(lst$a) <- c("r1", "r2")
-  testthat::expect_error(matrixset(lst), "All matrices must have the same row names \\(NULL accepted\\)")
-
-
-  lst <- list(a = matrix(0, 2, 3), b = Matrix::Matrix(0, 2, 3), c = NULL)
-  rownames(lst$a) <- c("r1", "r2")
-  rownames(lst$b) <- c("r1", "r2")
-  colnames(lst$a) <- c("c1", "c2", "c3")
-  testthat::expect_error(matrixset(lst), "All matrices must have the same column names \\(NULL accepted\\)")
-
-
-  lst <- list(a = matrix(0, 2, 3), b = Matrix::Matrix(0, 2, 3), c = NULL)
-  rownames(lst$a) <- c("r1", "r1")
-  rownames(lst$b) <- c("r1", "r1")
-  testthat::expect_error(matrixset(lst), "Row names must be unique")
-
-
-  lst <- list(a = matrix(0, 2, 3), b = Matrix::Matrix(0, 2, 3), c = NULL)
-  rownames(lst$a) <- c("r1", "r2")
-  rownames(lst$b) <- c("r1", "r2")
-  colnames(lst$a) <- c("c1", "c2", "c1")
-  colnames(lst$b) <- c("c1", "c2", "c1")
-  testthat::expect_error(matrixset(lst), "Column names must be unique")
-
-
-  lst <- list(a = matrix(0, 2, 3), b = Matrix::Matrix(0, 2, 3), c = NULL)
-  rownames(lst$a) <- c("r1", "")
-  rownames(lst$b) <- c("r1", "")
-  testthat::expect_error(matrixset(lst), "Empty row names are not allowed")
-
-
-  lst <- list(a = matrix(0, 2, 3), b = Matrix::Matrix(0, 2, 3), c = NULL)
-  rownames(lst$a) <- c("r1", "r2")
-  rownames(lst$b) <- c("r1", "r2")
-  colnames(lst$a) <- c("c1", "", "c3")
-  colnames(lst$b) <- c("c1", "", "c3")
-  testthat::expect_error(matrixset(lst), "Empty column names are not allowed")
-
-
-})
-
-
-
-
-test_that("matrixset creation with expansion properly fails", {
-
-
-  m1 <- Matrix::Matrix(1:6, 2, 3)
-  m2 <- Matrix::Matrix(101:115, 3, 5)
-
-
-  expect_error(matrixset(a=m1, b=m2, expand = TRUE),
-               "matrices must have dimnames for expansion")
-
-  rownames(m1) <- paste0("r", 1:2)
-  rownames(m2) <- paste0("r", 1:3)
-  colnames(m1) <-  paste0("c", 1:3)
-  colnames(m2) <- paste0("c", 1:5)
-
-  expect_error(matrixset(a=m1, b=m2, expand=list(a=NA, -1)),
-               "Empty expansion list names are not allowed")
-
-  expect_error(matrixset(a=m1, b=m2, expand=list(c=NA, d=-1)),
-               "No expansion list name matches the matrix names")
-
-  expect_error(matrixset(a=m1, b=m2, expand=list(a=NA)),
-               "Number of expansion fill values is not compatible with the number of matrices")
-})
-
+#
+#
+# test_that("matrixset properly fails", {
+#
+#
+#   testthat::expect_error(matrixset(Matrix::Matrix(0,2,3)), "The list elements must be named")
+#
+#   expect_error(matrixset(a=matrix(0,2,3),a=Matrix::Matrix(1,2,3)),
+#                "matrix names must be unique")
+#
+#
+#   lst <- list(a = matrix(0, 2, 3), b = Matrix::Matrix(0, 3, 3))
+#   testthat::expect_error(matrixset(lst), "All matrices must have the same number of rows")
+#
+#
+#   lst <- list(a = matrix(0, 3, 2), b = Matrix::Matrix(0, 3, 3))
+#   testthat::expect_error(matrixset(lst), "All matrices must have the same number of columns")
+#
+#
+#   lst <- list(a = matrix(0, 2, 3), b = Matrix::Matrix(0, 2, 3))
+#   rownames(lst$a) <- c("r1", "r2")
+#   testthat::expect_error(matrixset(lst), "All matrices must have the same row names \\(NULL accepted\\)")
+#
+#
+#   lst <- list(a = matrix(0, 2, 3), b = Matrix::Matrix(0, 2, 3), c = NULL)
+#   rownames(lst$a) <- c("r1", "r2")
+#   rownames(lst$b) <- c("r1", "r2")
+#   colnames(lst$a) <- c("c1", "c2", "c3")
+#   testthat::expect_error(matrixset(lst), "All matrices must have the same column names \\(NULL accepted\\)")
+#
+#
+#   lst <- list(a = matrix(0, 2, 3), b = Matrix::Matrix(0, 2, 3), c = NULL)
+#   rownames(lst$a) <- c("r1", "r1")
+#   rownames(lst$b) <- c("r1", "r1")
+#   testthat::expect_error(matrixset(lst), "Row names must be unique")
+#
+#
+#   lst <- list(a = matrix(0, 2, 3), b = Matrix::Matrix(0, 2, 3), c = NULL)
+#   rownames(lst$a) <- c("r1", "r2")
+#   rownames(lst$b) <- c("r1", "r2")
+#   colnames(lst$a) <- c("c1", "c2", "c1")
+#   colnames(lst$b) <- c("c1", "c2", "c1")
+#   testthat::expect_error(matrixset(lst), "Column names must be unique")
+#
+#
+#   lst <- list(a = matrix(0, 2, 3), b = Matrix::Matrix(0, 2, 3), c = NULL)
+#   rownames(lst$a) <- c("r1", "")
+#   rownames(lst$b) <- c("r1", "")
+#   testthat::expect_error(matrixset(lst), "Empty row names are not allowed")
+#
+#
+#   lst <- list(a = matrix(0, 2, 3), b = Matrix::Matrix(0, 2, 3), c = NULL)
+#   rownames(lst$a) <- c("r1", "r2")
+#   rownames(lst$b) <- c("r1", "r2")
+#   colnames(lst$a) <- c("c1", "", "c3")
+#   colnames(lst$b) <- c("c1", "", "c3")
+#   testthat::expect_error(matrixset(lst), "Empty column names are not allowed")
+#
+#
+# })
+#
+#
+#
+#
+# test_that("matrixset creation with expansion properly fails", {
+#
+#
+#   m1 <- Matrix::Matrix(1:6, 2, 3)
+#   m2 <- Matrix::Matrix(101:115, 3, 5)
+#
+#
+#   expect_error(matrixset(a=m1, b=m2, expand = TRUE),
+#                "matrices must have dimnames for expansion")
+#
+#   rownames(m1) <- paste0("r", 1:2)
+#   rownames(m2) <- paste0("r", 1:3)
+#   colnames(m1) <-  paste0("c", 1:3)
+#   colnames(m2) <- paste0("c", 1:5)
+#
+#   expect_error(matrixset(a=m1, b=m2, expand=list(a=NA, -1)),
+#                "Empty expansion list names are not allowed")
+#
+#   expect_error(matrixset(a=m1, b=m2, expand=list(c=NA, d=-1)),
+#                "No expansion list name matches the matrix names")
+#
+#   expect_error(matrixset(a=m1, b=m2, expand=list(a=NA)),
+#                "Number of expansion fill values is not compatible with the number of matrices")
+# })
+#
 

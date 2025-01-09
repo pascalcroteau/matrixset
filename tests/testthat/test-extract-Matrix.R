@@ -1,11 +1,15 @@
 
 test_that("matrixset extraction works", {
 
+  as_dge <- function(m) methods::as(methods::as(m, "generalMatrix"), "unpackedMatrix")
+
   lst <- list(a = Matrix::Matrix(1:6, 2, 3), b = Matrix::Matrix(101:106, 2, 3), c = NULL)
   lst1 <- list(a = Matrix::Matrix(seq(1,5,2),1,3), b = Matrix::Matrix(seq(101,105,2),1,3), c = NULL)
   lst2 <- list(a = Matrix::Matrix(3:4,2,1), b = Matrix::Matrix(103:104,2,1), c = NULL)
-  lst12 <- list(a = methods::as(Matrix::Matrix(3), "dgeMatrix"),
-                b = methods::as(Matrix::Matrix(103), "dgeMatrix"), c = NULL)
+  # lst12 <- list(a = methods::as(Matrix::Matrix(3), "dgeMatrix"),
+  #               b = methods::as(Matrix::Matrix(103), "dgeMatrix"), c = NULL)
+  lst12 <- list(a = as_dge(Matrix::Matrix(3)),
+                b = as_dge(Matrix::Matrix(103)), c = NULL)
   lst1213 <- list(a = Matrix::Matrix(c(1,2,5,6),2,2), b = Matrix::Matrix(c(101,102,105,106),2,2), c = NULL)
   rownames(lst$a) <- rownames(lst$b) <- c("r1", "r2")
   rownames(lst1$a) <- rownames(lst1$b) <- "r1"
@@ -121,11 +125,15 @@ test_that("matrixset extraction works", {
 
 test_that("grouped matrixset extraction works for Matrix", {
 
+  as_dge <- function(m) methods::as(methods::as(m, "generalMatrix"), "unpackedMatrix")
+
   lst <- list(a = Matrix::Matrix(1:24, 4, 6), b = Matrix::Matrix(101:124, 4, 6), c = NULL)
   lst1 <- list(a = Matrix::Matrix(seq(1,21,4),1,6), b = Matrix::Matrix(seq(101,121,4),1,6), c = NULL)
   lst2 <- list(a = Matrix::Matrix(5:8,4,1), b = Matrix::Matrix(105:108,4,1), c = NULL)
-  lst12 <- list(a = methods::as(Matrix::Matrix(5), "dgeMatrix"),
-                b = methods::as(Matrix::Matrix(105), "dgeMatrix"), c = NULL)
+  # lst12 <- list(a = methods::as(Matrix::Matrix(5), "dgeMatrix"),
+  #               b = methods::as(Matrix::Matrix(105), "dgeMatrix"), c = NULL)
+  lst12 <- list(a = as_dge(Matrix::Matrix(5)),
+                b = as_dge(Matrix::Matrix(105)), c = NULL)
   rownames(lst12$a) <- rownames(lst12$b) <- "r1"
   colnames(lst12$a) <- colnames(lst12$b) <- "c2"
   lst1213 <- list(a = Matrix::Matrix(c(1,2,9,10),2,2),
@@ -184,14 +192,18 @@ test_that("grouped matrixset extraction works for Matrix", {
 # class change warning
 test_that("matrixset extraction warns properly for Matrix", {
 
+  as_dge <- function(m) methods::as(methods::as(m, "generalMatrix"), "unpackedMatrix")
+
   lst <- list(a = Matrix::Matrix(1:6, 2, 3),
               b = Matrix::Matrix(101:106, 2, 3), c = NULL)
   lst1 <- list(a = Matrix::Matrix(seq(1,5,2),1,3),
                b = Matrix::Matrix(seq(101,105,2),1,3), c = NULL)
   lst2 <- list(a = Matrix::Matrix(3:4,2,1),
                b = Matrix::Matrix(103:104,2,1), c = NULL)
-  lst12 <- list(a = methods::as(Matrix::Matrix(3), "dgeMatrix"),
-                b = methods::as(Matrix::Matrix(103), "dgeMatrix"), c = NULL)
+  # lst12 <- list(a = methods::as(Matrix::Matrix(3), "dgeMatrix"),
+  #               b = methods::as(Matrix::Matrix(103), "dgeMatrix"), c = NULL)
+  lst12 <- list(a = as_dge(Matrix::Matrix(3)),
+                b = as_dge(Matrix::Matrix(103)), c = NULL)
   lst1213 <- list(a = Matrix::Matrix(c(1,2,5,6),2,2),
                   b = Matrix::Matrix(c(101,102,105,106),2,2), c = NULL)
   rownames(lst$a) <- rownames(lst$b) <- c("r1", "r2")

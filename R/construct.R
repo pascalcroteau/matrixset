@@ -125,17 +125,92 @@ list_names <- function(lst)
 
 
 
+
+
+#' MatrixMeta: Class to determine various matrix characteristics
+#'
+#' This class determines the necessary characteristics of a matrix
+#' list/matrixset to either build a new matrixset or adjust an existing one, for
+#' instance expanding or shrinking the set.
+#'
+#' MatrixMeta: Class to determine various matrix characteristics
+#'
+#' This class identifies the key characteristics of a list of matrices, in order
+#' to either build a new matrixset or modify an existing one — for example,
+#' by expanding or reducing the set.
+#'
+#' When modification is allowed, only a subset of the matrices may require
+#' changes. For example, if two out of three matrices share the same
+#' characteristics, but the third has fewer rows, only the third matrix would
+#' need to be expanded.
+#'
+#' @docType class
+#' @noRd
+#' @name MatrixMeta
 MatrixMeta <- R6::R6Class(
   "MatrixMeta",
 
   public = list(
 
-    initialize = function(mat_lst, match_names = FALSE, expand = FALSE) {
+    #' @description
+    #' Creates a new MatrixMeta object
+    #'
+    #' @param mat_lst: A list of matrices from which to extract characteristics,
+    #'                 before any adjustments such as expansion or shrinkage.
+    #' @param match_names:
+    #'                 [TRUE|FALSE] If TRUE, row and column names are allowed to
+    #'                 be in a different order across the provided matrices.
+    #' @param adjust:  [TRUE|FALSE] TRUE: Matrices can be reshaped if necessary.
+    #'                 If a shape adjustment is needed, the new dimensions and
+    #'                 their names will be returned.. Otherwise, if
+    #'                 `adjust = FALSE`, an error is raised instead of allowing
+    #'                 a shape change.
+    #' @param target_info:
+    #'                 An `environment` (or any object supporting the `$`
+    #'                 operator, such as a `list`) containing metadata for
+    #'                 `MatrixMeta`, based on a reference `data.frame` resulting
+    #'                 from a join operation.
+    #'
+    #'                 This information reflects the post-join target structure,
+    #'                 which may differ from the structure inferred from
+    #'                 `mat_lst` (e.g., due to row expansion).
+    #'
+    #'                 This data frame is a margin (row or column) info of a
+    #'                 secondary matrixset object.
+    #'                 The mandatory elements are:
+    #'                 - size:     the number of rows in the reference  data
+    #'                             frame info
+    #'                 - margin:   Either "row" or "col", identifying which
+    #'                             margin info the reference data frame
+    #'                             represents.
+    #'                 - margin_comp:
+    #'                             The complementary margin ("row" or "col").
+    #'                             For example, if margin is "row", margin_comp
+    #'                             is "col", and vice versa.
+    #'                 - margin_names:
+    #'                             The names of the margin (e.g., if margin =
+    #'                             "row", it will be the rownames).
+    #'                 - margin_names_unique:
+    #'                             Margin names after disambiguation. Typically
+    #'                             the same as margin_names, but may differ in
+    #'                             join operations where duplicate names occur.
+    #'                 - margin_comp_names:
+    #'                             Like margin_names, but for the complementary
+    #'                             margin.
+    #'                 - margin_comp_names_unique:
+    #'                             Like margin_names_unique, but for the
+    #'                             complementary margin.
+    #'
+    #' @noRd
+    initialize = function(mat_lst, match_names = FALSE, adjust = FALSE,
+                          target_info = NULL) {
 
       private$._matrix_list = mat_lst
-      # private$._init_vecs()
-      private$._expand <- expand
-      private$._match_names <- expand || match_names
+      if (!is.null(target_info)) private$._target_info <- target_info
+      private$._adjust <- adjust
+      private$._init_params()
+      private$._match_names <- adjust || match_names
+
       private$._set_meta()
 
     }
@@ -144,204 +219,323 @@ MatrixMeta <- R6::R6Class(
 
   active = list(
 
+    # row_names and row_names_unique (and similarly for col) are typically
+    # equivalent. But they can  differ in context of join operations, when
+    # multiple matches occur and names are duplicated.
+
+    #' @field n_row               number of rows in each matrices
+    #' @field n_col               number of columns in each matrices
+    #' @field matrix_names        names of the matrices
+    #' @field row_names           row names for each matrix
+    #' @field row_names_unique    row names after disambiguation.
+    #'                            Typically identical to `row_names`, but
+    #'                            may differ in join operations where duplicate
+    #'                            names occur.
+    #' @field col_names           column names for each matrix
+    #' @field col_names_unique    column names after disambiguation.
+    #'                            Typically identical to column_names, but
+    #'                            may differ in join operations where duplicate
+    #'                            names occur.
+    #' @field need_row_expand     \[`TRUE`|`FALSE`\] `TRUE` if at least one
+    #'                            matrix requires row expansion.
+    #' @field need_col_expand     \[`TRUE`|`FALSE`\] `TRUE` if at least one
+    #'                            matrix requires column expansion.
+    #' @field need_row_expand_per_mat
+    #'                            Logical vector indicating whether each matrix
+    #'                            requires row expansion.
+    #' @field need_col_expand_per_mat
+    #'                            Logical vector indicating whether each matrix
+    #'                            requires column expansion.
+    #' @field need_row_shrink_per_mat
+    #'                            Logical vector indicating whether each matrix
+    #'                            requires row shrinkage.
+    #' @field need_col_shrink_per_mat
+    #'                            Logical vector indicating whether each matrix
+    #'                            requires column shrinkage.
+    #' @field need_row_order_per_mat
+    #'                            Logical vector indicating whether each matrix
+    #'                            requires row reordering.
+    #' @field need_col_order_per_mat
+    #'                            Logical vector indicating whether each matrix
+    #'                            requires column reordering.
+    #' @field need_row_adjust_per_mat
+    #'                            Logical vector indicating whether each matrix
+    #'                            requires row adjustment of any kind.
+    #' @field need_col_adjust_per_mat
+    #'                            Logical vector indicating whether each matrix
+    #'                            requires column adjustment of any kind.
+    #' @field need_expand         \[`TRUE`|`FALSE`\] `TRUE` if any matrix
+    #'                            requires expansion (rows or columns).
+    #' @field need_shrink         \[`TRUE`|`FALSE`\] `TRUE` if any matrix
+    #'                            requires shrinkage (rows or columns).
+    #' @field need_order          \[`TRUE`|`FALSE`\] `TRUE` if any matrix
+    #'                            requires reordering (rows or columns).
+    #' @field need_adapt          \[`TRUE`|`FALSE`\] `TRUE` if any matrix
+    #'                            requires adaptation of any kind (expansion,
+    #'                            shrinkage, or reordering).
+    #' @field need_adjust_per_mat Logical vector indicating whether each matrix
+    #'                            requires any adaptation of any kind (expansion,
+    #'                            shrinkage, or reordering)
+
     n_row = function() private$n_row_,
     n_col = function() private$n_col_,
+    matrix_names = function() names(private$._matrix_list),
     row_names = function() private$row_names_,
+    row_names_unique = function() private$row_names_unique_,
     col_names = function() private$col_names_,
-    # need_row_expand = function() private$need_row_expand_,
-    # need_row_expand = function() any(private$need_row_expand_per_mat_),
-    need_row_expand = function() private$._cumul_need_expand("row"),
-    # need_col_expand = function() private$need_col_expand_,
-    # need_col_expand = function() any(private$need_col_expand_per_mat_),
-    need_col_expand = function() private$._cumul_need_expand("col"),
+    col_names_unique = function() private$col_names_unique_,
+    # need_row_expand = function() private$._cumul_need_expand("row"),
+    # need_col_expand = function() private$._cumul_need_expand("col"),
     need_row_expand_per_mat = function() private$need_row_expand_per_mat_,
     need_col_expand_per_mat = function() private$need_col_expand_per_mat_,
-    need_row_order_per_mat = function() private$need_row_order_per_mat_,
-    need_col_order_per_mat = function() private$need_col_order_per_mat_,
-    # need_expand = function() private$need_row_expand_ || private$need_col_expand_,
-    need_expand = function() any(private$need_row_expand_per_mat_) || any(private$need_col_expand_per_mat_),
-    need_order = function() any(private$need_row_order_per_mat_) || any(private$need_col_order_per_mat_),
-    need_expand_per_mat = function() private$need_row_expand_per_mat_ | private$need_col_expand_per_mat_
+    need_row_shrink_per_mat = function() private$._need_shrink_per_mat("row"),
+    need_col_shrink_per_mat = function() private$._need_shrink_per_mat("col"),
+    # need_row_order_per_mat = function() private$need_row_order_per_mat_,
+    # need_col_order_per_mat = function() private$need_col_order_per_mat_,
+    # need_row_adjust_per_mat = function() private$need_row_adjust_per_mat_,
+    # need_col_adjust_per_mat = function() private$need_col_adjust_per_mat_,
+    # need_expand = function() private$._need_expansion(),
+    # need_shrink = function() private$._need_shrinkage(),
+    # need_order = function() private$._need_ordering(),
+    need_adapt = function() {
+      private$._need_expansion() || private$._need_shrinkage() ||
+        private$._need_ordering()
+    },
+    need_row_adapt_per_mat = function() private$._need_adapt_per_mat("row"),
+    need_col_adapt_per_mat = function() private$._need_adapt_per_mat("col"),
+    need_adjust_per_mat = function() private$need_row_adjust_per_mat_ |
+      private$need_col_adjust_per_mat_
 
   ),
 
   private = list(
 
-    ._matrix_list = NULL,
+    ._matrix_list = NULL,                # internal storage for the matrices
+    ._n_matrix = 0L,                     # number of matrices
+    ._target_info = NULL,                # internal storage of the metadata
+                                         # about the target annotation data
+                                         # frame
+    ._target_length = 0L,                # number of rows in the annotation data
+                                         # frame, or 0 if none.
 
-    n_row_ = 0,
-    n_col_ =  0,
-    row_names_ = NULL,
-    col_names_ = NULL,
+    n_row_ = 0,                          # internal storage of the number of
+                                         # rows of each matrix. Exposed via the
+                                         # active binding n_row()
+    n_col_ =  0,                         # internal storage of the number of
+                                         # columns of each matrix. Exposed via
+                                         # the active binding n_col()
+    row_names_ = NULL,                   # internal storage of each matrix row
+                                         # names (may contain duplicates).
+                                         # Exposed via the active binding
+                                         # row_names()
+    row_names_unique_ = NULL,            # internal storage of each
+                                         # Disambiguated matrix row names.
+                                         # Exposed via the active binding
+                                         # row_names_unique()
+    col_names_ = NULL,                   # internal storage of each matrix
+                                         # column names (may contain
+                                         # duplicates). Exposed via the active
+                                         # binding column_names()
+    col_names_unique_ = NULL,            # internal storage of each
+                                         # Disambiguated matrix column names.
+                                         # Exposed via the active binding
+                                         # col_names_unique()
 
-    ._expand = FALSE,
-    ._match_names = FALSE,
-    # need_row_expand_ = FALSE,
-    # need_col_expand_ = FALSE,
-    need_row_expand_per_mat_ = NULL,
-    need_col_expand_per_mat_ = NULL,
-    need_row_order_per_mat_ = NULL,
-    need_col_order_per_mat_ = NULL,
+
+    ._adjust = FALSE,                    # Internal; whether any matrix
+                                         # adjustment is allowed (expansion,
+                                         # shrinkage, or reordering).
+    ._match_names = FALSE,               # Internal; whether reordering based on
+                                         # dimension names is allowed.
 
 
-    ._margin_names_across_mats = NULL,     # utility object to store the
-                                           # different margin names across
-                                           # matrices
+    need_row_expand_per_mat_ = NULL,     # Internal; Logical vector indicating
+                                         # whether each matrix requires row
+                                         # expansion. Exposed via the active
+                                         # binding need_row_expand_per_mat()
+    need_col_expand_per_mat_ = NULL,     # Internal; Logical vector indicating
+                                         # whether each matrix requires column
+                                         # expansion. Exposed via the active
+                                         # binding need_col_expand_per_mat()
+    need_row_adjust_per_mat_ = NULL,     # Internal; Logical vector indicating
+                                         # whether each matrix requires row
+                                         # adjustment.
+    need_col_adjust_per_mat_ = NULL,     # Internal; Logical vector indicating
+                                         # whether each matrix requires column
+                                         # adjustment.
+    need_row_order_per_mat_ = NULL,      # Internal; Logical vector indicating
+                                         # whether each matrix requires row
+                                         # reordering. Exposed via the active
+                                         # binding need_row_order_per_mat()
+    need_col_order_per_mat_ = NULL,      # Internal; Logical vector indicating
+                                         # whether each matrix requires column
+                                         # reordering. Exposed via the active
+                                         # binding need_col_order_per_mat()
+
+
+    ._margin_names_per_mat = NULL,         # utility object to store the
+                                           # margin names for each matrix
+    ._margin_unq_names_per_mat = NULL,     # utility object to store the
+                                           # unique margin names for
+                                           # each matrix (i.e., unique values of
+                                           # ._margin_names_per_mat)
+    ._margin_names_across_mats = NULL,     # utility object to store all unique
+                                           # margin names across all matrices
+                                           # (union of
+                                           # ._margin_unq_names_per_mat).
 
 
 
 
-    # ._init_vecs = function() {
-    #   n <- length(private$._matrix_list)
-    #
-    #   private$need_row_expand_per_mat_ = logical(n)
-    #   private$need_col_expand_per_mat_ = logical(n)
+
+    #' Private method
+    #'
+    #' Checks whether at least one matrix requires expansion along the specified
+    #' margin.
+    #'
+    #' @param margin    Either `"row"` or `"col"`. Margin to check for expansion
+    #'                  needs.
+    #'
+    #' @return
+    #' Logical; `TRUE` if expansion is needed, `FALSE` otherwise.
+    # ._cumul_need_expand = function(margin) {
+    #   itm <- paste("need", margin, "expand_per_mat_", sep = "_")
+    #   any(private[[itm]])
     # },
 
 
 
-    ._cumul_need_expand = function(margin) {
-      itm <- paste("need", margin, "expand_per_mat_", sep = "_")
+    #' Private method
+    #'
+    #' Checks whether at least one matrix requires adjustment along the
+    #' specified margin.
+    #'
+    #' @param margin    Either `"row"` or `"col"`. Margin to check for
+    #'                  adjustment needs.
+    #'
+    #' @returns
+    #' Logical; `TRUE` if adjustment is needed, `FALSE` otherwise.
+    ._cumul_need_adjust = function(margin) {
+      itm <- paste("need", margin, "adjust_per_mat_", sep = "_")
       any(private[[itm]])
     },
 
 
 
-    ._assess_ordering = function(nms) {
-
-      if (length(nms) < length(private$._margin_names_across_mats)) return(TRUE)
-      if (any(nms != private$._margin_names_across_mats)) return(TRUE)
-      FALSE
-
+    #' Private method
+    #'
+    #' Checks whether at least one matrix requires shrinkage along the
+    #' specified margin.
+    #'
+    #' @param margin    Either `"row"` or `"col"`. Margin to check for
+    #'                  shrinkage needs.
+    #'
+    #' @returns
+    #' Logical; `TRUE` if shrinkage is needed, `FALSE` otherwise.
+    ._need_shrink_per_mat = function(margin) {
+      itm_exp <- paste("need", margin, "expand_per_mat_", sep = "_")
+      itm_adj <- paste("need", margin, "adjust_per_mat_", sep = "_")
+      private[[itm_adj]] & !private[[itm_exp]]
     },
 
 
 
-    ._assess_expansion = function(nms) {
 
-      if (length(nms) < length(private$._margin_names_across_mats)) return(TRUE)
-      # if (any(nms != private$._margin_names_across_mats)) return(TRUE)
-      FALSE
+    #' Private method
+    #'
+    #' Checks whether at least one matrix requires adaptation of any kind (
+    #' expansion, shrinkage or reordering) along the specified margin.
+    #'
+    #' @param margin    Either `"row"` or `"col"`. Margin to check for
+    #'                  adaptation needs.
+    #'
+    #' @returns
+    #' Logical; `TRUE` if adaptation is needed, `FALSE` otherwise.
+    ._need_adapt_per_mat = function(margin) {
 
-    },
+      itm_exp <- paste("need", margin, "expand_per_mat_", sep = "_")
+      itm_ord <- paste("need", margin, "order_per_mat_", sep = "_")
 
-
-
-    ._assess_margin_names_across_mats = function(margin_label) {
-
-      lapply(private$._margin_names_across_mats,
-             function(.nms) {
-               .names_unq <- unique(.nms)
-
-               if (length(.names_unq) < length(.nms))
-                 stop(paste(stringr::str_to_title(margin_label), "names must be unique"))
-
-               if (any(.nms == ""))
-                 stop(paste("Empty", margin_label, "names are not allowed"))
-             })
-
-    },
-
-
-
-    ._get_margin_names_across_mats = function(mat_subset, margin) {
-
-      margin_names <- paste0(margin, "names")
-      margin_names_fn <- get(margin_names, pos = "package:base",
-                             mode = "function")
-      margin_label <- if (margin == "row") "row" else "column"
-
-      mrg_nms_per_mat_full <- lapply(private$._matrix_list, margin_names_fn)
-      mrg_nms_per_mat <- if (is.null(mat_subset)) {
-        mrg_nms_per_mat_full
-      } else {
-        mrg_nms_per_mat_full[mat_subset]
-      }
-
-      # mrg_nms_per_mat <- if (is.null(mat_subset)) {
-      #   lapply(private$._matrix_list, margin_names_fn)
-      # } else {
-      #   lapply(private$._matrix_list[mat_subset], margin_names_fn)
-      # }
-
-      private$._margin_names_across_mats <- unique(mrg_nms_per_mat)
-
-      n_margin_names_across_mats <- length(private$._margin_names_across_mats)
-
-      if (n_margin_names_across_mats != 1) {
-        if (!private$._match_names && !private$._expand) {
-          stop(paste("All matrices must have the same", margin_label,
-                     "names (NULL accepted)"))
-        }
-
-        # private[[paste("need", margin, "expand_", sep = "_")]] <- TRUE
-      }
-
-      private$._assess_margin_names_across_mats(margin_label)
-
-      private$._margin_names_across_mats <- unique(unlist(private$._margin_names_across_mats))
-
-      exp_name <- paste("need", margin, "expand_per_mat_", sep = "_")
-      ord_name <- paste("need", margin, "order_per_mat_", sep = "_")
-      private[[ord_name]] <- vapply(mrg_nms_per_mat_full,
-                                    private$._assess_ordering,
-                                    FALSE)
-      private[[exp_name]] <- vapply(mrg_nms_per_mat_full,
-                                    private$._assess_expansion,
-                                    FALSE)
-    },
-
-
-
-    ._assess_num_margin_names_across_mats = function(mat_subset, margin) {
-
-      n_margin <- paste0("n", margin)
-      n_margin_fn <- get(n_margin, pos = "package:base", mode = "function")
-      margin_label <- if (margin == "row") "row" else "column"
-
-      n_mrg_for_each <- if (is.null(mat_subset)) {
-        vapply(private$._matrix_list, n_margin_fn, 0)
-      } else {
-        vapply(private$._matrix_list[mat_subset], n_margin_fn, 0)
-      }
-      n_mrg <- as.integer(unique(n_mrg_for_each))
-      N <- length(n_mrg)
-      if (!private$._expand && N != 1)
-        stop(paste0("All matrices must have the same number of ", margin_label, "s"))
-
-      private[[paste0("n_", margin, "_")]] <- n_mrg
-    },
-
-
-
-    ._set_dimname = function(margin, mat_subset) {
-
-      private$._get_margin_names_across_mats(mat_subset, margin)
-
-      # private$._margin_names_across_mats <- unique(unlist(private$._margin_names_across_mats))
-      n_expand <- length(private$._margin_names_across_mats)
-
-      if (n_expand == 0L && private$._expand)
-        stop("matrices must have dimnames for expansion")
-
-      # With margin names provided, the following will have been tested already,
-      # but since we (currently) allow for NULL names, this step is necessary in
-      # this special case. Also, because of NULL names, assessing the number of
-      # rows/columns will not work, so we must use a more direct approach
-      private$._assess_num_margin_names_across_mats(mat_subset, margin)
-
-
-      private[[paste(margin, "names_", sep = "_")]] <- private$._margin_names_across_mats
-      # if (private[[paste("need", margin, "expand_", sep = "_")]]) {
-      if (private$._cumul_need_expand(margin)) {
-        private[[paste0("n_", margin, "_")]] <- n_expand
-      }
+      private[[itm_exp]] | private[[itm_ord]] |
+        private$._need_shrink_per_mat("row")
 
     },
 
 
 
 
+    #' Private method
+    #'
+    #' Checks if any matrix requires expansion, row or column.
+    #'
+    #' @returns
+    #' Logical; `TRUE` if expansion is needed, `FALSE` otherwise.
+    ._need_expansion = function() {
+      any(private$need_row_expand_per_mat_) ||
+        any(private$need_col_expand_per_mat_)
+    },
+
+
+
+    #' Private method
+    #'
+    #' Checks if any matrix requires shrinkage, row or column.
+    #'
+    #' @returns
+    #' Logical; `TRUE` if shrinkage is needed, `FALSE` otherwise.
+    ._need_shrinkage = function() {
+      any(private$._need_shrink_per_mat("row")) ||
+        any(private$._need_shrink_per_mat("col"))
+
+    },
+
+
+
+    #' Private method
+    #'
+    #' Checks if any matrix requires reordering, row or column.
+    #'
+    #' @returns
+    #' Logical; `TRUE` if reordering is needed, `FALSE` otherwise.
+    ._need_ordering = function() {
+      any(private$need_row_order_per_mat_) ||
+        any(private$need_col_order_per_mat_)
+    },
+
+
+
+
+    #' Private method
+    #'
+    #' Initiate internal parameters to default values
+    #'
+    #' @returns
+    #' Nothing; used for its side effects.
+    ._init_params = function() {
+      n <- length(private$._matrix_list)
+
+      private$._n_matrix <- n
+      private$need_row_expand_per_mat_ <- logical(n)
+      private$need_col_expand_per_mat_ <- logical(n)
+      private$need_row_adjust_per_mat_ <- logical(n)
+      private$need_col_adjust_per_mat_ <- logical(n)
+
+      private$._target_length <- if (!is.null(private$._target_info) &&
+                                     private$._adjust) {
+        private$._target_info$size
+      } else 0L
+    },
+
+
+
+
+    #' Private method
+    #'
+    #' Derives matrix metadata, optionally incorporating information from a
+    #' target annotation data frame.
+    #'
+    #' @returns
+    #' Nothing; used for its side effects.
     ._set_meta = function() {
 
       if (is.list(private$._matrix_list)) {
@@ -362,6 +556,285 @@ MatrixMeta <- R6::R6Class(
         }
 
       }
+
+    },
+
+
+
+
+
+    #' Private method
+    #'
+    #' Sets the appropriate dimnames based on the specified `margin`.
+    #'
+    #' @param margin        Character string; either "row" or "col", specifying
+    #'                      the margin to apply the dimnames to.
+    #' @param mat_subset    A logical vector the same length as the number of
+    #'                      matrices, indicating which ones should contribute to
+    #'                      the dimnames.
+    #'
+    #' @returns
+    #' Nothing; used for its side effects.
+    ._set_dimname = function(margin, mat_subset) {
+
+      private$._get_margin_names_across_mats(mat_subset, margin)
+
+      private$._assess_order_need(margin)
+      private$._assess_expansion_need(margin)
+
+      n_adjust <- private$._adjusted_length(margin)
+
+      # controlling on target_info is to make sure we are here from construction,
+      # not joining
+      if (n_adjust == 0L && private$._adjust && is.null(private$._target_info))
+        stop("matrices must have dimnames for expansion")
+
+      # With margin names provided, the following will have been tested already,
+      # but since we (currently) allow for NULL names, this step is necessary in
+      # this special case. Also, because of NULL names, assessing the number of
+      # rows/columns will not work, so we must use a more direct approach
+      private$._assess_num_margin_names_across_mats(mat_subset, margin)
+
+
+      # when expansion comes from join operation, we get dimnames from the
+      # annotation info
+      if (!private$._set_names_from_info()) {
+
+        private[[paste(margin, "names_unique_", sep = "_")]] <- private$._margin_names_across_mats
+        private[[paste(margin, "names_", sep = "_")]] <- private$._margin_names_across_mats
+
+      }
+
+
+      if (private$._cumul_need_adjust(margin)) {
+        private[[paste0("n_", margin, "_")]] <- n_adjust
+      }
+
+    },
+
+
+
+
+    #' Private method
+    #'
+    #' Determines and sets dimnames for the given `margin` across matrices,
+    #' and validates consistency when size adjustment is disallowed.
+    #'
+    #' @param mat_subset    A logical vector the same length as the number of
+    #'                      matrices, indicating which ones should contribute to
+    #'                      the dimnames.
+    #' @param margin        Character string; either "row" or "col", specifying
+    #'                      the margin to apply the dimnames to.
+    #'
+    #' @returns
+    #' Nothing; used for its side effects.
+    ._get_margin_names_across_mats = function(mat_subset, margin) {
+
+      margin_names <- paste0(margin, "names")
+      margin_names_fn <- get(margin_names, pos = "package:base",
+                             mode = "function")
+      margin_label <- if (margin == "row") "row" else "column"
+
+      mrg_nms_per_mat_full <- lapply(private$._matrix_list, margin_names_fn)
+      mrg_nms_per_mat <- if (is.null(mat_subset)) {
+        mrg_nms_per_mat_full
+      } else {
+        mrg_nms_per_mat_full[mat_subset]
+      }
+
+      private$._margin_names_per_mat <- mrg_nms_per_mat_full
+
+
+      private$._margin_unq_names_per_mat <- unique(mrg_nms_per_mat_full)
+
+      n_margin_names_across_mats <- length(unique(mrg_nms_per_mat))
+
+      if (n_margin_names_across_mats != 1) {
+        if (!private$._match_names && !private$._adjust) {
+          stop(paste("All matrices must have the same", margin_label,
+                     "names (NULL accepted)"))
+        }
+
+
+      }
+
+      private$._assess_margin_names_across_mats(margin_label)
+
+      private$._margin_names_across_mats <- unique(unlist(private$._margin_unq_names_per_mat))
+
+
+    },
+
+
+
+
+
+
+    #' Private method
+    #'
+    #' Checks whether margin names are unique and non-empty.
+    #'
+    #' @param margin_label     A string used in error messages to identify the
+    #'                         source of the issue when an assessment fails.
+    #'
+    #' @returns
+    #' Nothing; used for its side effects.
+    ._assess_margin_names_across_mats = function(margin_label) {
+
+      lapply(private$._margin_unq_names_per_mat,
+             function(.nms) {
+               .names_unq <- unique(.nms)
+
+               if (length(.names_unq) < length(.nms))
+                 stop(paste(stringr::str_to_title(margin_label),
+                            "names must be unique"))
+
+               if (any(.nms == ""))
+                 stop(paste("Empty", margin_label, "names are not allowed"))
+             })
+
+    },
+
+
+
+
+
+    ._assess_order_need = function(margin) {
+
+      ord_name <- paste("need", margin, "order_per_mat_", sep = "_")
+      private[[ord_name]] <- vapply(private$._margin_names_per_mat,
+                                    private$._assess_ordering,
+                                    FALSE)
+    },
+
+
+
+
+    ._assess_expansion_need = function(margin) {
+
+      exp_name <- paste("need", margin, "expand_per_mat_", sep = "_")
+      adj_name <- paste("need", margin, "adjust_per_mat_", sep = "_")
+
+
+      for (m in seq_len(private$._n_matrix)) {
+        n_nms <- length(private$._margin_names_per_mat[[m]])
+
+
+        if (!is.null(private$._target_info) &&
+            private$._target_info$margin == margin) {
+
+          if (n_nms != private$._target_length) {
+            private[[adj_name]][m] <- TRUE
+
+            if (n_nms < private$._target_length) {
+              private[[exp_name]][m] <- TRUE
+              next
+            }
+
+            private[[exp_name]][m] <- FALSE
+            next
+          }
+
+        }
+
+
+        # this scenario here can only happens at matrixset creation, where
+        # only expansion is possible - thus no shrinking
+        if (n_nms < length(private$._margin_names_across_mats)) {
+          private[[exp_name]][m] <- TRUE
+          private[[adj_name]][m] <- TRUE
+
+          next
+        }
+
+        private[[adj_name]][m] <- FALSE # NEEDED??????
+
+      }
+
+    },
+
+
+
+
+
+
+    ._assess_ordering = function(nms) {
+
+      if (length(nms) < length(private$._margin_names_across_mats)) return(TRUE)
+      if (any(nms != private$._margin_names_across_mats)) return(TRUE)
+      FALSE
+
+    },
+
+
+
+
+
+    ._adjusted_length = function(margin) {
+
+      n_adjust <- length(private$._margin_names_across_mats)
+
+      if (is.null(private$._target_info) || !private$._adjust) return(n_adjust)
+
+
+      exp_name <- paste("need", margin, "expand_per_mat_", sep = "_")
+      collapse_fun <- if (any(private[[exp_name]])) max else min
+
+      collapse_fun(n_adjust, private$._target_length)
+    },
+
+
+
+
+
+    ._assess_num_margin_names_across_mats = function(mat_subset, margin) {
+
+      n_margin <- paste0("n", margin)
+      n_margin_fn <- get(n_margin, pos = "package:base", mode = "function")
+      margin_label <- if (margin == "row") "row" else "column"
+
+      n_mrg_for_each <- if (is.null(mat_subset)) {
+        vapply(private$._matrix_list, n_margin_fn, 0)
+      } else {
+        vapply(private$._matrix_list[mat_subset], n_margin_fn, 0)
+      }
+      n_mrg <- as.integer(unique(n_mrg_for_each))
+      N <- length(n_mrg)
+      if (!private$._adjust && N != 1)
+        stop(paste0("All matrices must have the same number of ", margin_label, "s"))
+
+      private[[paste0("n_", margin, "_")]] <- n_mrg
+    },
+
+
+
+
+
+    ._set_names_from_info = function() {
+
+      if (!is.null(private$._target_info) && private$._adjust) {
+
+        mrg_nm_id <- paste(private$._target_info$margin, "names_", sep = "_")
+        mrg_nm_unq_id <- paste(private$._target_info$margin, "names_unique_",
+                               sep = "_")
+
+
+        mrg_comp_nm_id <- paste(private$._target_info$margin_comp, "names_",
+                                sep = "_")
+        mrg_comp_nm_unq_id <- paste(private$._target_info$margin_comp,
+                                    "names_unique_", sep = "_")
+
+        private[[mrg_nm_unq_id]] <- private$._target_info$margin_names_unique
+        private[[mrg_nm_id]] <- private$._target_info$margin_names
+
+
+        private[[mrg_comp_nm_unq_id]] <- private$._target_info$margin_comp_names_unique
+        private[[mrg_comp_nm_id]] <- private$._target_info$margin_comp_names
+
+        return(TRUE)
+      }
+
+      return(FALSE)
 
     }
 
@@ -465,6 +938,29 @@ set_expand_value <- function(is_Matrix, exp_val)
 
 
 
+new_empty_matrix <- function(dat, nrow, ncol, rownms, colnms, is_Matrix = FALSE)
+{
+  if (is_Matrix) {
+
+    m <- Matrix::Matrix(dat, nrow = nrow, ncol = ncol)
+
+    if (is.na(dat) || ((is.integer(dat) && dat != 0L) ||
+                       abs(dat) > .Machine$double.eps^.5)) {
+
+      m <- methods::as(m, "generalMatrix")
+    }
+
+  } else m <- matrix(dat, nrow=nrow, ncol=ncol)
+
+  rownames(m) <- rownms
+  colnames(m) <- colnms
+
+  m
+}
+
+
+
+
 MatrixAdjuster <- R6::R6Class(
   "MatrixAdjuster",
 
@@ -473,8 +969,10 @@ MatrixAdjuster <- R6::R6Class(
     initialize = function(matrix_list, matrix_info, expand) {
 
       private$._matrix_list <- matrix_list
+      private$._n_matrix <- length(matrix_list)
       private$._target_info <- matrix_info
-      private$._expand_param <- expand
+      private$._set_expand_param(expand)
+      # private$._expand_param <- expand
       private$._expand()
 
     }
@@ -483,7 +981,7 @@ MatrixAdjuster <- R6::R6Class(
 
   active = list(
 
-    expanded_mats = function() private$expanded_mats_
+    adjusted_mats = function() private$adjusted_mats_
 
   ),
 
@@ -491,17 +989,68 @@ MatrixAdjuster <- R6::R6Class(
   private = list(
 
     ._matrix_list = NULL,
-    expanded_mats_ = NULL,
+    ._n_matrix = 0L,
+    adjusted_mats_ = NULL,
     ._target_info = NULL,
     ._expand_param = NULL,
     ._expand_value = NULL,
+    ._expand_outer_source = NULL,
+    ._expand_from_outer = FALSE,         # general assessment: is it a user
+                                         # request?
+    ._expand_from_outer_possible = FALSE,# obviously FALSE if ._expand_from_outer,
+                                         # but will be FALSE also if it is not
+                                         # possible to fulfill the request, e.g.
+                                         # if the outer source doesn't have the
+                                         # needed matrix.
 
 
 
     ._init = function() {
 
-      private$expanded_mats_ <- vector('list', length(private$._matrix_list))
-      names(private$expanded_mats_) <- names(private$._matrix_list)
+      # private$expanded_mats_ <- vector('list', length(private$._matrix_list))
+      private$adjusted_mats_ <- vector('list', private$._n_matrix)
+      names(private$adjusted_mats_) <- names(private$._matrix_list)
+
+    },
+
+
+
+    ._set_expand_param = function(expand) {
+
+      if (!is.list(expand)) {
+        private$._expand_param <- expand
+        return()
+      }
+
+
+      is_mtrx <- vapply(expand, is_matrixish, FALSE)
+      if (any(is_mtrx)) {
+        private$._expand_param <- NA
+        private$._expand_outer_source <- expand
+        private$._expand_from_outer <- TRUE
+        return()
+      }
+
+
+      if (is.null(expand$matrix_set)) {
+        private$._expand_param <- expand
+        return()
+      }
+
+      private$._expand_param <- expand
+
+
+
+
+
+
+      # if (!is.list(expand) || is.null(expand$matrix_set)) {
+      #   private$._expand_param <- expand
+      #   return()
+      # }
+      #
+      # private$._expand_param <- NA
+      # private$._expand_outer_source <- expand$matrix_set
 
     },
 
@@ -536,25 +1085,29 @@ MatrixAdjuster <- R6::R6Class(
 
       if (is.na(padding_val) && is.logical(padding_val)) padding_val <- NA_real_
 
-      private$expanded_mats_[[mat_idx]] <- Matrix::Matrix(padding_val,
-                                                          nrow = private$._target_info$n_row,
-                                                          ncol = private$._target_info$n_col)
+      private$adjusted_mats_[[mat_idx]] <- new_empty_matrix(padding_val,
+                                                            nrow = private$._target_info$n_row,
+                                                            ncol = private$._target_info$n_col,
+                                                            rownms = private$._target_info$row_names_unique,
+                                                            colnms = private$._target_info$col_names_unique,
+                                                            is_Matrix = TRUE)
 
-
-      if (is.na(padding_val) || ((is.integer(padding_val) && padding_val != 0L) ||
-          abs(padding_val) > .Machine$double.eps^.5)) {
-        private$expanded_mats_[[mat_idx]] <- methods::as(private$expanded_mats_[[mat_idx]],
-                                                         "generalMatrix")
-      }
-# print(class(private$expanded_mats_[[mat_idx]]))
-
-      # private$expanded_mats_[[mat_idx]] <- methods::as(private$expanded_mats_[[mat_idx]],
-      #                                                  class(private$._matrix_list[[mat_idx]]))
+      # private$expanded_mats_[[mat_idx]] <- Matrix::Matrix(padding_val,
+      #                                                     nrow = private$._target_info$n_row,
+      #                                                     ncol = private$._target_info$n_col)
+      #
+      #
+      # if (is.na(padding_val) || ((is.integer(padding_val) && padding_val != 0L) ||
+      #     abs(padding_val) > .Machine$double.eps^.5)) {
+      #   private$expanded_mats_[[mat_idx]] <- methods::as(private$expanded_mats_[[mat_idx]],
+      #                                                    "generalMatrix")
+      # }
 
       if ((NR < private$._target_info$n_row || NC < private$._target_info$n_col) &&
-          ((is.integer(padding_val) && padding_val == 0L) ||
-           (is.numeric(padding_val) && abs(padding_val) < .Machine$double.eps^.5)))
-        private$expanded_mats_[[mat_idx]] <- methods::as(private$expanded_mats_[[mat_idx]],
+          ((is.integer(padding_val) && padding_val %.==.% 0L) ||
+           # (is.numeric(padding_val) && abs(padding_val) < .Machine$double.eps^.5)))
+           (is.numeric(padding_val) && abs(padding_val) %.<.% .Machine$double.eps^.5)))
+        private$adjusted_mats_[[mat_idx]] <- methods::as(private$adjusted_mats_[[mat_idx]],
                                                          "sparseMatrix")
 
     },
@@ -562,80 +1115,151 @@ MatrixAdjuster <- R6::R6Class(
 
 
 
-    ._finish_S4Matrix = function(mat_idx, padding_val, comp_ri, comp_ci) {
-
-      as_Matrix <- is(private$._matrix_list[[mat_idx]], "Matrix")
-      if (!as_Matrix) return()
-
-      ri_from <- seq_len(private$._target_info$n_row)
-      ci_from <- seq_len(private$._target_info$n_col)
-
-      ri <- if (is.null(comp_ri)) {
-        ri_from
-      } else if (length(comp_ri) == private$._target_info$n_row) {
-        NULL
-      } else {
-        setdiff(ri_from, comp_ri)
-      }
-
-
-      ci <- if (is.null(comp_ci)) {
-        ci_from
-      } else if (length(comp_ci) == private$._target_info$n_col) {
-        NULL
-      } else {
-        setdiff(ci_from, comp_ci)
-      }
-
-print(list(ri, comp_ri, ci,comp_ci))
-      if (is.null(ri)) {
-        if (is.null(ci)) return()
-
-        private$expanded_mats_[[mat_idx]][, ci] <- padding_val
-        return()
-      }
-
-
-      if (is.null(ci)) {
-        # private$expanded_mats_[[mat_idx]][ri, ] <- padding_val
-        return()
-      }
-
-      # private$expanded_mats_[[mat_idx]][ri, ci] <- padding_val
-      # print(c(ci, comp_ci))
-
-    },
+#     ._finish_S4Matrix = function(mat_idx, padding_val, comp_ri, comp_ci) {
+#
+#       as_Matrix <- is(private$._matrix_list[[mat_idx]], "Matrix")
+#       if (!as_Matrix) return()
+#
+#       ri_from <- seq_len(private$._target_info$n_row)
+#       ci_from <- seq_len(private$._target_info$n_col)
+#
+#       ri <- if (is.null(comp_ri)) {
+#         ri_from
+#       } else if (length(comp_ri) == private$._target_info$n_row) {
+#         NULL
+#       } else {
+#         setdiff(ri_from, comp_ri)
+#       }
+#
+#
+#       ci <- if (is.null(comp_ci)) {
+#         ci_from
+#       } else if (length(comp_ci) == private$._target_info$n_col) {
+#         NULL
+#       } else {
+#         setdiff(ci_from, comp_ci)
+#       }
+#
+# print(list(ri, comp_ri, ci,comp_ci))
+#       if (is.null(ri)) {
+#         if (is.null(ci)) return()
+#
+#         private$expanded_mats_[[mat_idx]][, ci] <- padding_val
+#         return()
+#       }
+#
+#
+#       if (is.null(ci)) {
+#         # private$expanded_mats_[[mat_idx]][ri, ] <- padding_val
+#         return()
+#       }
+#
+#       # private$expanded_mats_[[mat_idx]][ri, ci] <- padding_val
+#       # print(c(ci, comp_ci))
+#
+#     },
 
 
 
 
     ._init_matrix = function(mat_idx, padding_val) {
 
-      if (!private$._target_info$need_expand_per_mat[mat_idx]) {
+      # if (private$._target_info$need_expand_per_mat[mat_idx]) {
+      if (private$._target_info$need_adjust_per_mat[mat_idx]) {
 
-        private$expanded_mats_[[mat_idx]] <- private$._matrix_list[[mat_idx]]
-
-      } else {
 
         as_Matrix <- is(private$._matrix_list[[mat_idx]], "Matrix")
 
         if (as_Matrix) {
 
           private$._init_S4Matrix(mat_idx, padding_val)
-
-        } else {
-
-          private$expanded_mats_[[mat_idx]] <-
-            matrix(padding_val, nrow = private$._target_info$n_row,
-                   ncol = private$._target_info$n_col)
-
+          return()
 
         }
 
+          # private$expanded_mats_[[mat_idx]] <-
+          #   matrix(padding_val, nrow = private$._target_info$n_row,
+          #          ncol = private$._target_info$n_col)
+        private$adjusted_mats_[[mat_idx]] <- new_empty_matrix(padding_val,
+                                                              nrow = private$._target_info$n_row,
+                                                              ncol = private$._target_info$n_col,
+                                                              rownms = private$._target_info$row_names_unique,
+                                                              colnms = private$._target_info$col_names_unique,
+                                                              is_Matrix = FALSE)
+
+        return()
       }
 
-      rownames(private$expanded_mats_[[mat_idx]]) <- private$._target_info$row_names
-      colnames(private$expanded_mats_[[mat_idx]]) <- private$._target_info$col_names
+
+
+      # if (private$._target_info$need_shrink_per_mat[mat_idx]) {
+      #
+      #
+      #   as_Matrix <- is(private$._matrix_list[[mat_idx]], "Matrix")
+      #
+      #   if (as_Matrix) {
+      #
+      #     private$._init_S4Matrix(mat_idx, padding_val)
+      #     return()
+      #
+      #   }
+      #
+      #   # private$expanded_mats_[[mat_idx]] <-
+      #   #   matrix(padding_val, nrow = private$._target_info$n_row,
+      #   #          ncol = private$._target_info$n_col)
+      #   private$expanded_mats_[[mat_idx]] <- new_empty_matrix(padding_val,
+      #                                                         nrow = private$._target_info$n_row,
+      #                                                         ncol = private$._target_info$n_col,
+      #                                                         rownms = private$._target_info$row_names_unique,
+      #                                                         colnms = private$._target_info$col_names_unique,
+      #                                                         is_Matrix = FALSE)
+      #
+      #   return()
+      # }
+
+
+
+
+
+      private$adjusted_mats_[[mat_idx]] <- private$._matrix_list[[mat_idx]]
+
+      rownames(private$adjusted_mats_[[mat_idx]]) <- private$._target_info$row_names_unique
+      colnames(private$adjusted_mats_[[mat_idx]]) <- private$._target_info$col_names_unique
+
+
+      # if (!private$._target_info$need_expand_per_mat[mat_idx]) {
+      #
+      #   private$expanded_mats_[[mat_idx]] <- private$._matrix_list[[mat_idx]]
+      #
+      #   rownames(private$expanded_mats_[[mat_idx]]) <- private$._target_info$row_names_unique
+      #   colnames(private$expanded_mats_[[mat_idx]]) <- private$._target_info$col_names_unique
+      #
+      # } else {
+      #
+      #   as_Matrix <- is(private$._matrix_list[[mat_idx]], "Matrix")
+      #
+      #   if (as_Matrix) {
+      #
+      #     private$._init_S4Matrix(mat_idx, padding_val)
+      #
+      #   } else {
+      #
+      #     # private$expanded_mats_[[mat_idx]] <-
+      #     #   matrix(padding_val, nrow = private$._target_info$n_row,
+      #     #          ncol = private$._target_info$n_col)
+      #     private$expanded_mats_[[mat_idx]] <- new_empty_matrix(padding_val,
+      #                      nrow = private$._target_info$n_row,
+      #                      ncol = private$._target_info$n_col,
+      #                      rownms = private$._target_info$row_names_unique,
+      #                      colnms = private$._target_info$col_names_unique,
+      #                      is_Matrix = FALSE)
+      #
+      #   }
+      #
+      # }
+
+      # rownames(private$expanded_mats_[[mat_idx]]) <- private$._target_info$row_names
+      # colnames(private$expanded_mats_[[mat_idx]]) <- private$._target_info$col_names
 
     },
 
@@ -643,74 +1267,261 @@ print(list(ri, comp_ri, ci,comp_ci))
 
     ._need_adjustment = function(margin, mat_idx) {
 
-      look_for_expand <- paste("need", margin, "expand_per_mat", sep = "_")
-      look_for_order <- paste("need", margin, "order_per_mat", sep = "_")
+      # look_for_expand <- paste("need", margin, "expand_per_mat", sep = "_")
+      # look_for_shrink <- paste("need", margin, "shrink_per_mat", sep = "_")
+      # # look_for_EXPAND <- paste("need", margin, "EXPAND_per_mat", sep = "_")
+      # look_for_order <- paste("need", margin, "order_per_mat", sep = "_")
+      #
+      # need_expand <- private$._target_info[[look_for_expand]][mat_idx]
+      # need_shrink <- private$._target_info[[look_for_shrink]][mat_idx]
+      # # need_EXPAND <- private$._target_info[[look_for_EXPAND]][mat_idx]
+      # # need_shrink <- private$need_expand & private$!need_EXPAND
+      # need_order <- private$._target_info[[look_for_order]][mat_idx]
+      #
+      # need_expand || need_shrink || need_order
+      # # need_adjust || need_order
 
-      need_expand <- private$._target_info[[look_for_expand]][mat_idx]
-      need_order <- private$._target_info[[look_for_order]][mat_idx]
+      look_for_adapt <- paste("need", margin, "adapt_per_mat", sep = "_")
+      # print(list(need_expand, need_shrink, need_order,
+      #            need_expand || need_shrink || need_order,
+      #            private$._target_info[[look_for_adjust]][mat_idx]))
+      private$._target_info[[look_for_adapt]][mat_idx]
+    },
 
-      need_expand || need_order
+
+
+    ._need_shrinkage = function(margin, mat_idx) {
+
+      look_for_shrink <- paste("need", margin, "shrink_per_mat", sep = "_")
+      need_shrink <- private$._target_info[[look_for_shrink]][mat_idx]
+
+      need_shrink
 
     },
 
 
 
+
+
+     ._outer_matrix_idx = function(idx) {
+
+       if (!private$._expand_from_outer) {
+         private$._expand_from_outer_possible <- FALSE
+         return(NULL)
+       }
+
+       mat_name <- names(private$._matrix_list)[idx]
+       out_idx <- match(mat_name, names(private$._expand_outer_source), 0L)
+
+       if (out_idx == 0L) {
+         private$._expand_from_outer_possible <- FALSE
+         return(NULL)
+       }
+
+       private$._expand_from_outer_possible <- TRUE
+       out_idx
+     },
+
+
+
+
+
+    # ._set_target_pos = function(margin, orig_nms) {
+    #
+    #   target_nms <- paste0(margin, "_names")
+    #   which(private$._target_info[[target_nms]] %in% orig_nms)
+    #
+    # },
+
+
+
     ._expand = function() {
 
-      if (!private$._target_info$need_expand && !private$._target_info$need_order)
+      # if (!private$._target_info$need_expand && !private$._target_info$need_order)
+      #   return()
+      # if (!private$._target_info$need_expand &&
+      #     !private$._target_info$need_order &&
+      #     !private$._target_info$need_shrink)
+
+      if (!private$._target_info$need_adapt)
         return()
 
 
       private$._init()
 
 
-      for (m in seq_along(private$._matrix_list)) {
+
+
+      # pos <- if (is.null(joined_names_unique)) {
+      #   match(old_names, joined_names)
+      # } else {
+      #   common <- intersect(joined_names, old_names)
+      #   unlist(lapply(common, function(.x) which(.x == joined_names)))
+      # }
+      #
+      # newm[pos, ] <- if (is.null(joined_names_unique)) {
+      #   m
+      # } else {
+      #   m[unlist(lapply(joined_names, function(.x) which(.x == old_names))), ]
+      # }
+
+      # for (m in seq_along(private$._matrix_list)) {
+      for (m in seq_len(private$._n_matrix)) {
 
         if (is.null(private$._matrix_list[[m]])) next
 
         padding_val <- private$._set_expand_value(m)
         private$._init_matrix(m, padding_val)
+        m_y <- private$._outer_matrix_idx(m)
 
-        expand_order_rows <- private$._need_adjustment("row", m)
-        expand_order_cols <- private$._need_adjustment("col", m)
+        old_rnms <- rownames(private$._matrix_list[[m]])
+        old_cnms <- colnames(private$._matrix_list[[m]])
 
-        if (expand_order_cols) {
-          old_cnms <- colnames(private$._matrix_list[[m]])
+        if (private$._expand_from_outer_possible) {
+          y_cnms <- colnames(private$._expand_outer_source[[m_y]])
+          if (private$._target_info$need_col_expand_per_mat[m])
+            y_cnms[y_cnms %in% old_cnms] <- NA_character_
+          coi_y <- match(private$._target_info$col_names, y_cnms, 0)
+          coi_y <- coi_y[coi_y > 0]
+
+          cti_y <- which(private$._target_info$col_names %in% y_cnms)
+
+          y_rnms <- rownames(private$._expand_outer_source[[m_y]])
+          if(private$._target_info$need_row_expand_per_mat[m])
+            y_rnms[y_rnms %in% old_rnms] <- NA_character_
+          roi_y <- match(private$._target_info$row_names, y_rnms, 0)
+          roi_y <- roi_y[roi_y > 0]
+
+          rti_y <- which(private$._target_info$row_names %in% y_rnms)
+        }
+
+
+        # expand_order_rows <- private$._need_adjustment("row", m)
+        # expand_order_cols <- private$._need_adjustment("col", m)
+        adjust_order_rows <- private$._need_adjustment("row", m)
+        adjust_order_cols <- private$._need_adjustment("col", m)
+        shrink_rows <- private$._need_shrinkage("row", m)
+        shrink_cols <- private$._need_shrinkage("col", m)
+
+        # if (expand_order_cols) {
+        if (adjust_order_cols) {
+          # old_cnms <- colnames(private$._matrix_list[[m]])
 
           coi <- match(private$._target_info$col_names, old_cnms, 0)
-          cti <- which(private$._target_info$col_names %in% old_cnms)
+
+          if (!shrink_cols)
+            cti <- which(private$._target_info$col_names %in% old_cnms)
+
         }
 
 
 
-        if (expand_order_rows) {
+        # if (expand_order_rows) {
+        if (adjust_order_rows) {
 
-          old_rnms <- rownames(private$._matrix_list[[m]])
+          # old_rnms <- rownames(private$._matrix_list[[m]])
 
           roi <- match(private$._target_info$row_names, old_rnms, 0)
-          rti <- which(private$._target_info$row_names %in% old_rnms)
 
-          if (expand_order_cols) {
+          if (!shrink_rows)
+            rti <- which(private$._target_info$row_names %in% old_rnms)
 
-            private$expanded_mats_[[m]][rti, cti] <- private$._matrix_list[[m]][roi, coi]
-            # private$._finish_S4Matrix(m, padding_val, rti, cti)
+
+          # if (expand_order_cols) {
+          if (adjust_order_cols) {
+
+            if (shrink_rows) {
+
+              if (shrink_cols) {
+                private$adjusted_mats_[[m]] <- private$._matrix_list[[m]][roi, coi]
+                next
+              }
+
+              private$adjusted_mats_[[m]][, cti] <- private$._matrix_list[[m]][roi, coi]
+              next
+
+            }
+
+
+            if (shrink_cols) {
+              private$adjusted_mats_[[m]][rti, ] <- private$._matrix_list[[m]][roi, coi]
+              next
+            }
+
+            private$adjusted_mats_[[m]][rti, cti] <- private$._matrix_list[[m]][roi, coi]
+            next
+
+
+            # private$adjusted_mats_[[m]][rti, cti] <- private$._matrix_list[[m]][roi, coi]
+            # # private$._finish_S4Matrix(m, padding_val, rti, cti)
+            # next
+
+          }
+
+
+
+          if (shrink_rows) {
+
+            private$adjusted_mats_[[m]] <- private$._matrix_list[[m]][roi, ]
             next
 
           }
 
-          private$expanded_mats_[[m]][rti, ] <- private$._matrix_list[[m]][roi, ]
-          # private$._finish_S4Matrix(m, padding_val, rti, NULL)
+          private$adjusted_mats_[[m]][rti, ] <- private$._matrix_list[[m]][roi, ]
+          if (private$._expand_from_outer_possible) {
+            private$adjusted_mats_[[m]][rti_y, cti_y] <-
+              private$._expand_outer_source[[m_y]][roi_y, coi_y]
+          }
           next
+
+
+
+
+
+          # private$adjusted_mats_[[m]][rti, ] <- private$._matrix_list[[m]][roi, ]
+          # # private$._finish_S4Matrix(m, padding_val, rti, NULL)
+          # next
         }
 
 
-        if (expand_order_cols) {
 
-          private$expanded_mats_[[m]][, cti] <- private$._matrix_list[[m]][, coi]
-          # private$._finish_S4Matrix(m, padding_val, NULL, cti)
+
+
+        if (adjust_order_cols) {
+
+          if (shrink_cols) {
+            private$adjusted_mats_[[m]] <- private$._matrix_list[[m]][, coi]
+            next
+          }
+
+          private$adjusted_mats_[[m]][, cti] <- private$._matrix_list[[m]][, coi]
           next
 
+
+          # private$adjusted_mats_[[m]][rti, cti] <- private$._matrix_list[[m]][roi, coi]
+          # # private$._finish_S4Matrix(m, padding_val, rti, cti)
+          # next
+
         }
+
+
+        # private$adjusted_mats_[[m]] <- private$._matrix_list[[m]]
+        # next
+
+
+
+
+
+
+
+        # if (expand_order_cols) {
+        # if (adjust_order_cols) {
+        #
+        #   private$adjusted_mats_[[m]][, cti] <- private$._matrix_list[[m]][, coi]
+        #   # private$._finish_S4Matrix(m, padding_val, NULL, cti)
+        #   next
+        #
+        # }
 
 
       }
@@ -812,7 +1623,7 @@ expand_matrices <- function(matrix_list, matrix_info, expand)
 # some (mostly negligeable, though) time
 set_meta <- function(side, meta, info, key, tag, adjust)
 {
-  side_name <- if (side == "row") "row_names" else "col_names"
+  side_name <- if (side == "row") "row_names_unique" else "col_names_unique"
   side_names <- info[[side_name]]
   side_label <- if (side == "row") "rows" else "columns"
 
@@ -854,6 +1665,49 @@ set_meta <- function(side, meta, info, key, tag, adjust)
   colnames(meta) <- col_names
 
   meta
+}
+
+
+
+.matrixset <- function(matrix_set, row_info, col_info, n_row, n_col,
+                       matrix_names, n_matrix, row_traits, col_traits,
+                       row_names, col_names, row_tag, col_tag,
+                       .class = "matrixset", row_group_meta = NULL,
+                       row_group_indices = NULL, row_group_rows = NULL,
+                       row_group_keys = NULL, row_group_vars = NULL,
+                       row_group_level_drop = NULL, col_group_meta = NULL,
+                       col_group_indices = NULL, col_group_rows = NULL,
+                       col_group_keys = NULL, col_group_vars = NULL,
+                       col_group_level_drop = NULL)
+{
+
+  structure(list(matrix_set = matrix_set,
+                 row_info = row_info,
+                 column_info = col_info),
+            class = .class,
+            n_row = n_row,
+            n_col = n_col,
+            matrix_names = matrix_names,
+            n_matrix = n_matrix,
+            row_traits = row_traits,
+            col_traits = col_traits,
+            row_names = row_names,
+            col_names = col_names,
+            row_tag = row_tag,
+            col_tag = col_tag,
+            row_group_meta = row_group_meta,
+            row_group_indices = row_group_indices,
+            row_group_rows = row_group_rows,
+            row_group_keys = row_group_keys,
+            row_group_vars = row_group_vars,
+            row_group_level_drop = row_group_level_drop,
+            col_group_meta = col_group_meta,
+            col_group_indices = col_group_indices,
+            col_group_rows = col_group_rows,
+            col_group_keys = col_group_keys,
+            col_group_vars = col_group_vars,
+            col_group_level_drop = col_group_level_drop
+            )
 }
 
 
@@ -1043,7 +1897,7 @@ matrixset <- function(..., match_names = FALSE, expand = NULL, row_info = NULL,
   matrix_info <- MatrixMeta$new(matrix_set, match_names,
                                 (is.logical(expand) && expand) || !is.null(expand) )
   if (match_names || !is.null(expand)) {
-    matrix_set <- MatrixAdjuster$new(matrix_set, matrix_info, expand)$expanded_mats
+    matrix_set <- MatrixAdjuster$new(matrix_set, matrix_info, expand)$adjusted_mats
   }
     # matrix_set <- expand_matrices(matrix_set, matrix_info, expand)
 # foo <- MatrixAdjuster$new(matrix_set, matrix_info, expand)
@@ -1055,29 +1909,51 @@ matrixset <- function(..., match_names = FALSE, expand = NULL, row_info = NULL,
   if (any(rwtr %in% cltr))
     stop("Rows and columns can't share annotation names")
 
-  matset <- list(matrix_set = matrix_set,
-                 row_info = if (is.null(row_info)) NULL else tibble::as_tibble(row_info),
-                 column_info = if (is.null(col_info)) NULL else tibble::as_tibble(col_info))
+  # matset <- list(matrix_set = matrix_set,
+  #                row_info = if (is.null(row_info)) NULL else tibble::as_tibble(row_info),
+  #                column_info = if (is.null(col_info)) NULL else tibble::as_tibble(col_info))
 
-  row_names <-  matrix_info[["row_names"]]
+  row_names <-  matrix_info[["row_names_unique"]]
   if (is.null(row_names)) row_names <- character(0)
   # if (is.null(row_names)) row_names <- make_names(seq_len(matrix_info[["n_row"]]), "")
-  col_names <-  matrix_info[["col_names"]]
+  col_names <-  matrix_info[["col_names_unique"]]
   if (is.null(col_names)) col_names <- character(0)
   # if (is.null(row_names)) col_names <- make_names(seq_len(matrix_info[["n_col"]]), "")
 
-  structure(matset,
-            class = "matrixset",
-            n_row = matrix_info[["n_row"]],
-            n_col = matrix_info[["n_col"]],
-            matrix_names = names(matrix_set),
-            n_matrix = n_matrix,
-            row_traits = rwtr,
-            col_traits = cltr,
-            row_names = row_names,
-            col_names = col_names,
-            row_tag = row_tag,
-            col_tag = column_tag)
+
+  # matset <- list(matrix_set = matrix_set,
+  #                row_info = if (is.null(row_info)) NULL else tibble::as_tibble(row_info),
+  #                column_info = if (is.null(col_info)) NULL else tibble::as_tibble(col_info))
+  #
+  #
+  # structure(matset,
+  #           class = "matrixset",
+  #           n_row = matrix_info[["n_row"]],
+  #           n_col = matrix_info[["n_col"]],
+  #           matrix_names = names(matrix_set),
+  #           n_matrix = n_matrix,
+  #           row_traits = rwtr,
+  #           col_traits = cltr,
+  #           row_names = row_names,
+  #           col_names = col_names,
+  #           row_tag = row_tag,
+  #           col_tag = column_tag)
+  #
+
+  .matrixset(matrix_set,
+             row_info = if (is.null(row_info)) NULL else tibble::as_tibble(row_info),
+             col_info = if (is.null(col_info)) NULL else tibble::as_tibble(col_info),
+             n_row = matrix_info[["n_row"]],
+             n_col = matrix_info[["n_col"]],
+             matrix_names = names(matrix_set),
+             n_matrix = n_matrix,
+             row_traits = rwtr,
+             col_traits = cltr,
+             row_names = row_names,
+             col_names = col_names,
+             row_tag = row_tag,
+             col_tag = column_tag)
+
 }
 
 

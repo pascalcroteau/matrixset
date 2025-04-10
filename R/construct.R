@@ -701,6 +701,15 @@ MatrixMeta <- R6::R6Class(
 
 
 
+    #' Private Method
+    #'
+    #' Checks each matrix to determine whether reordering is needed along the
+    #' specified margin.
+    #'
+    #' @param margin   Margin to check: either `"row"` or `"col"`.
+    #'
+    #' @returns
+    #' Nothing; used for its side effects.
     ._assess_order_need = function(margin) {
 
       ord_name <- paste("need", margin, "order_per_mat_", sep = "_")
@@ -712,6 +721,16 @@ MatrixMeta <- R6::R6Class(
 
 
 
+    #' Private Method
+    #'
+    #' Checks each matrix to determine whether expansion is needed along the
+    #' specified margin. Also updates per-matrix adjustment flags accordingly,
+    #' as expansion is a form of adjustment.
+    #'
+    #' @param margin   Margin to check: either `"row"` or `"col"`.
+    #'
+    #' @returns
+    #' Nothing; used for its side effects.
     ._assess_expansion_need = function(margin) {
 
       exp_name <- paste("need", margin, "expand_per_mat_", sep = "_")
@@ -760,6 +779,15 @@ MatrixMeta <- R6::R6Class(
 
 
 
+    #' Private Method
+    #'
+    #' Determines whether reordering is needed by comparing the given `nms`
+    #' vector  to `._margin_names_across_mats`.
+    #'
+    #' @param nms   A `character` vector of margin names to evaluate.
+    #'
+    #' @returns
+    #' Logical; `TRUE` if reordering is needed, `FALSE` otherwise.
     ._assess_ordering = function(nms) {
 
       if (length(nms) < length(private$._margin_names_across_mats)) return(TRUE)

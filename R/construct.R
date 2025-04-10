@@ -125,8 +125,6 @@ list_names <- function(lst)
 
 
 
-
-
 #' MatrixMeta: Class to determine various matrix characteristics
 #'
 #' This class determines the necessary characteristics of a matrix
@@ -151,6 +149,7 @@ MatrixMeta <- R6::R6Class(
   "MatrixMeta",
 
   public = list(
+
 
     #' @description
     #' Creates a new MatrixMeta object
@@ -210,7 +209,6 @@ MatrixMeta <- R6::R6Class(
       private$._adjust <- adjust
       private$._init_params()
       private$._match_names <- adjust || match_names
-
       private$._set_meta()
 
     }
@@ -218,6 +216,7 @@ MatrixMeta <- R6::R6Class(
   ),
 
   active = list(
+
 
     # row_names and row_names_unique (and similarly for col) are typically
     # equivalent. But they can  differ in context of join operations, when
@@ -405,6 +404,7 @@ MatrixMeta <- R6::R6Class(
 
 
 
+
     #' Private method
     #'
     #' Checks whether at least one matrix requires adjustment along the
@@ -419,6 +419,7 @@ MatrixMeta <- R6::R6Class(
       itm <- paste("need", margin, "adjust_per_mat_", sep = "_")
       any(private[[itm]])
     },
+
 
 
 
@@ -460,6 +461,7 @@ MatrixMeta <- R6::R6Class(
         private$._need_shrink_per_mat("row")
 
     },
+
 
 
 
@@ -938,6 +940,7 @@ set_expand_value <- function(is_Matrix, exp_val)
 
 
 
+
 new_empty_matrix <- function(dat, nrow, ncol, rownms, colnms, is_Matrix = FALSE)
 {
   if (is_Matrix) {
@@ -957,6 +960,7 @@ new_empty_matrix <- function(dat, nrow, ncol, rownms, colnms, is_Matrix = FALSE)
 
   m
 }
+
 
 
 
@@ -1158,6 +1162,7 @@ MatrixAdjuster <- R6::R6Class(
 #       # print(c(ci, comp_ci))
 #
 #     },
+
 
 
 
@@ -1372,6 +1377,7 @@ MatrixAdjuster <- R6::R6Class(
 
         padding_val <- private$._set_expand_value(m)
         private$._init_matrix(m, padding_val)
+
         m_y <- private$._outer_matrix_idx(m)
 
         old_rnms <- rownames(private$._matrix_list[[m]])
@@ -1522,7 +1528,6 @@ MatrixAdjuster <- R6::R6Class(
         #   next
         #
         # }
-
 
       }
 

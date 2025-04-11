@@ -799,7 +799,17 @@ MatrixMeta <- R6::R6Class(
 
 
 
-
+    #' Private Method
+    #'
+    #' Returns the size of the specified `margin`. If adjustment is required,
+    #' this is the target size.
+    #'
+    #' Size counting is based on the observed margin names.
+    #'
+    #' @param margin   `"row"` or `"col"`; the margin to measure.
+    #'
+    #' @returns
+    #' A `numeric` value representing the margin size.
     ._adjusted_length = function(margin) {
 
       n_adjust <- length(private$._margin_names_across_mats)
@@ -817,6 +827,18 @@ MatrixMeta <- R6::R6Class(
 
 
 
+    #' Private Method
+    #'
+    #' Counts the `margin` size for each eligible matrix. If adjustment is not
+    #' allowed, checks whether all sizes are identical across matrices.
+    #'
+    #' The count is based on actual margin sizes, not dimnames.
+    #'
+    #' @param mat_subset  Logical vector indicating which matrices to include.
+    #' @param margin      `"row"` or `"col"`; the margin to assess.
+    #'
+    #' #' @returns
+    #' Nothing; used for its side effects.
     ._assess_num_margin_names_across_mats = function(mat_subset, margin) {
 
       n_margin <- paste0("n", margin)
@@ -840,6 +862,15 @@ MatrixMeta <- R6::R6Class(
 
 
 
+    #' Private Method
+    #'
+    #' In the context of a join operation (not matrix construction), updates
+    #' margin names using metadata from the target annotation data frame, if
+    #' available.
+    #'
+    #' @returns
+    #' `TRUE` if updates were made, `FALSE` otherwise (e.g., no target
+    #' annotation data).
     ._set_names_from_info = function() {
 
       if (!is.null(private$._target_info) && private$._adjust) {

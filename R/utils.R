@@ -1,13 +1,29 @@
 
 
 
+# `%.==.%` <- function(x, y)
+# {
+#   if (is.null(x)) FALSE else if (is.null(y)) FALSE else x == y
+# }
+
+
+#' Internal function that is always called with `x` and `y` of equal length.
+#' @noRd
 `%.==.%` <- function(x, y)
 {
-  if (is.null(x)) FALSE else if (is.null(y)) FALSE else x == y
+  if (is.null(x) || is.null(y)) return(NULL)
+
+  vapply(seq_along(x), function(i) identical(x[i], y[i]), FALSE)
 }
 
 
-
+#' Internal function that is always called with both `x` and `y` of size 1.
+#' @noRd
+`%.<.%` <- function(x, y)
+{
+  if (is.na(x) || is.na(y)) return(FALSE)
+  x < y
+}
 
 
 is_matrixish <- function(x)

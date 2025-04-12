@@ -545,8 +545,11 @@ row_info.matrixset <- function(x)
   row_names <- rownames(x)
   col_names <- colnames(x)
   row_tag <- .rowtag(x)
+  # matrix_info <- list(n_row = as.integer(n_row), n_col = as.integer(n_col),
+  #                     row_names = row_names, col_names = col_names,
+  #                     need_expand = FALSE)
   matrix_info <- list(n_row = as.integer(n_row), n_col = as.integer(n_col),
-                      row_names = row_names, col_names = col_names,
+                      row_names_unique = row_names, col_names_unique = col_names,
                       need_expand = FALSE)
 
   row_info <- set_meta("row", value, matrix_info, row_key, row_tag, FALSE)
@@ -630,8 +633,11 @@ column_info.matrixset <- function(x)
   row_names <- rownames(x)
   col_names <- colnames(x)
   col_tag <- .coltag(x)
+  # matrix_info <- list(n_row = as.integer(n_row), n_col = as.integer(n_col),
+  #                     row_names = row_names, col_names = col_names,
+  #                     need_expand = FALSE)
   matrix_info <- list(n_row = as.integer(n_row), n_col = as.integer(n_col),
-                      row_names = row_names, col_names = col_names,
+                      row_names_unique = row_names, col_names_unique = col_names,
                       need_expand = FALSE)
 
   col_info <- set_meta("col", value, matrix_info, col_key, col_tag, FALSE)

@@ -47,65 +47,65 @@ normalize_expand <- function(expand, nms_matrix, nmatrix)
 }
 
 
-info_dim <- function(lst, side, expand)
-{
-  fn_names <- get(paste0(side, "names"), pos = "package:base", mode = "function")
-  fn_n <- get(paste0("n", side), pos = "package:base", mode = "function")
-  side_label <- if (side == "row") "row" else "column"
-
-  need_expand <- FALSE
-
-  # a note on empty dimnames: row/col names of empty dimnames is NULL; thus
-  # unique(NULL) is NULL and length(NULL) is 0. so length(unique(NULL)) and
-  # length(NULL) are both 0, thus equal. So empty dimnames is seen as not needing
-  # expansion, as it should
-
-  nms <- lapply(lst, fn_names)
-  .names <- unique(nms)
-  n_nms <- length(.names)
-  if (n_nms != 1) {
-    if (!expand)
-      stop(paste("All matrices must have the same", side_label, "names (NULL accepted)"))
-  }
-
-  lapply(.names,
-         function(.nms) {
-           .names_unq <- unique(.nms)
-
-           if (length(.names_unq) < length(.nms))
-             stop(paste(stringr::str_to_title(side_label), "names must be unique"))
-
-           if (any(.nms == ""))
-             stop(paste("Empty", side_label, "names are not allowed"))
-         })
-
-  .names_flat <- unlist(.names)
-  .names <- unique(.names_flat)
-  nexp <- length(.names)
-  if (nexp == 0L && expand)
-    stop("matrices must have dimnames for expansion")
-  if (n_nms > 1 && expand) need_expand <- TRUE
-
-  n_s <- vapply(lst, fn_n, 0)
-  n <- unique(n_s)
-  N <- length(n)
-  if (!expand && N != 1)
-    stop(paste0("All matrices must have the same number of ", side_label, "s"))
-
-  if (expand && need_expand) n <- nexp
-
-  # if (expand) {
-  #   n <- length(.names)
-  # } else {
-  #   n_s <- vapply(lst, fn_n, 0)
-  #   n <- unique(n_s)
-  #   N <- length(n)
-  #   if (N != 1)
-  #     stop(paste0("All matrices must have the same number of ", side_label, "s"))
-  # }
-
-  list(nms=.names, n=n, need_expand = need_expand)
-}
+# info_dim <- function(lst, side, expand)
+# {
+#   fn_names <- get(paste0(side, "names"), pos = "package:base", mode = "function")
+#   fn_n <- get(paste0("n", side), pos = "package:base", mode = "function")
+#   side_label <- if (side == "row") "row" else "column"
+#
+#   need_expand <- FALSE
+#
+#   # a note on empty dimnames: row/col names of empty dimnames is NULL; thus
+#   # unique(NULL) is NULL and length(NULL) is 0. so length(unique(NULL)) and
+#   # length(NULL) are both 0, thus equal. So empty dimnames is seen as not needing
+#   # expansion, as it should
+#
+#   nms <- lapply(lst, fn_names)
+#   .names <- unique(nms)
+#   n_nms <- length(.names)
+#   if (n_nms != 1) {
+#     if (!expand)
+#       stop(paste("All matrices must have the same", side_label, "names (NULL accepted)"))
+#   }
+#
+#   lapply(.names,
+#          function(.nms) {
+#            .names_unq <- unique(.nms)
+#
+#            if (length(.names_unq) < length(.nms))
+#              stop(paste(stringr::str_to_title(side_label), "names must be unique"))
+#
+#            if (any(.nms == ""))
+#              stop(paste("Empty", side_label, "names are not allowed"))
+#          })
+#
+#   .names_flat <- unlist(.names)
+#   .names <- unique(.names_flat)
+#   nexp <- length(.names)
+#   if (nexp == 0L && expand)
+#     stop("matrices must have dimnames for expansion")
+#   if (n_nms > 1 && expand) need_expand <- TRUE
+#
+#   n_s <- vapply(lst, fn_n, 0)
+#   n <- unique(n_s)
+#   N <- length(n)
+#   if (!expand && N != 1)
+#     stop(paste0("All matrices must have the same number of ", side_label, "s"))
+#
+#   if (expand && need_expand) n <- nexp
+#
+#   # if (expand) {
+#   #   n <- length(.names)
+#   # } else {
+#   #   n_s <- vapply(lst, fn_n, 0)
+#   #   n <- unique(n_s)
+#   #   N <- length(n)
+#   #   if (N != 1)
+#   #     stop(paste0("All matrices must have the same number of ", side_label, "s"))
+#   # }
+#
+#   list(nms=.names, n=n, need_expand = need_expand)
+# }
 
 
 
@@ -235,10 +235,6 @@ MatrixMeta <- R6::R6Class(
     #'                            Typically identical to column_names, but
     #'                            may differ in join operations where duplicate
     #'                            names occur.
-    #' @field need_row_expand     \[`TRUE`|`FALSE`\] `TRUE` if at least one
-    #'                            matrix requires row expansion.
-    #' @field need_col_expand     \[`TRUE`|`FALSE`\] `TRUE` if at least one
-    #'                            matrix requires column expansion.
     #' @field need_row_expand_per_mat
     #'                            Logical vector indicating whether each matrix
     #'                            requires row expansion.
@@ -251,24 +247,6 @@ MatrixMeta <- R6::R6Class(
     #' @field need_col_shrink_per_mat
     #'                            Logical vector indicating whether each matrix
     #'                            requires column shrinkage.
-    #' @field need_row_order_per_mat
-    #'                            Logical vector indicating whether each matrix
-    #'                            requires row reordering.
-    #' @field need_col_order_per_mat
-    #'                            Logical vector indicating whether each matrix
-    #'                            requires column reordering.
-    #' @field need_row_adjust_per_mat
-    #'                            Logical vector indicating whether each matrix
-    #'                            requires row adjustment of any kind.
-    #' @field need_col_adjust_per_mat
-    #'                            Logical vector indicating whether each matrix
-    #'                            requires column adjustment of any kind.
-    #' @field need_expand         \[`TRUE`|`FALSE`\] `TRUE` if any matrix
-    #'                            requires expansion (rows or columns).
-    #' @field need_shrink         \[`TRUE`|`FALSE`\] `TRUE` if any matrix
-    #'                            requires shrinkage (rows or columns).
-    #' @field need_order          \[`TRUE`|`FALSE`\] `TRUE` if any matrix
-    #'                            requires reordering (rows or columns).
     #' @field need_adapt          \[`TRUE`|`FALSE`\] `TRUE` if any matrix
     #'                            requires adaptation of any kind (expansion,
     #'                            shrinkage, or reordering).
@@ -283,19 +261,10 @@ MatrixMeta <- R6::R6Class(
     row_names_unique = function() private$row_names_unique_,
     col_names = function() private$col_names_,
     col_names_unique = function() private$col_names_unique_,
-    # need_row_expand = function() private$._cumul_need_expand("row"),
-    # need_col_expand = function() private$._cumul_need_expand("col"),
     need_row_expand_per_mat = function() private$need_row_expand_per_mat_,
     need_col_expand_per_mat = function() private$need_col_expand_per_mat_,
     need_row_shrink_per_mat = function() private$._need_shrink_per_mat("row"),
     need_col_shrink_per_mat = function() private$._need_shrink_per_mat("col"),
-    # need_row_order_per_mat = function() private$need_row_order_per_mat_,
-    # need_col_order_per_mat = function() private$need_col_order_per_mat_,
-    # need_row_adjust_per_mat = function() private$need_row_adjust_per_mat_,
-    # need_col_adjust_per_mat = function() private$need_col_adjust_per_mat_,
-    # need_expand = function() private$._need_expansion(),
-    # need_shrink = function() private$._need_shrinkage(),
-    # need_order = function() private$._need_ordering(),
     need_adapt = function() {
       private$._need_expansion() || private$._need_shrinkage() ||
         private$._need_ordering()
@@ -383,24 +352,6 @@ MatrixMeta <- R6::R6Class(
                                            # (union of
                                            # ._margin_unq_names_per_mat).
 
-
-
-
-
-    #' Private method
-    #'
-    #' Checks whether at least one matrix requires expansion along the specified
-    #' margin.
-    #'
-    #' @param margin    Either `"row"` or `"col"`. Margin to check for expansion
-    #'                  needs.
-    #'
-    #' @return
-    #' Logical; `TRUE` if expansion is needed, `FALSE` otherwise.
-    # ._cumul_need_expand = function(margin) {
-    #   itm <- paste("need", margin, "expand_per_mat_", sep = "_")
-    #   any(private[[itm]])
-    # },
 
 
 
@@ -912,53 +863,53 @@ MatrixMeta <- R6::R6Class(
 # of same dim. Get also the matrix rownames and colnames. Assess if all matrices
 # have the same names and if names are valid
 # lst -  list of matrix
-info_matrices <- function(lst = NULL, expand = NULL)
-{
-  n_row <- NULL
-  n_col <- NULL
-  need_expand <- FALSE
-
-  if (is.null(lst)) {
-    n_row <- 0
-    n_col <-  0
-    row_names <- NULL
-    col_names <- NULL
-  } else if (is.list(lst)) {
-
-    # lst_nms <- names(lst)
-    # if (is.null(lst_nms) || any(lst_nms == ""))
-    #   stop("The list elements must be named")
-
-    is_null <- vapply(lst, is.null, FALSE)
-    if (all(is_null)) {
-      n_row <- 0
-      n_col <-  0
-      row_names <- NULL
-      col_names <- NULL
-    } else {
-      is_matrix <- vapply(lst, is_matrixish, FALSE)
-      is_valid <- is_null | is_matrix
-      if (!all(is_valid))
-        stop("Elements must be NULL or a matrix")
-
-      row_meta <- info_dim(lst[!is_null], "row", !is.null(expand))
-      col_meta <- info_dim(lst[!is_null], "col", !is.null(expand))
-
-      n_row <- row_meta$n
-      n_col <- col_meta$n
-      row_names <- row_meta$nms
-      col_names <- col_meta$nms
-      row_expand <- row_meta$need_expand
-      col_expand <- col_meta$need_expand
-      need_expand <- row_expand || col_expand
-
-    }
-  }
-
-  return(list(n_row = as.integer(n_row), n_col = as.integer(n_col),
-              row_names = row_names, col_names = col_names,
-              need_expand = need_expand))
-}
+# info_matrices <- function(lst = NULL, expand = NULL)
+# {
+#   n_row <- NULL
+#   n_col <- NULL
+#   need_expand <- FALSE
+#
+#   if (is.null(lst)) {
+#     n_row <- 0
+#     n_col <-  0
+#     row_names <- NULL
+#     col_names <- NULL
+#   } else if (is.list(lst)) {
+#
+#     # lst_nms <- names(lst)
+#     # if (is.null(lst_nms) || any(lst_nms == ""))
+#     #   stop("The list elements must be named")
+#
+#     is_null <- vapply(lst, is.null, FALSE)
+#     if (all(is_null)) {
+#       n_row <- 0
+#       n_col <-  0
+#       row_names <- NULL
+#       col_names <- NULL
+#     } else {
+#       is_matrix <- vapply(lst, is_matrixish, FALSE)
+#       is_valid <- is_null | is_matrix
+#       if (!all(is_valid))
+#         stop("Elements must be NULL or a matrix")
+#
+#       row_meta <- info_dim(lst[!is_null], "row", !is.null(expand))
+#       col_meta <- info_dim(lst[!is_null], "col", !is.null(expand))
+#
+#       n_row <- row_meta$n
+#       n_col <- col_meta$n
+#       row_names <- row_meta$nms
+#       col_names <- col_meta$nms
+#       row_expand <- row_meta$need_expand
+#       col_expand <- col_meta$need_expand
+#       need_expand <- row_expand || col_expand
+#
+#     }
+#   }
+#
+#   return(list(n_row = as.integer(n_row), n_col = as.integer(n_col),
+#               row_names = row_names, col_names = col_names,
+#               need_expand = need_expand))
+# }
 
 
 
@@ -976,25 +927,25 @@ matrices_from_dots <- function(...)
 
 
 
-MATRIX <- function(dat, nrow, ncol, is_Matrix = FALSE)
-{
-  if (is_Matrix) {
-    Matrix::Matrix(0, nrow=nrow, ncol=ncol)
-  } else {
-    matrix(dat, nrow=nrow, ncol=ncol)
-  }
-}
+# MATRIX <- function(dat, nrow, ncol, is_Matrix = FALSE)
+# {
+#   if (is_Matrix) {
+#     Matrix::Matrix(0, nrow=nrow, ncol=ncol)
+#   } else {
+#     matrix(dat, nrow=nrow, ncol=ncol)
+#   }
+# }
 
 
-
-set_expand_value <- function(is_Matrix, exp_val)
-{
-  if (is.logical(exp_val) && !is.na(exp_val)) {
-    if (is_Matrix) return(0) else return(NA)
-  }
-  exp_val
-  # if (is_Matrix && (is.logical(exp_val) && !is.na(exp_val))) 0 else exp_val
-}
+#
+# set_expand_value <- function(is_Matrix, exp_val)
+# {
+#   if (is.logical(exp_val) && !is.na(exp_val)) {
+#     if (is_Matrix) return(0) else return(NA)
+#   }
+#   exp_val
+#   # if (is_Matrix && (is.logical(exp_val) && !is.na(exp_val))) 0 else exp_val
+# }
 
 
 
@@ -1600,84 +1551,84 @@ MatrixAdjuster <- R6::R6Class(
 
 
 
-
-expand_matrices <- function(matrix_list, matrix_info, expand)
-{
-  need_expand <- matrix_info$need_expand
-  if (!need_expand) return(matrix_list)
-
-  nmatrix <- length(matrix_list)
-
-  expand_list <- vector('list', nmatrix)
-  names(expand_list) <- names(matrix_list)
-
-  nr <- matrix_info$n_row
-  nc <- matrix_info$n_col
-  rnms <- matrix_info$row_names
-  cnms <- matrix_info$col_names
-  for (l in 1:nmatrix) {
-    NR <- nrow(matrix_list[[l]])
-    NC <- ncol(matrix_list[[l]])
-    if (!is.null(matrix_list[[l]])) {
-      is_Matrix <- is(matrix_list[[l]], "Matrix")
-
-      if (NR != nr || NC != nc) {
-        expand_value <- set_expand_value(is_Matrix, if (is.logical(expand)) expand else expand[[l]])
-        expand_list[[l]] <- MATRIX(expand_value, nrow = nr, ncol = nc, is_Matrix)
-      } else {
-        expand_list[[l]] <- matrix_list[[l]]
-      }
-
-      rownames(expand_list[[l]]) <- rnms
-      colnames(expand_list[[l]]) <- cnms
-      if (is_Matrix) {
-        expand_list[[l]][] <- expand_value
-        expand_list[[l]] <- methods::as(expand_list[[l]], class(matrix_list[[l]]))
-        if ((NR < nr || NC < nc) &&
-            ((is.integer(expand_value) && expand_value == 0L) ||
-             (is.numeric(expand_value) && abs(expand_value) < .Machine$double.eps^.5)))
-          expand_list[[l]] <- methods::as(expand_list[[l]], "sparseMatrix")
-      }
-      old_rnms <- rownames(matrix_list[[l]])
-      old_cnms <- colnames(matrix_list[[l]])
-      ridx <- rnms %in% old_rnms
-      cidx <- cnms %in% old_cnms
-      ri <- match(rnms, old_rnms, 0)
-      ci <- match(cnms, old_cnms, 0)
-      if (any(ridx) && any(cidx) && (any(ri != seq_along(ri)) || any(ci != seq_along(ci)))) {
-        expand_list[[l]][rnms[ridx], cnms[cidx]] <- matrix_list[[l]][ri, ci]
-      }
-
-
-      # is_Matrix <- is(matrix_list[[l]], "Matrix")
-      # expand_value <- set_expand_value(is_Matrix, if (is.logical(expand)) expand else expand[[l]])
-      # expand_list[[l]] <- MATRIX(expand_value, nrow = nr, ncol = nc, is_Matrix)
-      # # expand_list[[l]] <- MATRIX(expand[[l]], nrow = nr, ncol = nc, is_Matrix)
-      # rownames(expand_list[[l]]) <- rnms
-      # colnames(expand_list[[l]]) <- cnms
-      # if (is_Matrix) {
-      #   # expand_list[[l]][] <- expand[[l]]
-      #   expand_list[[l]][] <- expand_value
-      #   expand_list[[l]] <- methods::as(expand_list[[l]], class(matrix_list[[l]]))
-      #   if ((NR < nr || NC < nc) &&
-      #       ((is.integer(expand_value) && expand_value == 0L) ||
-      #        (is.numeric(expand_value) && abs(expand_value) < .Machine$double.eps^.5)))
-      #     expand_list[[l]] <- methods::as(expand_list[[l]], "sparseMatrix")
-      # }
-      # old_rnms <- rownames(matrix_list[[l]])
-      # old_cnms <- colnames(matrix_list[[l]])
-      # ridx <- rnms %in% old_rnms
-      # cidx <- cnms %in% old_cnms
-      # ri <- match(rnms, old_rnms, 0)
-      # ci <- match(cnms, old_cnms, 0)
-      # if (any(ridx) && any(cidx)) {
-      #   expand_list[[l]][rnms[ridx], cnms[cidx]] <- matrix_list[[l]][ri, ci]
-      # }
-    }
-  }
-
-  expand_list
-}
+#
+# expand_matrices <- function(matrix_list, matrix_info, expand)
+# {
+#   need_expand <- matrix_info$need_expand
+#   if (!need_expand) return(matrix_list)
+#
+#   nmatrix <- length(matrix_list)
+#
+#   expand_list <- vector('list', nmatrix)
+#   names(expand_list) <- names(matrix_list)
+#
+#   nr <- matrix_info$n_row
+#   nc <- matrix_info$n_col
+#   rnms <- matrix_info$row_names
+#   cnms <- matrix_info$col_names
+#   for (l in 1:nmatrix) {
+#     NR <- nrow(matrix_list[[l]])
+#     NC <- ncol(matrix_list[[l]])
+#     if (!is.null(matrix_list[[l]])) {
+#       is_Matrix <- is(matrix_list[[l]], "Matrix")
+#
+#       if (NR != nr || NC != nc) {
+#         expand_value <- set_expand_value(is_Matrix, if (is.logical(expand)) expand else expand[[l]])
+#         expand_list[[l]] <- MATRIX(expand_value, nrow = nr, ncol = nc, is_Matrix)
+#       } else {
+#         expand_list[[l]] <- matrix_list[[l]]
+#       }
+#
+#       rownames(expand_list[[l]]) <- rnms
+#       colnames(expand_list[[l]]) <- cnms
+#       if (is_Matrix) {
+#         expand_list[[l]][] <- expand_value
+#         expand_list[[l]] <- methods::as(expand_list[[l]], class(matrix_list[[l]]))
+#         if ((NR < nr || NC < nc) &&
+#             ((is.integer(expand_value) && expand_value == 0L) ||
+#              (is.numeric(expand_value) && abs(expand_value) < .Machine$double.eps^.5)))
+#           expand_list[[l]] <- methods::as(expand_list[[l]], "sparseMatrix")
+#       }
+#       old_rnms <- rownames(matrix_list[[l]])
+#       old_cnms <- colnames(matrix_list[[l]])
+#       ridx <- rnms %in% old_rnms
+#       cidx <- cnms %in% old_cnms
+#       ri <- match(rnms, old_rnms, 0)
+#       ci <- match(cnms, old_cnms, 0)
+#       if (any(ridx) && any(cidx) && (any(ri != seq_along(ri)) || any(ci != seq_along(ci)))) {
+#         expand_list[[l]][rnms[ridx], cnms[cidx]] <- matrix_list[[l]][ri, ci]
+#       }
+#
+#
+#       # is_Matrix <- is(matrix_list[[l]], "Matrix")
+#       # expand_value <- set_expand_value(is_Matrix, if (is.logical(expand)) expand else expand[[l]])
+#       # expand_list[[l]] <- MATRIX(expand_value, nrow = nr, ncol = nc, is_Matrix)
+#       # # expand_list[[l]] <- MATRIX(expand[[l]], nrow = nr, ncol = nc, is_Matrix)
+#       # rownames(expand_list[[l]]) <- rnms
+#       # colnames(expand_list[[l]]) <- cnms
+#       # if (is_Matrix) {
+#       #   # expand_list[[l]][] <- expand[[l]]
+#       #   expand_list[[l]][] <- expand_value
+#       #   expand_list[[l]] <- methods::as(expand_list[[l]], class(matrix_list[[l]]))
+#       #   if ((NR < nr || NC < nc) &&
+#       #       ((is.integer(expand_value) && expand_value == 0L) ||
+#       #        (is.numeric(expand_value) && abs(expand_value) < .Machine$double.eps^.5)))
+#       #     expand_list[[l]] <- methods::as(expand_list[[l]], "sparseMatrix")
+#       # }
+#       # old_rnms <- rownames(matrix_list[[l]])
+#       # old_cnms <- colnames(matrix_list[[l]])
+#       # ridx <- rnms %in% old_rnms
+#       # cidx <- cnms %in% old_cnms
+#       # ri <- match(rnms, old_rnms, 0)
+#       # ci <- match(cnms, old_cnms, 0)
+#       # if (any(ridx) && any(cidx)) {
+#       #   expand_list[[l]][rnms[ridx], cnms[cidx]] <- matrix_list[[l]][ri, ci]
+#       # }
+#     }
+#   }
+#
+#   expand_list
+# }
 
 
 

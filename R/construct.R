@@ -127,12 +127,6 @@ list_names <- function(lst)
 
 #' MatrixMeta: Class to determine various matrix characteristics
 #'
-#' This class determines the necessary characteristics of a matrix
-#' list/matrixset to either build a new matrixset or adjust an existing one, for
-#' instance expanding or shrinking the set.
-#'
-#' MatrixMeta: Class to determine various matrix characteristics
-#'
 #' This class identifies the key characteristics of a list of matrices, in order
 #' to either build a new matrixset or modify an existing one — for example,
 #' by expanding or reducing the set.
@@ -975,18 +969,55 @@ new_empty_matrix <- function(dat, nrow, ncol, rownms, colnms, is_Matrix = FALSE)
 
 
 
+#' MatrixAdjuster: A class for adjusting matrices
+#'
+#' Based on characteristics extracted from an instance of a `MatrixMeta`
+#' object, this class performs necessary adjustments on the matrices in the
+#' input list.
+#'
+#' To ensure general usability, no adjustment is performed if it is not needed,
+#' as indicated by the `expand` flag.
+#'
+#' @docType class
+#' @noRd
+#' @name MatrixAdjuster
 MatrixAdjuster <- R6::R6Class(
   "MatrixAdjuster",
 
   public = list(
 
+
+
+    #' @description
+    #' Initializes a new `MatrixAdjuster` object.
+    #'
+    #' @param matrix_list    A list of matrices to be adjusted.
+    #' @param matrix_info    An instance of a `MatrixMeta` object, providing
+    #'                       the necessary metadata to guide the adjustment
+    #'                       process.
+    #' @param expand         Controls whether input matrices should be expanded.
+    #'                       If `NULL` or `FALSE`, no expansion is performed.
+    #'                       If set to `TRUE`, expansion is enabled using
+    #'                       default padding values (`NA` for base matrices, `0`
+    #'                       for matrices from the `Matrix` package, which
+    #'                       results in conversion to sparse matrices).
+    #'
+    #'                       You may also supply a single custom padding value
+    #'                       (e.g., `-1`) to apply the same padding across all
+    #'                       matrices.
+    #'
+    #'                       Alternatively, a list of padding values can be
+    #'                       provided. If unnamed, the list must have the same
+    #'                       length as `matrix_list`, and values will be
+    #'                       assigned in order. If named, names are matched to
+    #'                       those of the matrices.
+    #' @noRd
     initialize = function(matrix_list, matrix_info, expand) {
 
       private$._matrix_list <- matrix_list
       private$._n_matrix <- length(matrix_list)
       private$._target_info <- matrix_info
       private$._set_expand_param(expand)
-      # private$._expand_param <- expand
       private$._expand()
 
     }
@@ -1017,15 +1048,6 @@ MatrixAdjuster <- R6::R6Class(
                                          # if the outer source doesn't have the
                                          # needed matrix.
 
-
-
-    ._init = function() {
-
-      # private$expanded_mats_ <- vector('list', length(private$._matrix_list))
-      private$adjusted_mats_ <- vector('list', private$._n_matrix)
-      names(private$adjusted_mats_) <- names(private$._matrix_list)
-
-    },
 
 
 
@@ -1069,284 +1091,6 @@ MatrixAdjuster <- R6::R6Class(
     },
 
 
-
-    ._set_expand_value = function(mat_idx)
-    {
-      exp_val <- private$._expand_param
-      as_Matrix <- is(private$._matrix_list[[mat_idx]], "Matrix")
-
-      exp_val_i <- if (is.logical(exp_val)) exp_val else exp_val[[mat_idx]]
-
-      if (is.logical(exp_val_i) && !is.na(exp_val_i)) {
-        if (as_Matrix) return(0) else return(NA)
-      }
-      exp_val_i
-
-    },
-
-
-
-
-    ._init_S4Matrix = function(mat_idx, padding_val) {
-
-      NR <- nrow(private$._matrix_list[[mat_idx]])
-      NC <- ncol(private$._matrix_list[[mat_idx]])
-
-      # private$expanded_mats_[[mat_idx]] <- Matrix::Matrix(0,
-      #                                                     nrow = private$._target_info$n_row,
-      #                                                     ncol = private$._target_info$n_col)
-      # private$expanded_mats_[[mat_idx]][] <- padding_val
-
-      if (is.na(padding_val) && is.logical(padding_val)) padding_val <- NA_real_
-
-      private$adjusted_mats_[[mat_idx]] <- new_empty_matrix(padding_val,
-                                                            nrow = private$._target_info$n_row,
-                                                            ncol = private$._target_info$n_col,
-                                                            rownms = private$._target_info$row_names_unique,
-                                                            colnms = private$._target_info$col_names_unique,
-                                                            is_Matrix = TRUE)
-
-      # private$expanded_mats_[[mat_idx]] <- Matrix::Matrix(padding_val,
-      #                                                     nrow = private$._target_info$n_row,
-      #                                                     ncol = private$._target_info$n_col)
-      #
-      #
-      # if (is.na(padding_val) || ((is.integer(padding_val) && padding_val != 0L) ||
-      #     abs(padding_val) > .Machine$double.eps^.5)) {
-      #   private$expanded_mats_[[mat_idx]] <- methods::as(private$expanded_mats_[[mat_idx]],
-      #                                                    "generalMatrix")
-      # }
-
-      if ((NR < private$._target_info$n_row || NC < private$._target_info$n_col) &&
-          ((is.integer(padding_val) && padding_val %.==.% 0L) ||
-           # (is.numeric(padding_val) && abs(padding_val) < .Machine$double.eps^.5)))
-           (is.numeric(padding_val) && abs(padding_val) %.<.% .Machine$double.eps^.5)))
-        private$adjusted_mats_[[mat_idx]] <- methods::as(private$adjusted_mats_[[mat_idx]],
-                                                         "sparseMatrix")
-
-    },
-
-
-
-
-#     ._finish_S4Matrix = function(mat_idx, padding_val, comp_ri, comp_ci) {
-#
-#       as_Matrix <- is(private$._matrix_list[[mat_idx]], "Matrix")
-#       if (!as_Matrix) return()
-#
-#       ri_from <- seq_len(private$._target_info$n_row)
-#       ci_from <- seq_len(private$._target_info$n_col)
-#
-#       ri <- if (is.null(comp_ri)) {
-#         ri_from
-#       } else if (length(comp_ri) == private$._target_info$n_row) {
-#         NULL
-#       } else {
-#         setdiff(ri_from, comp_ri)
-#       }
-#
-#
-#       ci <- if (is.null(comp_ci)) {
-#         ci_from
-#       } else if (length(comp_ci) == private$._target_info$n_col) {
-#         NULL
-#       } else {
-#         setdiff(ci_from, comp_ci)
-#       }
-#
-# print(list(ri, comp_ri, ci,comp_ci))
-#       if (is.null(ri)) {
-#         if (is.null(ci)) return()
-#
-#         private$expanded_mats_[[mat_idx]][, ci] <- padding_val
-#         return()
-#       }
-#
-#
-#       if (is.null(ci)) {
-#         # private$expanded_mats_[[mat_idx]][ri, ] <- padding_val
-#         return()
-#       }
-#
-#       # private$expanded_mats_[[mat_idx]][ri, ci] <- padding_val
-#       # print(c(ci, comp_ci))
-#
-#     },
-
-
-
-
-
-    ._init_matrix = function(mat_idx, padding_val) {
-
-      # if (private$._target_info$need_expand_per_mat[mat_idx]) {
-      if (private$._target_info$need_adjust_per_mat[mat_idx]) {
-
-
-        as_Matrix <- is(private$._matrix_list[[mat_idx]], "Matrix")
-
-        if (as_Matrix) {
-
-          private$._init_S4Matrix(mat_idx, padding_val)
-          return()
-
-        }
-
-          # private$expanded_mats_[[mat_idx]] <-
-          #   matrix(padding_val, nrow = private$._target_info$n_row,
-          #          ncol = private$._target_info$n_col)
-        private$adjusted_mats_[[mat_idx]] <- new_empty_matrix(padding_val,
-                                                              nrow = private$._target_info$n_row,
-                                                              ncol = private$._target_info$n_col,
-                                                              rownms = private$._target_info$row_names_unique,
-                                                              colnms = private$._target_info$col_names_unique,
-                                                              is_Matrix = FALSE)
-
-        return()
-      }
-
-
-
-      # if (private$._target_info$need_shrink_per_mat[mat_idx]) {
-      #
-      #
-      #   as_Matrix <- is(private$._matrix_list[[mat_idx]], "Matrix")
-      #
-      #   if (as_Matrix) {
-      #
-      #     private$._init_S4Matrix(mat_idx, padding_val)
-      #     return()
-      #
-      #   }
-      #
-      #   # private$expanded_mats_[[mat_idx]] <-
-      #   #   matrix(padding_val, nrow = private$._target_info$n_row,
-      #   #          ncol = private$._target_info$n_col)
-      #   private$expanded_mats_[[mat_idx]] <- new_empty_matrix(padding_val,
-      #                                                         nrow = private$._target_info$n_row,
-      #                                                         ncol = private$._target_info$n_col,
-      #                                                         rownms = private$._target_info$row_names_unique,
-      #                                                         colnms = private$._target_info$col_names_unique,
-      #                                                         is_Matrix = FALSE)
-      #
-      #   return()
-      # }
-
-
-
-
-
-      private$adjusted_mats_[[mat_idx]] <- private$._matrix_list[[mat_idx]]
-
-      rownames(private$adjusted_mats_[[mat_idx]]) <- private$._target_info$row_names_unique
-      colnames(private$adjusted_mats_[[mat_idx]]) <- private$._target_info$col_names_unique
-
-
-      # if (!private$._target_info$need_expand_per_mat[mat_idx]) {
-      #
-      #   private$expanded_mats_[[mat_idx]] <- private$._matrix_list[[mat_idx]]
-      #
-      #   rownames(private$expanded_mats_[[mat_idx]]) <- private$._target_info$row_names_unique
-      #   colnames(private$expanded_mats_[[mat_idx]]) <- private$._target_info$col_names_unique
-      #
-      # } else {
-      #
-      #   as_Matrix <- is(private$._matrix_list[[mat_idx]], "Matrix")
-      #
-      #   if (as_Matrix) {
-      #
-      #     private$._init_S4Matrix(mat_idx, padding_val)
-      #
-      #   } else {
-      #
-      #     # private$expanded_mats_[[mat_idx]] <-
-      #     #   matrix(padding_val, nrow = private$._target_info$n_row,
-      #     #          ncol = private$._target_info$n_col)
-      #     private$expanded_mats_[[mat_idx]] <- new_empty_matrix(padding_val,
-      #                      nrow = private$._target_info$n_row,
-      #                      ncol = private$._target_info$n_col,
-      #                      rownms = private$._target_info$row_names_unique,
-      #                      colnms = private$._target_info$col_names_unique,
-      #                      is_Matrix = FALSE)
-      #
-      #   }
-      #
-      # }
-
-      # rownames(private$expanded_mats_[[mat_idx]]) <- private$._target_info$row_names
-      # colnames(private$expanded_mats_[[mat_idx]]) <- private$._target_info$col_names
-
-    },
-
-
-
-    ._need_adjustment = function(margin, mat_idx) {
-
-      # look_for_expand <- paste("need", margin, "expand_per_mat", sep = "_")
-      # look_for_shrink <- paste("need", margin, "shrink_per_mat", sep = "_")
-      # # look_for_EXPAND <- paste("need", margin, "EXPAND_per_mat", sep = "_")
-      # look_for_order <- paste("need", margin, "order_per_mat", sep = "_")
-      #
-      # need_expand <- private$._target_info[[look_for_expand]][mat_idx]
-      # need_shrink <- private$._target_info[[look_for_shrink]][mat_idx]
-      # # need_EXPAND <- private$._target_info[[look_for_EXPAND]][mat_idx]
-      # # need_shrink <- private$need_expand & private$!need_EXPAND
-      # need_order <- private$._target_info[[look_for_order]][mat_idx]
-      #
-      # need_expand || need_shrink || need_order
-      # # need_adjust || need_order
-
-      look_for_adapt <- paste("need", margin, "adapt_per_mat", sep = "_")
-      # print(list(need_expand, need_shrink, need_order,
-      #            need_expand || need_shrink || need_order,
-      #            private$._target_info[[look_for_adjust]][mat_idx]))
-      private$._target_info[[look_for_adapt]][mat_idx]
-    },
-
-
-
-    ._need_shrinkage = function(margin, mat_idx) {
-
-      look_for_shrink <- paste("need", margin, "shrink_per_mat", sep = "_")
-      need_shrink <- private$._target_info[[look_for_shrink]][mat_idx]
-
-      need_shrink
-
-    },
-
-
-
-
-
-     ._outer_matrix_idx = function(idx) {
-
-       if (!private$._expand_from_outer) {
-         private$._expand_from_outer_possible <- FALSE
-         return(NULL)
-       }
-
-       mat_name <- names(private$._matrix_list)[idx]
-       out_idx <- match(mat_name, names(private$._expand_outer_source), 0L)
-
-       if (out_idx == 0L) {
-         private$._expand_from_outer_possible <- FALSE
-         return(NULL)
-       }
-
-       private$._expand_from_outer_possible <- TRUE
-       out_idx
-     },
-
-
-
-
-
-    # ._set_target_pos = function(margin, orig_nms) {
-    #
-    #   target_nms <- paste0(margin, "_names")
-    #   which(private$._target_info[[target_nms]] %in% orig_nms)
-    #
-    # },
 
 
 
@@ -1542,7 +1286,308 @@ MatrixAdjuster <- R6::R6Class(
       }
 
 
-    }
+    },
+
+
+
+
+
+    ._init = function() {
+
+      # private$expanded_mats_ <- vector('list', length(private$._matrix_list))
+      private$adjusted_mats_ <- vector('list', private$._n_matrix)
+      names(private$adjusted_mats_) <- names(private$._matrix_list)
+
+    },
+
+
+
+
+
+
+
+    ._set_expand_value = function(mat_idx)
+    {
+      exp_val <- private$._expand_param
+      as_Matrix <- is(private$._matrix_list[[mat_idx]], "Matrix")
+
+      exp_val_i <- if (is.logical(exp_val)) exp_val else exp_val[[mat_idx]]
+
+      if (is.logical(exp_val_i) && !is.na(exp_val_i)) {
+        if (as_Matrix) return(0) else return(NA)
+      }
+      exp_val_i
+
+    },
+
+
+
+
+
+    ._init_matrix = function(mat_idx, padding_val) {
+
+      # if (private$._target_info$need_expand_per_mat[mat_idx]) {
+      if (private$._target_info$need_adjust_per_mat[mat_idx]) {
+
+
+        as_Matrix <- is(private$._matrix_list[[mat_idx]], "Matrix")
+
+        if (as_Matrix) {
+
+          private$._init_S4Matrix(mat_idx, padding_val)
+          return()
+
+        }
+
+        # private$expanded_mats_[[mat_idx]] <-
+        #   matrix(padding_val, nrow = private$._target_info$n_row,
+        #          ncol = private$._target_info$n_col)
+        private$adjusted_mats_[[mat_idx]] <- new_empty_matrix(padding_val,
+                                                              nrow = private$._target_info$n_row,
+                                                              ncol = private$._target_info$n_col,
+                                                              rownms = private$._target_info$row_names_unique,
+                                                              colnms = private$._target_info$col_names_unique,
+                                                              is_Matrix = FALSE)
+
+        return()
+      }
+
+
+
+      # if (private$._target_info$need_shrink_per_mat[mat_idx]) {
+      #
+      #
+      #   as_Matrix <- is(private$._matrix_list[[mat_idx]], "Matrix")
+      #
+      #   if (as_Matrix) {
+      #
+      #     private$._init_S4Matrix(mat_idx, padding_val)
+      #     return()
+      #
+      #   }
+      #
+      #   # private$expanded_mats_[[mat_idx]] <-
+      #   #   matrix(padding_val, nrow = private$._target_info$n_row,
+      #   #          ncol = private$._target_info$n_col)
+      #   private$expanded_mats_[[mat_idx]] <- new_empty_matrix(padding_val,
+      #                                                         nrow = private$._target_info$n_row,
+      #                                                         ncol = private$._target_info$n_col,
+      #                                                         rownms = private$._target_info$row_names_unique,
+      #                                                         colnms = private$._target_info$col_names_unique,
+      #                                                         is_Matrix = FALSE)
+      #
+      #   return()
+      # }
+
+
+
+
+
+      private$adjusted_mats_[[mat_idx]] <- private$._matrix_list[[mat_idx]]
+
+      rownames(private$adjusted_mats_[[mat_idx]]) <- private$._target_info$row_names_unique
+      colnames(private$adjusted_mats_[[mat_idx]]) <- private$._target_info$col_names_unique
+
+
+      # if (!private$._target_info$need_expand_per_mat[mat_idx]) {
+      #
+      #   private$expanded_mats_[[mat_idx]] <- private$._matrix_list[[mat_idx]]
+      #
+      #   rownames(private$expanded_mats_[[mat_idx]]) <- private$._target_info$row_names_unique
+      #   colnames(private$expanded_mats_[[mat_idx]]) <- private$._target_info$col_names_unique
+      #
+      # } else {
+      #
+      #   as_Matrix <- is(private$._matrix_list[[mat_idx]], "Matrix")
+      #
+      #   if (as_Matrix) {
+      #
+      #     private$._init_S4Matrix(mat_idx, padding_val)
+      #
+      #   } else {
+      #
+      #     # private$expanded_mats_[[mat_idx]] <-
+      #     #   matrix(padding_val, nrow = private$._target_info$n_row,
+      #     #          ncol = private$._target_info$n_col)
+      #     private$expanded_mats_[[mat_idx]] <- new_empty_matrix(padding_val,
+      #                      nrow = private$._target_info$n_row,
+      #                      ncol = private$._target_info$n_col,
+      #                      rownms = private$._target_info$row_names_unique,
+      #                      colnms = private$._target_info$col_names_unique,
+      #                      is_Matrix = FALSE)
+      #
+      #   }
+      #
+      # }
+
+      # rownames(private$expanded_mats_[[mat_idx]]) <- private$._target_info$row_names
+      # colnames(private$expanded_mats_[[mat_idx]]) <- private$._target_info$col_names
+
+    },
+
+
+
+
+    ._init_S4Matrix = function(mat_idx, padding_val) {
+
+      NR <- nrow(private$._matrix_list[[mat_idx]])
+      NC <- ncol(private$._matrix_list[[mat_idx]])
+
+      # private$expanded_mats_[[mat_idx]] <- Matrix::Matrix(0,
+      #                                                     nrow = private$._target_info$n_row,
+      #                                                     ncol = private$._target_info$n_col)
+      # private$expanded_mats_[[mat_idx]][] <- padding_val
+
+      if (is.na(padding_val) && is.logical(padding_val)) padding_val <- NA_real_
+
+      private$adjusted_mats_[[mat_idx]] <- new_empty_matrix(padding_val,
+                                                            nrow = private$._target_info$n_row,
+                                                            ncol = private$._target_info$n_col,
+                                                            rownms = private$._target_info$row_names_unique,
+                                                            colnms = private$._target_info$col_names_unique,
+                                                            is_Matrix = TRUE)
+
+      # private$expanded_mats_[[mat_idx]] <- Matrix::Matrix(padding_val,
+      #                                                     nrow = private$._target_info$n_row,
+      #                                                     ncol = private$._target_info$n_col)
+      #
+      #
+      # if (is.na(padding_val) || ((is.integer(padding_val) && padding_val != 0L) ||
+      #     abs(padding_val) > .Machine$double.eps^.5)) {
+      #   private$expanded_mats_[[mat_idx]] <- methods::as(private$expanded_mats_[[mat_idx]],
+      #                                                    "generalMatrix")
+      # }
+
+      if ((NR < private$._target_info$n_row || NC < private$._target_info$n_col) &&
+          ((is.integer(padding_val) && padding_val %.==.% 0L) ||
+           # (is.numeric(padding_val) && abs(padding_val) < .Machine$double.eps^.5)))
+           (is.numeric(padding_val) && abs(padding_val) %.<.% .Machine$double.eps^.5)))
+        private$adjusted_mats_[[mat_idx]] <- methods::as(private$adjusted_mats_[[mat_idx]],
+                                                         "sparseMatrix")
+
+    },
+
+
+
+
+#     ._finish_S4Matrix = function(mat_idx, padding_val, comp_ri, comp_ci) {
+#
+#       as_Matrix <- is(private$._matrix_list[[mat_idx]], "Matrix")
+#       if (!as_Matrix) return()
+#
+#       ri_from <- seq_len(private$._target_info$n_row)
+#       ci_from <- seq_len(private$._target_info$n_col)
+#
+#       ri <- if (is.null(comp_ri)) {
+#         ri_from
+#       } else if (length(comp_ri) == private$._target_info$n_row) {
+#         NULL
+#       } else {
+#         setdiff(ri_from, comp_ri)
+#       }
+#
+#
+#       ci <- if (is.null(comp_ci)) {
+#         ci_from
+#       } else if (length(comp_ci) == private$._target_info$n_col) {
+#         NULL
+#       } else {
+#         setdiff(ci_from, comp_ci)
+#       }
+#
+# print(list(ri, comp_ri, ci,comp_ci))
+#       if (is.null(ri)) {
+#         if (is.null(ci)) return()
+#
+#         private$expanded_mats_[[mat_idx]][, ci] <- padding_val
+#         return()
+#       }
+#
+#
+#       if (is.null(ci)) {
+#         # private$expanded_mats_[[mat_idx]][ri, ] <- padding_val
+#         return()
+#       }
+#
+#       # private$expanded_mats_[[mat_idx]][ri, ci] <- padding_val
+#       # print(c(ci, comp_ci))
+#
+#     },
+
+
+
+
+
+
+
+    ._need_adjustment = function(margin, mat_idx) {
+
+      # look_for_expand <- paste("need", margin, "expand_per_mat", sep = "_")
+      # look_for_shrink <- paste("need", margin, "shrink_per_mat", sep = "_")
+      # # look_for_EXPAND <- paste("need", margin, "EXPAND_per_mat", sep = "_")
+      # look_for_order <- paste("need", margin, "order_per_mat", sep = "_")
+      #
+      # need_expand <- private$._target_info[[look_for_expand]][mat_idx]
+      # need_shrink <- private$._target_info[[look_for_shrink]][mat_idx]
+      # # need_EXPAND <- private$._target_info[[look_for_EXPAND]][mat_idx]
+      # # need_shrink <- private$need_expand & private$!need_EXPAND
+      # need_order <- private$._target_info[[look_for_order]][mat_idx]
+      #
+      # need_expand || need_shrink || need_order
+      # # need_adjust || need_order
+
+      look_for_adapt <- paste("need", margin, "adapt_per_mat", sep = "_")
+      # print(list(need_expand, need_shrink, need_order,
+      #            need_expand || need_shrink || need_order,
+      #            private$._target_info[[look_for_adjust]][mat_idx]))
+      private$._target_info[[look_for_adapt]][mat_idx]
+    },
+
+
+
+    ._need_shrinkage = function(margin, mat_idx) {
+
+      look_for_shrink <- paste("need", margin, "shrink_per_mat", sep = "_")
+      need_shrink <- private$._target_info[[look_for_shrink]][mat_idx]
+
+      need_shrink
+
+    },
+
+
+
+
+
+     ._outer_matrix_idx = function(idx) {
+
+       if (!private$._expand_from_outer) {
+         private$._expand_from_outer_possible <- FALSE
+         return(NULL)
+       }
+
+       mat_name <- names(private$._matrix_list)[idx]
+       out_idx <- match(mat_name, names(private$._expand_outer_source), 0L)
+
+       if (out_idx == 0L) {
+         private$._expand_from_outer_possible <- FALSE
+         return(NULL)
+       }
+
+       private$._expand_from_outer_possible <- TRUE
+       out_idx
+     }
+
+
+
+
+
+    # ._set_target_pos = function(margin, orig_nms) {
+    #
+    #   target_nms <- paste0(margin, "_names")
+    #   which(private$._target_info[[target_nms]] %in% orig_nms)
+    #
+    # },
+
 
 
   )

@@ -995,22 +995,31 @@ MatrixAdjuster <- R6::R6Class(
     #' @param matrix_info    An instance of a `MatrixMeta` object, providing
     #'                       the necessary metadata to guide the adjustment
     #'                       process.
-    #' @param expand         Controls whether input matrices should be expanded.
-    #'                       If `NULL` or `FALSE`, no expansion is performed.
-    #'                       If set to `TRUE`, expansion is enabled using
-    #'                       default padding values (`NA` for base matrices, `0`
-    #'                       for matrices from the `Matrix` package, which
-    #'                       results in conversion to sparse matrices).
+    #' @param expand         Controls whether input matrices should be expanded,
+    #'                       and specifies the padding values to use if
+    #'                       expansion is required.
     #'
-    #'                       You may also supply a single custom padding value
-    #'                       (e.g., `-1`) to apply the same padding across all
+    #'                       If `NULL` or `FALSE`, no expansion is performed.
+    #'
+    #'                       If `TRUE`, expansion is enabled using default
+    #'                       padding values: `NA` for base R matrices, and `0`
+    #'                       for matrices from the `Matrix` package (which will
+    #'                       convert them to sparse matrices).
+    #'
+    #'                       You can also provide a single custom padding value
+    #'                       (e.g., `-1`) to apply the same padding to all
     #'                       matrices.
     #'
-    #'                       Alternatively, a list of padding values can be
-    #'                       provided. If unnamed, the list must have the same
-    #'                       length as `matrix_list`, and values will be
-    #'                       assigned in order. If named, names are matched to
-    #'                       those of the matrices.
+    #'                       Alternatively, you may pass a list of padding
+    #'                       values. If the list is unnamed, it must have the
+    #'                       same length as `matrix_list`, and the values will
+    #'                       be applied in order. If the list is named, its
+    #'                       names will be matched to those of the matrices.
+    #'
+    #'                       Finally, in the case of adjustments resulting from
+    #'                       a join operation, `expand` can be a list of
+    #'                       matrices from which padding values will be derived.
+
     #' @noRd
     initialize = function(matrix_list, matrix_info, expand) {
 
@@ -1018,13 +1027,17 @@ MatrixAdjuster <- R6::R6Class(
       private$._n_matrix <- length(matrix_list)
       private$._target_info <- matrix_info
       private$._set_expand_param(expand)
-      private$._expand()
+      private$._adjust()
 
     }
   ),
 
 
   active = list(
+
+
+    #' @field adjusted_mats  A list of matrices that have been either resized,
+    #'                       reordered, or both.
 
     adjusted_mats = function() private$adjusted_mats_
 
@@ -1033,24 +1046,64 @@ MatrixAdjuster <- R6::R6Class(
 
   private = list(
 
-    ._matrix_list = NULL,
-    ._n_matrix = 0L,
-    adjusted_mats_ = NULL,
-    ._target_info = NULL,
-    ._expand_param = NULL,
-    ._expand_value = NULL,
-    ._expand_outer_source = NULL,
-    ._expand_from_outer = FALSE,         # general assessment: is it a user
-                                         # request?
-    ._expand_from_outer_possible = FALSE,# obviously FALSE if ._expand_from_outer,
-                                         # but will be FALSE also if it is not
-                                         # possible to fulfill the request, e.g.
-                                         # if the outer source doesn't have the
-                                         # needed matrix.
+
+    ._matrix_list = NULL,                # Internal storage for the list of
+                                         # matrices to be adjusted.
+    ._n_matrix = 0L,                     # Number of matrices to adjust.
+    adjusted_mats_ = NULL,               # Internal storage for the list of
+                                         # matrices that have been resized,
+                                         # reordered, or both.
+    ._target_info = NULL,                # An instance of a `MatrixMeta` object,
+                                         # containing the metadata needed to
+                                         # guide the adjustment process.
+    ._expand_param = NULL,               # Stores the `expand` parameter value
+                                         # unless the adjustment originates from
+                                         # a join operation. In such cases, it
+                                         # will be set to `NA` to initialize the
+                                         # adjusted matrices.
+    ._expand_outer_source = NULL,        # Stores the `expand` value used when
+                                         # the adjustment comes from a join
+                                         # operation.
+    ._expand_from_outer = FALSE,         # Indicates whether the adjustment
+                                         # request is the result of a join
+                                         # operation (`TRUE`) or a user-defined
+                                         # request (`FALSE`).
+    ._expand_from_outer_possible = FALSE,# Will be `FALSE` if
+                                         # `.expand_from_outer` is `TRUE`, or if
+                                         # it's not possible to fulfill the
+                                         # request — for instance, when the
+                                         # external source does not provide the
+                                         # required matrix.
 
 
 
 
+    #' Private Method
+    #'
+    #' Determines and sets the values of `._expand_param`,
+    #' `._expand_outer_source`, and  `._expand_from_outer` based on the input
+    #' `expand` strategy.
+    #'
+    #' If `expand` is a list of matrices, it indicates that the expansion was
+    #' triggered by a join operation. In such cases, the three internal
+    #' variables are set accordingly:
+    #' - `._expand_param` is set to `NA` (as a placeholder) rather than storing
+    #'   the actual padding value(s),
+    #' - `._expand_outer_source` stores the expansion parameters used during the
+    #'   join,
+    #' - `._expand_from_outer` is set to `TRUE`.
+    #'
+    #' When `expand` is not a list of matrices (i.e., the expansion is
+    #' user-defined), the variables are set as follows:
+    #' - `._expand_param` stores the value of `expand`,
+    #' - `._expand_outer_source` is set to `NULL`,
+    #' - `._expand_from_outer` is set to `FALSE`.
+    #'
+    #' @param expand The expansion strategy to apply. This value determines how
+    #'               the internal expansion-related fields are initialized. See
+    #'               the descriptions of `._expand_param`,
+    #'               `._expand_outer_source`, and `._expand_from_outer` for more
+    #'               details.
     ._set_expand_param = function(expand) {
 
       if (!is.list(expand)) {
@@ -1068,25 +1121,12 @@ MatrixAdjuster <- R6::R6Class(
       }
 
 
-      if (is.null(expand$matrix_set)) {
-        private$._expand_param <- expand
-        return()
-      }
-
-      private$._expand_param <- expand
-
-
-
-
-
-
-      # if (!is.list(expand) || is.null(expand$matrix_set)) {
+      # if (is.null(expand$matrix_set)) {
       #   private$._expand_param <- expand
       #   return()
       # }
-      #
-      # private$._expand_param <- NA
-      # private$._expand_outer_source <- expand$matrix_set
+
+      private$._expand_param <- expand
 
     },
 
@@ -1094,7 +1134,7 @@ MatrixAdjuster <- R6::R6Class(
 
 
 
-    ._expand = function() {
+    ._adjust = function() {
 
       # if (!private$._target_info$need_expand && !private$._target_info$need_order)
       #   return()

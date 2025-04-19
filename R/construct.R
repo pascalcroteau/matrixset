@@ -1074,6 +1074,13 @@ MatrixAdjuster <- R6::R6Class(
                                          # request — for instance, when the
                                          # external source does not provide the
                                          # required matrix.
+    ._outer_indexes = NULL,              # When padding a matrix using values
+                                         # from an outer matrix, this stores the
+                                         # row and column indices from both the
+                                         # inner and outer matrices, needed to
+                                         # align them properly.
+
+
 
 
 
@@ -1136,11 +1143,6 @@ MatrixAdjuster <- R6::R6Class(
 
     ._adjust = function() {
 
-      # if (!private$._target_info$need_expand && !private$._target_info$need_order)
-      #   return()
-      # if (!private$._target_info$need_expand &&
-      #     !private$._target_info$need_order &&
-      #     !private$._target_info$need_shrink)
 
       if (!private$._target_info$need_adapt)
         return()
@@ -1149,22 +1151,6 @@ MatrixAdjuster <- R6::R6Class(
       private$._init()
 
 
-
-
-      # pos <- if (is.null(joined_names_unique)) {
-      #   match(old_names, joined_names)
-      # } else {
-      #   common <- intersect(joined_names, old_names)
-      #   unlist(lapply(common, function(.x) which(.x == joined_names)))
-      # }
-      #
-      # newm[pos, ] <- if (is.null(joined_names_unique)) {
-      #   m
-      # } else {
-      #   m[unlist(lapply(joined_names, function(.x) which(.x == old_names))), ]
-      # }
-
-      # for (m in seq_along(private$._matrix_list)) {
       for (m in seq_len(private$._n_matrix)) {
 
         if (is.null(private$._matrix_list[[m]])) next
@@ -1177,24 +1163,25 @@ MatrixAdjuster <- R6::R6Class(
         old_rnms <- rownames(private$._matrix_list[[m]])
         old_cnms <- colnames(private$._matrix_list[[m]])
 
-        if (private$._expand_from_outer_possible) {
-          y_cnms <- colnames(private$._expand_outer_source[[m_y]])
-          if (private$._target_info$need_col_expand_per_mat[m])
-            y_cnms[y_cnms %in% old_cnms] <- NA_character_
-          coi_y <- match(private$._target_info$col_names, y_cnms, 0)
-          coi_y <- coi_y[coi_y > 0]
+        # if (private$._expand_from_outer_possible) {
+        #   y_cnms <- colnames(private$._expand_outer_source[[m_y]])
+        #   if (private$._target_info$need_col_expand_per_mat[m])
+        #     y_cnms[y_cnms %in% old_cnms] <- NA_character_
+        #   coi_y <- match(private$._target_info$col_names, y_cnms, 0)
+        #   coi_y <- coi_y[coi_y > 0]
+        #
+        #   cti_y <- which(private$._target_info$col_names %in% y_cnms)
+        #
+        #   y_rnms <- rownames(private$._expand_outer_source[[m_y]])
+        #   if(private$._target_info$need_row_expand_per_mat[m])
+        #     y_rnms[y_rnms %in% old_rnms] <- NA_character_
+        #   roi_y <- match(private$._target_info$row_names, y_rnms, 0)
+        #   roi_y <- roi_y[roi_y > 0]
+        #
+        #   rti_y <- which(private$._target_info$row_names %in% y_rnms)
+        # }
 
-          cti_y <- which(private$._target_info$col_names %in% y_cnms)
-
-          y_rnms <- rownames(private$._expand_outer_source[[m_y]])
-          if(private$._target_info$need_row_expand_per_mat[m])
-            y_rnms[y_rnms %in% old_rnms] <- NA_character_
-          roi_y <- match(private$._target_info$row_names, y_rnms, 0)
-          roi_y <- roi_y[roi_y > 0]
-
-          rti_y <- which(private$._target_info$row_names %in% y_rnms)
-        }
-
+        private$._init_indexes(m, m_y, old_rnms, old_cnms)
 
         # expand_order_rows <- private$._need_adjustment("row", m)
         # expand_order_cols <- private$._need_adjustment("col", m)
@@ -1269,8 +1256,12 @@ MatrixAdjuster <- R6::R6Class(
 
           private$adjusted_mats_[[m]][rti, ] <- private$._matrix_list[[m]][roi, ]
           if (private$._expand_from_outer_possible) {
-            private$adjusted_mats_[[m]][rti_y, cti_y] <-
-              private$._expand_outer_source[[m_y]][roi_y, coi_y]
+            # private$adjusted_mats_[[m]][rti_y, cti_y] <-
+            #   private$._expand_outer_source[[m_y]][roi_y, coi_y]
+            private$adjusted_mats_[[m]][private$._outer_indexes$rti_y,
+                                        private$._outer_indexes$cti_y] <-
+              private$._expand_outer_source[[m_y]][private$._outer_indexes$roi_y,
+                                                   private$._outer_indexes$coi_y]
           }
           next
 
@@ -1464,6 +1455,68 @@ MatrixAdjuster <- R6::R6Class(
       # colnames(private$expanded_mats_[[mat_idx]]) <- private$._target_info$col_names
 
     },
+
+
+
+
+
+    #' Private Method
+    #'
+    #' Determines the row and column indices from both the original (to be
+    #' padded) and the padding source (outer) matrices, in order to align them
+    #' correctly.
+    #'
+    #' The four sets of indices are stored in variables following the naming
+    #' convention: [r|c][o|t]i, where:
+    #'   - 'r' or 'c' indicates row or column,
+    #'   - 'o' or 't' stands for origin (outer/padding source) or target (matrix
+    #'     to be padded),
+    #'   - 'i' denotes index.
+    #'
+    #' Alignment is performed such that, assuming the matrices are named `origin`
+    #' and `target`, the following replacement holds:
+    #' `origin[rti, cti] <- target[roi, coi]`.
+    #' For example, `rti` contains the row indices in `origin` that align with
+    #' the rows of `target`, and so on.
+    #'
+    #' @param m           Index matrix for the target (original) matrix to be
+    #'                    padded.
+    #' @param m_y         Index matrix for the source (outer) matrix providing
+    #'                    padding values.
+    #' @param old_rnms    Row names of the target matrix.
+    #' @param old_cnms    Column names of the target matrix.
+    #'
+    ._init_indexes = function(m, m_y, old_rnms, old_cnms) {
+
+      private$._outer_indexes$coi_y <- NULL
+      private$._outer_indexes$roi_y <- NULL
+      private$._outer_indexes$cti_y <- NULL
+      private$._outer_indexes$cti_y <- NULL
+
+
+      if (private$._expand_from_outer_possible) {
+
+        y_cnms <- colnames(private$._expand_outer_source[[m_y]])
+        if (private$._target_info$need_col_expand_per_mat[m])
+          y_cnms[y_cnms %in% old_cnms] <- NA_character_
+        coi_y <- match(private$._target_info$col_names, y_cnms, 0)
+        private$._outer_indexes$coi_y <- coi_y[coi_y > 0]
+
+        private$._outer_indexes$cti_y <- which(private$._target_info$col_names %in% y_cnms)
+
+
+        y_rnms <- rownames(private$._expand_outer_source[[m_y]])
+        if(private$._target_info$need_row_expand_per_mat[m])
+          y_rnms[y_rnms %in% old_rnms] <- NA_character_
+        roi_y <- match(private$._target_info$row_names, y_rnms, 0)
+        private$._outer_indexes$roi_y <- roi_y[roi_y > 0]
+
+        private$._outer_indexes$rti_y <- which(private$._target_info$row_names %in% y_rnms)
+      }
+
+    },
+
+
 
 
 

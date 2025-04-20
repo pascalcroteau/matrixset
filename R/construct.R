@@ -1489,8 +1489,8 @@ MatrixAdjuster <- R6::R6Class(
 
       private$._align_indexes$coi <- NULL
       private$._align_indexes$roi <- NULL
-      private$._align_indexes$cti <- NULL
-      private$._align_indexes$rti <- NULL
+      private$._align_indexes$cai <- NULL
+      private$._align_indexes$rai <- NULL
 
       adjust_order_rows <- private$._need_adjustment("row", m)
       adjust_order_cols <- private$._need_adjustment("col", m)
@@ -1504,7 +1504,7 @@ MatrixAdjuster <- R6::R6Class(
                                              old_cnms, 0)
 
         if (!shrink_cols)
-          private$._align_indexes$cti <- which(private$._target_info$col_names %in% old_cnms)
+          private$._align_indexes$cai <- which(private$._target_info$col_names %in% old_cnms)
 
       }
 
@@ -1516,7 +1516,7 @@ MatrixAdjuster <- R6::R6Class(
                                              old_rnms, 0)
 
         if (!shrink_rows)
-          private$._align_indexes$rti <- which(private$._target_info$row_names %in% old_rnms)
+          private$._align_indexes$rai <- which(private$._target_info$row_names %in% old_rnms)
       }
 
     },

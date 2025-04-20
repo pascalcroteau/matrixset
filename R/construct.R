@@ -1079,7 +1079,7 @@ MatrixAdjuster <- R6::R6Class(
                                          # row and column indices from both the
                                          # inner and outer matrices, needed to
                                          # align them properly.
-
+    ._align_indexes = NULL,
 
 
 
@@ -1141,6 +1141,10 @@ MatrixAdjuster <- R6::R6Class(
 
 
 
+
+    #' This method applies a two-step strategy: it first initializes the adjusted matrix
+    #' with padding values, and then overwrites the relevant elements with the actual values
+    #' from the original matrix.
     ._adjust = function() {
 
 
@@ -1164,7 +1168,8 @@ MatrixAdjuster <- R6::R6Class(
         old_cnms <- colnames(private$._matrix_list[[m]])
 
 
-        private$._init_align_indexes(m, m_y, old_rnms, old_cnms)
+        private$._init_align_to_outer_indexes(m, m_y, old_rnms, old_cnms)
+        private$._init_align_indexes(m, old_rnms, old_cnms)
 
 
         adjust_order_rows <- private$._need_adjustment("row", m)
@@ -1173,23 +1178,7 @@ MatrixAdjuster <- R6::R6Class(
         shrink_cols <- private$._need_shrinkage("col", m)
 
 
-        if (adjust_order_cols) {
-
-          coi <- match(private$._target_info$col_names, old_cnms, 0)
-
-          if (!shrink_cols)
-            cti <- which(private$._target_info$col_names %in% old_cnms)
-
-        }
-
-
-
         if (adjust_order_rows) {
-
-          roi <- match(private$._target_info$row_names, old_rnms, 0)
-
-          if (!shrink_rows)
-            rti <- which(private$._target_info$row_names %in% old_rnms)
 
 
           if (adjust_order_cols) {
@@ -1197,22 +1186,33 @@ MatrixAdjuster <- R6::R6Class(
             if (shrink_rows) {
 
               if (shrink_cols) {
-                private$adjusted_mats_[[m]] <- private$._matrix_list[[m]][roi, coi]
+
+                private$adjusted_mats_[[m]] <-
+                  private$._matrix_list[[m]][private$._align_indexes$roi,
+                                             private$._align_indexes$coi]
                 next
               }
 
-              private$adjusted_mats_[[m]][, cti] <- private$._matrix_list[[m]][roi, coi]
+              private$adjusted_mats_[[m]][, private$._align_indexes$cai] <-
+                private$._matrix_list[[m]][private$._align_indexes$roi,
+                                           private$._align_indexes$coi]
               next
 
             }
 
 
             if (shrink_cols) {
-              private$adjusted_mats_[[m]][rti, ] <- private$._matrix_list[[m]][roi, coi]
+
+              private$adjusted_mats_[[m]][private$._align_indexes$rai, ] <-
+                private$._matrix_list[[m]][private$._align_indexes$roi,
+                                           private$._align_indexes$coi]
               next
             }
 
-            private$adjusted_mats_[[m]][rti, cti] <- private$._matrix_list[[m]][roi, coi]
+            private$adjusted_mats_[[m]][private$._align_indexes$rai,
+                                        private$._align_indexes$cai] <-
+              private$._matrix_list[[m]][private$._align_indexes$roi,
+                                         private$._align_indexes$coi]
             next
 
           }
@@ -1221,12 +1221,15 @@ MatrixAdjuster <- R6::R6Class(
 
           if (shrink_rows) {
 
-            private$adjusted_mats_[[m]] <- private$._matrix_list[[m]][roi, ]
+            private$adjusted_mats_[[m]] <-
+              private$._matrix_list[[m]][private$._align_indexes$roi, ]
             next
 
           }
 
-          private$adjusted_mats_[[m]][rti, ] <- private$._matrix_list[[m]][roi, ]
+          private$adjusted_mats_[[m]][private$._align_indexes$rai, ] <-
+            private$._matrix_list[[m]][private$._align_indexes$roi, ]
+
           if (private$._expand_from_outer_possible) {
             private$adjusted_mats_[[m]][private$._outer_indexes$rti_y,
                                         private$._outer_indexes$cti_y] <-
@@ -1240,16 +1243,17 @@ MatrixAdjuster <- R6::R6Class(
 
 
 
-
-
         if (adjust_order_cols) {
 
           if (shrink_cols) {
-            private$adjusted_mats_[[m]] <- private$._matrix_list[[m]][, coi]
+
+            private$adjusted_mats_[[m]] <-
+              private$._matrix_list[[m]][, private$._align_indexes$coi]
             next
           }
 
-          private$adjusted_mats_[[m]][, cti] <- private$._matrix_list[[m]][, coi]
+          private$adjusted_mats_[[m]][, private$._align_indexes$cai] <-
+            private$._matrix_list[[m]][, private$._align_indexes$coi]
           next
 
         }
@@ -1409,14 +1413,14 @@ MatrixAdjuster <- R6::R6Class(
     #' The four sets of indices are stored in variables following the naming
     #' convention: [r|c][o|t]i, where:
     #'   - 'r' or 'c' indicates row or column,
-    #'   - 'o' or 't' stands for origin (outer/padding source) or target (matrix
+    #'   - 'o' or 't' stands for original (outer/padding source) or target (matrix
     #'     to be padded),
     #'   - 'i' denotes index.
     #'
     #' Alignment is performed such that, assuming the matrices are named `origin`
     #' and `target`, the following replacement holds:
-    #' `origin[rti, cti] <- target[roi, coi]`.
-    #' For example, `rti` contains the row indices in `origin` that align with
+    #' `origin[rti_y, cti_y] <- target[roi_y, coi_y]`.
+    #' For example, `rti_y` contains the row indices in `origin` that align with
     #' the rows of `target`, and so on.
     #'
     #' @param m           Index matrix for the target (original) matrix to be
@@ -1426,12 +1430,12 @@ MatrixAdjuster <- R6::R6Class(
     #' @param old_rnms    Row names of the target matrix.
     #' @param old_cnms    Column names of the target matrix.
     #'
-    ._init_align_indexes = function(m, m_y, old_rnms, old_cnms) {
+    ._init_align_to_outer_indexes = function(m, m_y, old_rnms, old_cnms) {
 
       private$._outer_indexes$coi_y <- NULL
       private$._outer_indexes$roi_y <- NULL
       private$._outer_indexes$cti_y <- NULL
-      private$._outer_indexes$cti_y <- NULL
+      private$._outer_indexes$rti_y <- NULL
 
 
       if (private$._expand_from_outer_possible) {
@@ -1452,6 +1456,67 @@ MatrixAdjuster <- R6::R6Class(
         private$._outer_indexes$roi_y <- roi_y[roi_y > 0]
 
         private$._outer_indexes$rti_y <- which(private$._target_info$row_names %in% y_rnms)
+      }
+
+    },
+
+
+
+
+    #' Private Method
+    #'
+    #' This method determines the row and column indices from both the adjusted
+    #' matrix (i.e., the padded result) and the original matrix, in order to
+    #' copy the appropriate values to the correct positions.
+    #'
+    #' The four sets of indices are stored in variables following the naming
+    #' convention: [r|c][o|a]i, where:
+    #'   - 'r' or 'c' indicates row or column,
+    #'   - 'o' or 'a' stands for original or adjusted,
+    #'   - 'i' denotes index.
+    #'
+    #' Alignment is performed such that, assuming the matrices are named `adjusted`
+    #' and `origin`, the following assignment works:
+    #' `adjusted[rai, cai] <- origin[roi, coi]`.
+    #' For instance, `rai` contains the row indices in `adjusted` that align with
+    #' the rows of `origin`.
+    #'
+    #' @param m           Index matrix for the matrix being adjusted.
+    #' @param old_rnms    Row names of the original matrix.
+    #' @param old_cnms    Column names of the original matrix.
+
+    ._init_align_indexes = function(m, old_rnms, old_cnms) {
+
+      private$._align_indexes$coi <- NULL
+      private$._align_indexes$roi <- NULL
+      private$._align_indexes$cti <- NULL
+      private$._align_indexes$rti <- NULL
+
+      adjust_order_rows <- private$._need_adjustment("row", m)
+      adjust_order_cols <- private$._need_adjustment("col", m)
+      shrink_rows <- private$._need_shrinkage("row", m)
+      shrink_cols <- private$._need_shrinkage("col", m)
+
+
+      if (adjust_order_cols) {
+
+        private$._align_indexes$coi <- match(private$._target_info$col_names,
+                                             old_cnms, 0)
+
+        if (!shrink_cols)
+          private$._align_indexes$cti <- which(private$._target_info$col_names %in% old_cnms)
+
+      }
+
+
+
+      if (adjust_order_rows) {
+
+        private$._align_indexes$roi <- match(private$._target_info$row_names,
+                                             old_rnms, 0)
+
+        if (!shrink_rows)
+          private$._align_indexes$rti <- which(private$._target_info$row_names %in% old_rnms)
       }
 
     },

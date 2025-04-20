@@ -1163,36 +1163,17 @@ MatrixAdjuster <- R6::R6Class(
         old_rnms <- rownames(private$._matrix_list[[m]])
         old_cnms <- colnames(private$._matrix_list[[m]])
 
-        # if (private$._expand_from_outer_possible) {
-        #   y_cnms <- colnames(private$._expand_outer_source[[m_y]])
-        #   if (private$._target_info$need_col_expand_per_mat[m])
-        #     y_cnms[y_cnms %in% old_cnms] <- NA_character_
-        #   coi_y <- match(private$._target_info$col_names, y_cnms, 0)
-        #   coi_y <- coi_y[coi_y > 0]
-        #
-        #   cti_y <- which(private$._target_info$col_names %in% y_cnms)
-        #
-        #   y_rnms <- rownames(private$._expand_outer_source[[m_y]])
-        #   if(private$._target_info$need_row_expand_per_mat[m])
-        #     y_rnms[y_rnms %in% old_rnms] <- NA_character_
-        #   roi_y <- match(private$._target_info$row_names, y_rnms, 0)
-        #   roi_y <- roi_y[roi_y > 0]
-        #
-        #   rti_y <- which(private$._target_info$row_names %in% y_rnms)
-        # }
 
-        private$._init_indexes(m, m_y, old_rnms, old_cnms)
+        private$._init_align_indexes(m, m_y, old_rnms, old_cnms)
 
-        # expand_order_rows <- private$._need_adjustment("row", m)
-        # expand_order_cols <- private$._need_adjustment("col", m)
+
         adjust_order_rows <- private$._need_adjustment("row", m)
         adjust_order_cols <- private$._need_adjustment("col", m)
         shrink_rows <- private$._need_shrinkage("row", m)
         shrink_cols <- private$._need_shrinkage("col", m)
 
-        # if (expand_order_cols) {
+
         if (adjust_order_cols) {
-          # old_cnms <- colnames(private$._matrix_list[[m]])
 
           coi <- match(private$._target_info$col_names, old_cnms, 0)
 
@@ -1203,10 +1184,7 @@ MatrixAdjuster <- R6::R6Class(
 
 
 
-        # if (expand_order_rows) {
         if (adjust_order_rows) {
-
-          # old_rnms <- rownames(private$._matrix_list[[m]])
 
           roi <- match(private$._target_info$row_names, old_rnms, 0)
 
@@ -1214,7 +1192,6 @@ MatrixAdjuster <- R6::R6Class(
             rti <- which(private$._target_info$row_names %in% old_rnms)
 
 
-          # if (expand_order_cols) {
           if (adjust_order_cols) {
 
             if (shrink_rows) {
@@ -1238,11 +1215,6 @@ MatrixAdjuster <- R6::R6Class(
             private$adjusted_mats_[[m]][rti, cti] <- private$._matrix_list[[m]][roi, coi]
             next
 
-
-            # private$adjusted_mats_[[m]][rti, cti] <- private$._matrix_list[[m]][roi, coi]
-            # # private$._finish_S4Matrix(m, padding_val, rti, cti)
-            # next
-
           }
 
 
@@ -1256,8 +1228,6 @@ MatrixAdjuster <- R6::R6Class(
 
           private$adjusted_mats_[[m]][rti, ] <- private$._matrix_list[[m]][roi, ]
           if (private$._expand_from_outer_possible) {
-            # private$adjusted_mats_[[m]][rti_y, cti_y] <-
-            #   private$._expand_outer_source[[m_y]][roi_y, coi_y]
             private$adjusted_mats_[[m]][private$._outer_indexes$rti_y,
                                         private$._outer_indexes$cti_y] <-
               private$._expand_outer_source[[m_y]][private$._outer_indexes$roi_y,
@@ -1266,12 +1236,6 @@ MatrixAdjuster <- R6::R6Class(
           next
 
 
-
-
-
-          # private$adjusted_mats_[[m]][rti, ] <- private$._matrix_list[[m]][roi, ]
-          # # private$._finish_S4Matrix(m, padding_val, rti, NULL)
-          # next
         }
 
 
@@ -1288,31 +1252,7 @@ MatrixAdjuster <- R6::R6Class(
           private$adjusted_mats_[[m]][, cti] <- private$._matrix_list[[m]][, coi]
           next
 
-
-          # private$adjusted_mats_[[m]][rti, cti] <- private$._matrix_list[[m]][roi, coi]
-          # # private$._finish_S4Matrix(m, padding_val, rti, cti)
-          # next
-
         }
-
-
-        # private$adjusted_mats_[[m]] <- private$._matrix_list[[m]]
-        # next
-
-
-
-
-
-
-
-        # if (expand_order_cols) {
-        # if (adjust_order_cols) {
-        #
-        #   private$adjusted_mats_[[m]][, cti] <- private$._matrix_list[[m]][, coi]
-        #   # private$._finish_S4Matrix(m, padding_val, NULL, cti)
-        #   next
-        #
-        # }
 
       }
 
@@ -1486,7 +1426,7 @@ MatrixAdjuster <- R6::R6Class(
     #' @param old_rnms    Row names of the target matrix.
     #' @param old_cnms    Column names of the target matrix.
     #'
-    ._init_indexes = function(m, m_y, old_rnms, old_cnms) {
+    ._init_align_indexes = function(m, m_y, old_rnms, old_cnms) {
 
       private$._outer_indexes$coi_y <- NULL
       private$._outer_indexes$roi_y <- NULL

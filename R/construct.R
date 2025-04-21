@@ -1079,7 +1079,14 @@ MatrixAdjuster <- R6::R6Class(
                                          # row and column indices from both the
                                          # inner and outer matrices, needed to
                                          # align them properly.
-    ._align_indexes = NULL,
+    ._align_indexes = NULL,              # When padding a matrix using
+                                         # user-supplied values (i.e., not from
+                                         # an external matrix), this stores the
+                                         # row and column indices from both the
+                                         # adjusted (padded) matrix and the
+                                         # original matrix, allowing the correct
+                                         # values to be copied to the
+                                         # appropriate positions.
 
 
 
@@ -1142,9 +1149,16 @@ MatrixAdjuster <- R6::R6Class(
 
 
 
-    #' This method applies a two-step strategy: it first initializes the adjusted matrix
-    #' with padding values, and then overwrites the relevant elements with the actual values
-    #' from the original matrix.
+
+    #' Private Method
+    #'
+    #' When matrix adjustment is required, this method adjusts only the matrices
+    #' that need it, leaving the others unchanged.
+    #'
+    #' The adjustment follows a two-step strategy: first, the adjusted matrix is
+    #' initialized with padding values; then, the relevant elements are
+    #' overwritten either with values from the original matrix or, if applicable,
+    #' with values from an external source matrix used for padding.
     ._adjust = function() {
 
 

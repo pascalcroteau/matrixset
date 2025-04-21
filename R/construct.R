@@ -1281,9 +1281,12 @@ MatrixAdjuster <- R6::R6Class(
 
 
 
+    #' Private Method
+    #'
+    #' Initializes the adjusted matrices by creating a list container and
+    #' assigning the appropriate matrix names.
     ._init = function() {
 
-      # private$expanded_mats_ <- vector('list', length(private$._matrix_list))
       private$adjusted_mats_ <- vector('list', private$._n_matrix)
       names(private$adjusted_mats_) <- names(private$._matrix_list)
 
@@ -1295,6 +1298,16 @@ MatrixAdjuster <- R6::R6Class(
 
 
 
+    #' Private Method
+    #'
+    #' Normalizes the padding value for the matrix at index `mat_idx`. This
+    #' includes setting a default value based on whether the matrix is a base R
+    #' matrix or a special class (e.g., a `Matrix` object).
+    #'
+    #' @param mat_idx Index of the matrix to adjust.
+    #'
+    #' @returns
+    #' The normalized padding value, matching the type of the matrix.
     ._set_expand_value = function(mat_idx)
     {
       exp_val <- private$._expand_param
@@ -1313,9 +1326,16 @@ MatrixAdjuster <- R6::R6Class(
 
 
 
+    #' Private Method
+    #'
+    #' Initializes the adjusted matrix at index `mat_idx` with the specified
+    #' padding value `padding_val`. If no adjustment is required, the adjusted
+    #' matrix will simply be a copy of the original.
+    #'
+    #' @param mat_idx      Index of the matrix to adjust.
+    #' @param padding_val  Value used to initialize the adjusted matrix.
     ._init_matrix = function(mat_idx, padding_val) {
 
-      # if (private$._target_info$need_expand_per_mat[mat_idx]) {
       if (private$._target_info$need_adjust_per_mat[mat_idx]) {
 
 
@@ -1328,9 +1348,6 @@ MatrixAdjuster <- R6::R6Class(
 
         }
 
-        # private$expanded_mats_[[mat_idx]] <-
-        #   matrix(padding_val, nrow = private$._target_info$n_row,
-        #          ncol = private$._target_info$n_col)
         private$adjusted_mats_[[mat_idx]] <- new_empty_matrix(padding_val,
                                                               nrow = private$._target_info$n_row,
                                                               ncol = private$._target_info$n_col,
@@ -1342,75 +1359,10 @@ MatrixAdjuster <- R6::R6Class(
       }
 
 
-
-      # if (private$._target_info$need_shrink_per_mat[mat_idx]) {
-      #
-      #
-      #   as_Matrix <- is(private$._matrix_list[[mat_idx]], "Matrix")
-      #
-      #   if (as_Matrix) {
-      #
-      #     private$._init_S4Matrix(mat_idx, padding_val)
-      #     return()
-      #
-      #   }
-      #
-      #   # private$expanded_mats_[[mat_idx]] <-
-      #   #   matrix(padding_val, nrow = private$._target_info$n_row,
-      #   #          ncol = private$._target_info$n_col)
-      #   private$expanded_mats_[[mat_idx]] <- new_empty_matrix(padding_val,
-      #                                                         nrow = private$._target_info$n_row,
-      #                                                         ncol = private$._target_info$n_col,
-      #                                                         rownms = private$._target_info$row_names_unique,
-      #                                                         colnms = private$._target_info$col_names_unique,
-      #                                                         is_Matrix = FALSE)
-      #
-      #   return()
-      # }
-
-
-
-
-
       private$adjusted_mats_[[mat_idx]] <- private$._matrix_list[[mat_idx]]
 
       rownames(private$adjusted_mats_[[mat_idx]]) <- private$._target_info$row_names_unique
       colnames(private$adjusted_mats_[[mat_idx]]) <- private$._target_info$col_names_unique
-
-
-      # if (!private$._target_info$need_expand_per_mat[mat_idx]) {
-      #
-      #   private$expanded_mats_[[mat_idx]] <- private$._matrix_list[[mat_idx]]
-      #
-      #   rownames(private$expanded_mats_[[mat_idx]]) <- private$._target_info$row_names_unique
-      #   colnames(private$expanded_mats_[[mat_idx]]) <- private$._target_info$col_names_unique
-      #
-      # } else {
-      #
-      #   as_Matrix <- is(private$._matrix_list[[mat_idx]], "Matrix")
-      #
-      #   if (as_Matrix) {
-      #
-      #     private$._init_S4Matrix(mat_idx, padding_val)
-      #
-      #   } else {
-      #
-      #     # private$expanded_mats_[[mat_idx]] <-
-      #     #   matrix(padding_val, nrow = private$._target_info$n_row,
-      #     #          ncol = private$._target_info$n_col)
-      #     private$expanded_mats_[[mat_idx]] <- new_empty_matrix(padding_val,
-      #                      nrow = private$._target_info$n_row,
-      #                      ncol = private$._target_info$n_col,
-      #                      rownms = private$._target_info$row_names_unique,
-      #                      colnms = private$._target_info$col_names_unique,
-      #                      is_Matrix = FALSE)
-      #
-      #   }
-      #
-      # }
-
-      # rownames(private$expanded_mats_[[mat_idx]]) <- private$._target_info$row_names
-      # colnames(private$expanded_mats_[[mat_idx]]) <- private$._target_info$col_names
 
     },
 

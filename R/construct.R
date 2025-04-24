@@ -1450,7 +1450,6 @@ MatrixAdjuster <- R6::R6Class(
     #' @param m           Index matrix for the matrix being adjusted.
     #' @param old_rnms    Row names of the original matrix.
     #' @param old_cnms    Column names of the original matrix.
-
     ._init_align_indexes = function(m, old_rnms, old_cnms) {
 
       private$._align_indexes$coi <- NULL
@@ -1492,15 +1491,27 @@ MatrixAdjuster <- R6::R6Class(
 
 
 
+
+
+    #' Private Method
+    #'
+    #' Initializes the adjusted matrix at index `mat_idx` with the specified
+    #' padding value `padding_val`, when the matrix must be of class `Matrix`.
+    #'
+    #' The type of `Matrix` constructed depends on `padding_val`:
+    #' - A general matrix is used if `padding_val` is `NA` or non-zero.
+    #' - A sparse matrix is used if `padding_val` is 0.
+    #' - In all other (theoretical) cases, the choice is left to the `Matrix`
+    #'   constructor, though the first two scenarios cover all practical use
+    #'   cases.
+    #'
+    #' @param mat_idx      Index of the matrix to adjust and initialize.
+    #' @param padding_val  Value used to initialize the adjusted matrix.
     ._init_S4Matrix = function(mat_idx, padding_val) {
 
       NR <- nrow(private$._matrix_list[[mat_idx]])
       NC <- ncol(private$._matrix_list[[mat_idx]])
 
-      # private$expanded_mats_[[mat_idx]] <- Matrix::Matrix(0,
-      #                                                     nrow = private$._target_info$n_row,
-      #                                                     ncol = private$._target_info$n_col)
-      # private$expanded_mats_[[mat_idx]][] <- padding_val
 
       if (is.na(padding_val) && is.logical(padding_val)) padding_val <- NA_real_
 
@@ -1511,74 +1522,14 @@ MatrixAdjuster <- R6::R6Class(
                                                             colnms = private$._target_info$col_names_unique,
                                                             is_Matrix = TRUE)
 
-      # private$expanded_mats_[[mat_idx]] <- Matrix::Matrix(padding_val,
-      #                                                     nrow = private$._target_info$n_row,
-      #                                                     ncol = private$._target_info$n_col)
-      #
-      #
-      # if (is.na(padding_val) || ((is.integer(padding_val) && padding_val != 0L) ||
-      #     abs(padding_val) > .Machine$double.eps^.5)) {
-      #   private$expanded_mats_[[mat_idx]] <- methods::as(private$expanded_mats_[[mat_idx]],
-      #                                                    "generalMatrix")
-      # }
 
       if ((NR < private$._target_info$n_row || NC < private$._target_info$n_col) &&
           ((is.integer(padding_val) && padding_val %.==.% 0L) ||
-           # (is.numeric(padding_val) && abs(padding_val) < .Machine$double.eps^.5)))
            (is.numeric(padding_val) && abs(padding_val) %.<.% .Machine$double.eps^.5)))
         private$adjusted_mats_[[mat_idx]] <- methods::as(private$adjusted_mats_[[mat_idx]],
                                                          "sparseMatrix")
 
     },
-
-
-
-
-#     ._finish_S4Matrix = function(mat_idx, padding_val, comp_ri, comp_ci) {
-#
-#       as_Matrix <- is(private$._matrix_list[[mat_idx]], "Matrix")
-#       if (!as_Matrix) return()
-#
-#       ri_from <- seq_len(private$._target_info$n_row)
-#       ci_from <- seq_len(private$._target_info$n_col)
-#
-#       ri <- if (is.null(comp_ri)) {
-#         ri_from
-#       } else if (length(comp_ri) == private$._target_info$n_row) {
-#         NULL
-#       } else {
-#         setdiff(ri_from, comp_ri)
-#       }
-#
-#
-#       ci <- if (is.null(comp_ci)) {
-#         ci_from
-#       } else if (length(comp_ci) == private$._target_info$n_col) {
-#         NULL
-#       } else {
-#         setdiff(ci_from, comp_ci)
-#       }
-#
-# print(list(ri, comp_ri, ci,comp_ci))
-#       if (is.null(ri)) {
-#         if (is.null(ci)) return()
-#
-#         private$expanded_mats_[[mat_idx]][, ci] <- padding_val
-#         return()
-#       }
-#
-#
-#       if (is.null(ci)) {
-#         # private$expanded_mats_[[mat_idx]][ri, ] <- padding_val
-#         return()
-#       }
-#
-#       # private$expanded_mats_[[mat_idx]][ri, ci] <- padding_val
-#       # print(c(ci, comp_ci))
-#
-#     },
-
-
 
 
 

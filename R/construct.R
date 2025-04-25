@@ -1590,6 +1590,18 @@ MatrixAdjuster <- R6::R6Class(
 
 
 
+    #' Private Method
+    #'
+    #' If padding values are sourced from an outer matrix, attempts to match the
+    #' matrix to be adjusted with its corresponding matrix in the outer list.
+    #'
+    #' Also sets the `. _expand_from_outer_possible` flag to `TRUE` if the match
+    #' is successful, or `FALSE` otherwise.
+    #'
+    #' @param idx    Index of the matrix to be adjusted.
+    #'
+    #' @returns
+    #' The index of the matching outer matrix if found; `NULL` otherwise.
      ._outer_matrix_idx = function(idx) {
 
        if (!private$._expand_from_outer) {
@@ -1608,18 +1620,6 @@ MatrixAdjuster <- R6::R6Class(
        private$._expand_from_outer_possible <- TRUE
        out_idx
      }
-
-
-
-
-
-    # ._set_target_pos = function(margin, orig_nms) {
-    #
-    #   target_nms <- paste0(margin, "_names")
-    #   which(private$._target_info[[target_nms]] %in% orig_nms)
-    #
-    # },
-
 
 
   )

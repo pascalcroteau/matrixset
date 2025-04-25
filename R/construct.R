@@ -244,6 +244,16 @@ MatrixMeta <- R6::R6Class(
     #' @field need_adapt          \[`TRUE`|`FALSE`\] `TRUE` if any matrix
     #'                            requires adaptation of any kind (expansion,
     #'                            shrinkage, or reordering).
+    #' @field need_row_adapt_per_mat
+    #'                            \[`TRUE`|`FALSE`\] `TRUE` if at least one
+    #'                            matrix requires adaptation of any kind
+    #'                            (expansion, shrinkage or reordering) along the
+    #'                            row margin.
+    #' @field need_col_adapt_per_mat
+    #'                            \[`TRUE`|`FALSE`\] `TRUE` if at least one
+    #'                            matrix requires adaptation of any kind
+    #'                            (expansion, shrinkage or reordering) along the
+    #'                            column margin.
     #' @field need_adjust_per_mat Logical vector indicating whether each matrix
     #'                            requires any adaptation of any kind (expansion,
     #'                            shrinkage, or reordering)
@@ -1537,24 +1547,7 @@ MatrixAdjuster <- R6::R6Class(
 
     ._need_adjustment = function(margin, mat_idx) {
 
-      # look_for_expand <- paste("need", margin, "expand_per_mat", sep = "_")
-      # look_for_shrink <- paste("need", margin, "shrink_per_mat", sep = "_")
-      # # look_for_EXPAND <- paste("need", margin, "EXPAND_per_mat", sep = "_")
-      # look_for_order <- paste("need", margin, "order_per_mat", sep = "_")
-      #
-      # need_expand <- private$._target_info[[look_for_expand]][mat_idx]
-      # need_shrink <- private$._target_info[[look_for_shrink]][mat_idx]
-      # # need_EXPAND <- private$._target_info[[look_for_EXPAND]][mat_idx]
-      # # need_shrink <- private$need_expand & private$!need_EXPAND
-      # need_order <- private$._target_info[[look_for_order]][mat_idx]
-      #
-      # need_expand || need_shrink || need_order
-      # # need_adjust || need_order
-
       look_for_adapt <- paste("need", margin, "adapt_per_mat", sep = "_")
-      # print(list(need_expand, need_shrink, need_order,
-      #            need_expand || need_shrink || need_order,
-      #            private$._target_info[[look_for_adjust]][mat_idx]))
       private$._target_info[[look_for_adapt]][mat_idx]
     },
 

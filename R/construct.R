@@ -1545,6 +1545,17 @@ MatrixAdjuster <- R6::R6Class(
 
 
 
+    #' Private Method
+    #'
+    #' Checks whether a matrix requires any form of adjustment—such as
+    #' expansion, shrinkage, or reordering—along a specified margin.
+    #'
+    #' @param margin    Either `"row"` or `"col"`; the margin along which to
+    #'                  check for necessary adjustments.
+    #' @param mat_idx   Index of the matrix to evaluate.
+    #'
+    #' @returns
+    #' A logical value: `TRUE` if an adjustment is required, `FALSE` otherwise.
     ._need_adjustment = function(margin, mat_idx) {
 
       look_for_adapt <- paste("need", margin, "adapt_per_mat", sep = "_")
@@ -1553,6 +1564,19 @@ MatrixAdjuster <- R6::R6Class(
 
 
 
+
+
+    #' Private Method
+    #'
+    #' Checks whether a matrix requires shrinkage adjustment along the specified
+    #' margin.
+    #'
+    #' @param margin    Either `"row"` or `"col"`; the margin along which to
+    #'                  check for shrinkage requirements.
+    #' @param mat_idx   Index of the matrix to evaluate.
+    #'
+    #' @returns
+    #' A logical value: `TRUE` if an shrinkage is required, `FALSE` otherwise.
     ._need_shrinkage = function(margin, mat_idx) {
 
       look_for_shrink <- paste("need", margin, "shrink_per_mat", sep = "_")

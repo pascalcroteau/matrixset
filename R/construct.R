@@ -1,5 +1,38 @@
 
-
+#' Normalize the 'expand' Argument
+#'
+#' Internal helper function to standardize the `expand` argument, controlling
+#' the padding behavior when adjusting matrices.
+#'
+#' The `expand` input can be a scalar (including `logical`), a list, or `NULL`.
+#'
+#' Standardization follows these rules:
+#' - Both `FALSE` and `NULL` indicate no expansion; in either case, `NULL` is
+#'   returned.
+#' - If `TRUE`, `TRUE` is returned, signaling expansion using default padding
+#'   values.
+#' - A single numeric value or `NA` represents a common padding value for all
+#'   matrices; a list is created by replicating this value once per matrix.
+#' - If multiple values are provided as a vector, a warning is issued and only
+#'   the first value is kept.
+#' - If `expand` is a list:
+#'   - If named, list names are matched to matrix names.
+#'   - If unnamed, the list must have exactly one entry per matrix, except if it
+#'     contains only one element, in which case the value is broadcasted to all
+#'     matrices.
+#'
+#' @param expand        `NULL`, `logical`, list, or scalar. Expansion behavior
+#'                      or padding value(s).
+#' @param nms_matrix    Character vector. Names of the matrices to align with
+#'                      expansion values when `expand` is provided as a list.
+#' @param nmatrix       Integer. Number of matrices to adjust.
+#'
+#' @returns
+#' - `NULL` if no expansion is needed.
+#' - `TRUE` if expansion is needed with default padding.
+#' - A list of padding values, one per matrix, otherwise.
+#'
+#' @noRd
 normalize_expand <- function(expand, nms_matrix, nmatrix)
 {
   if (is.null(expand)) return(expand)
@@ -17,7 +50,7 @@ normalize_expand <- function(expand, nms_matrix, nmatrix)
       expand
     }
 
-    # expand <- if (is.na(expand) || expand) rep(list(NA), nmatrix) else NULL
+
   } else if (is.vector(expand)) {
     if (is.list(expand)) {
       expd_nms <- names(expand)

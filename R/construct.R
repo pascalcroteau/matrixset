@@ -854,7 +854,22 @@ MatrixMeta <- R6::R6Class(
 
 
 
-# get matrix list from dots.
+#' Extract Matrices from Dots
+#'
+#' Internal helper function that standardizes how matrices are collected
+#' from a flexible `...` argument.
+#'
+#' If a single list is passed through `...`, the function extracts its elements
+#' directly, assuming the list contains the matrices. Otherwise, all arguments
+#' are treated individually.
+#'
+#'
+#' @param ...    Matrices provided either directly or inside a list.
+#'
+#' @returns
+#' A list of matrices, whether originally passed individually or inside a list.
+#'
+#' @noRd
 matrices_from_dots <- function(...)
 {
   mats <- list(...)

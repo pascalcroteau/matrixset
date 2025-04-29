@@ -80,70 +80,29 @@ normalize_expand <- function(expand, nms_matrix, nmatrix)
 }
 
 
-# info_dim <- function(lst, side, expand)
-# {
-#   fn_names <- get(paste0(side, "names"), pos = "package:base", mode = "function")
-#   fn_n <- get(paste0("n", side), pos = "package:base", mode = "function")
-#   side_label <- if (side == "row") "row" else "column"
-#
-#   need_expand <- FALSE
-#
-#   # a note on empty dimnames: row/col names of empty dimnames is NULL; thus
-#   # unique(NULL) is NULL and length(NULL) is 0. so length(unique(NULL)) and
-#   # length(NULL) are both 0, thus equal. So empty dimnames is seen as not needing
-#   # expansion, as it should
-#
-#   nms <- lapply(lst, fn_names)
-#   .names <- unique(nms)
-#   n_nms <- length(.names)
-#   if (n_nms != 1) {
-#     if (!expand)
-#       stop(paste("All matrices must have the same", side_label, "names (NULL accepted)"))
-#   }
-#
-#   lapply(.names,
-#          function(.nms) {
-#            .names_unq <- unique(.nms)
-#
-#            if (length(.names_unq) < length(.nms))
-#              stop(paste(stringr::str_to_title(side_label), "names must be unique"))
-#
-#            if (any(.nms == ""))
-#              stop(paste("Empty", side_label, "names are not allowed"))
-#          })
-#
-#   .names_flat <- unlist(.names)
-#   .names <- unique(.names_flat)
-#   nexp <- length(.names)
-#   if (nexp == 0L && expand)
-#     stop("matrices must have dimnames for expansion")
-#   if (n_nms > 1 && expand) need_expand <- TRUE
-#
-#   n_s <- vapply(lst, fn_n, 0)
-#   n <- unique(n_s)
-#   N <- length(n)
-#   if (!expand && N != 1)
-#     stop(paste0("All matrices must have the same number of ", side_label, "s"))
-#
-#   if (expand && need_expand) n <- nexp
-#
-#   # if (expand) {
-#   #   n <- length(.names)
-#   # } else {
-#   #   n_s <- vapply(lst, fn_n, 0)
-#   #   n <- unique(n_s)
-#   #   N <- length(n)
-#   #   if (N != 1)
-#   #     stop(paste0("All matrices must have the same number of ", side_label, "s"))
-#   # }
-#
-#   list(nms=.names, n=n, need_expand = need_expand)
-# }
 
 
 
 
 
+#' Extract and Validate List Names
+#'
+#' Internal helper function to retrieve the names of a list and validate them.
+#'
+#' This function checks that the input list has non-missing, non-empty, and
+#' unique names.
+#'
+#' If the list is `NULL`, `NULL` is returned. Otherwise:
+#' - If any element of the list has an empty name, an error is thrown.
+#' - If duplicate names are found, an error is thrown.
+#' - If validation passes, the list of names is returned.
+#'
+#' @param lst   A `list` object. Must have non-empty, unique names.
+#'
+#' @returns
+#' A character vector of list names, or `NULL` if `lst` is `NULL`.
+#'
+#' @noRd
 list_names <- function(lst)
 {
   if (is.null(lst)) return(NULL)
@@ -892,61 +851,6 @@ MatrixMeta <- R6::R6Class(
 
 
 
-
-
-
-
-# get, from matrix list, the number of rows and columns. Assess if all matrices
-# of same dim. Get also the matrix rownames and colnames. Assess if all matrices
-# have the same names and if names are valid
-# lst -  list of matrix
-# info_matrices <- function(lst = NULL, expand = NULL)
-# {
-#   n_row <- NULL
-#   n_col <- NULL
-#   need_expand <- FALSE
-#
-#   if (is.null(lst)) {
-#     n_row <- 0
-#     n_col <-  0
-#     row_names <- NULL
-#     col_names <- NULL
-#   } else if (is.list(lst)) {
-#
-#     # lst_nms <- names(lst)
-#     # if (is.null(lst_nms) || any(lst_nms == ""))
-#     #   stop("The list elements must be named")
-#
-#     is_null <- vapply(lst, is.null, FALSE)
-#     if (all(is_null)) {
-#       n_row <- 0
-#       n_col <-  0
-#       row_names <- NULL
-#       col_names <- NULL
-#     } else {
-#       is_matrix <- vapply(lst, is_matrixish, FALSE)
-#       is_valid <- is_null | is_matrix
-#       if (!all(is_valid))
-#         stop("Elements must be NULL or a matrix")
-#
-#       row_meta <- info_dim(lst[!is_null], "row", !is.null(expand))
-#       col_meta <- info_dim(lst[!is_null], "col", !is.null(expand))
-#
-#       n_row <- row_meta$n
-#       n_col <- col_meta$n
-#       row_names <- row_meta$nms
-#       col_names <- col_meta$nms
-#       row_expand <- row_meta$need_expand
-#       col_expand <- col_meta$need_expand
-#       need_expand <- row_expand || col_expand
-#
-#     }
-#   }
-#
-#   return(list(n_row = as.integer(n_row), n_col = as.integer(n_col),
-#               row_names = row_names, col_names = col_names,
-#               need_expand = need_expand))
-# }
 
 
 

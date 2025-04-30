@@ -1927,14 +1927,14 @@ matrixset <- function(..., match_names = FALSE, expand = NULL, row_info = NULL,
   n_matrix <- length(matrix_set)
   expand <- normalize_expand(expand, names_matrix, n_matrix)
 
-  # matrix_info <- info_matrices(matrix_set, expand)
+
   matrix_info <- MatrixMeta$new(matrix_set, match_names,
                                 (is.logical(expand) && expand) || !is.null(expand) )
   if (match_names || !is.null(expand)) {
     matrix_set <- MatrixAdjuster$new(matrix_set, matrix_info, expand)$adjusted_mats
   }
-    # matrix_set <- expand_matrices(matrix_set, matrix_info, expand)
-# foo <- MatrixAdjuster$new(matrix_set, matrix_info, expand)
+
+
   row_info <- set_meta("row", row_info, matrix_info, row_key, row_tag, TRUE)
   col_info <- set_meta("col", column_info, matrix_info, column_key, column_tag, TRUE)
 
@@ -1943,36 +1943,13 @@ matrixset <- function(..., match_names = FALSE, expand = NULL, row_info = NULL,
   if (any(rwtr %in% cltr))
     stop("Rows and columns can't share annotation names")
 
-  # matset <- list(matrix_set = matrix_set,
-  #                row_info = if (is.null(row_info)) NULL else tibble::as_tibble(row_info),
-  #                column_info = if (is.null(col_info)) NULL else tibble::as_tibble(col_info))
 
   row_names <-  matrix_info[["row_names_unique"]]
   if (is.null(row_names)) row_names <- character(0)
-  # if (is.null(row_names)) row_names <- make_names(seq_len(matrix_info[["n_row"]]), "")
+
   col_names <-  matrix_info[["col_names_unique"]]
   if (is.null(col_names)) col_names <- character(0)
-  # if (is.null(row_names)) col_names <- make_names(seq_len(matrix_info[["n_col"]]), "")
 
-
-  # matset <- list(matrix_set = matrix_set,
-  #                row_info = if (is.null(row_info)) NULL else tibble::as_tibble(row_info),
-  #                column_info = if (is.null(col_info)) NULL else tibble::as_tibble(col_info))
-  #
-  #
-  # structure(matset,
-  #           class = "matrixset",
-  #           n_row = matrix_info[["n_row"]],
-  #           n_col = matrix_info[["n_col"]],
-  #           matrix_names = names(matrix_set),
-  #           n_matrix = n_matrix,
-  #           row_traits = rwtr,
-  #           col_traits = cltr,
-  #           row_names = row_names,
-  #           col_names = col_names,
-  #           row_tag = row_tag,
-  #           col_tag = column_tag)
-  #
 
   .matrixset(matrix_set,
              row_info = if (is.null(row_info)) NULL else tibble::as_tibble(row_info),

@@ -1665,6 +1665,44 @@ set_meta <- function(side, meta, info, key, tag, adjust)
 
 
 
+
+
+
+
+
+#' Internal Constructor for matrixset Objects
+#'
+#' Constructs a `matrixset` object.
+#'
+#' This function is not intended to be used directly by users. It provides the
+#' underlying structure used by higher-level matrixset constructors and tools.
+#'
+#' @param matrix_set        A named list of matrices.
+#' @param row_info          A data frame with metadata associated with rows.
+#' @param col_info          A data frame with metadata associated with columns.
+#' @param n_row, n_col      Integer. Number of rows and columns, respectively.
+#' @param matrix_names      Character vector. Names of the matrices.
+#' @param n_matrix          Integer. Number of matrices.
+#' @param row_traits        Character vector. Column names in `row_info` describing row traits.
+#' @param col_traits        Character vector. Column names in `col_info` describing column traits.
+#' @param row_names         Character vector. Names of the rows.
+#' @param col_names         Character vector. Names of the columns.
+#' @param row_tag, col_tag  Character. Standardized names used as row/column identifiers.
+#' @param .class            Character. Class to assign to the object (default: `"matrixset"`).
+#'
+#' @param row_group_meta,row_group_indices,row_group_rows,
+#'        row_group_keys,row_group_vars,row_group_level_drop
+#'        Optional. Internal grouping structures related to row grouping.
+#'
+#' @param col_group_meta,col_group_indices,col_group_rows,
+#'        col_group_keys,col_group_vars,col_group_level_drop
+#'        Optional. Internal grouping structures related to column grouping.
+#'
+#' @returns
+#' An object of class `"matrixset"` (or subclass), with structural and metadata
+#' attributes included.
+#'
+#' @noRd
 .matrixset <- function(matrix_set, row_info, col_info, n_row, n_col,
                        matrix_names, n_matrix, row_traits, col_traits,
                        row_names, col_names, row_tag, col_tag,

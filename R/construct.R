@@ -883,30 +883,34 @@ matrices_from_dots <- function(...)
 
 
 
-# MATRIX <- function(dat, nrow, ncol, is_Matrix = FALSE)
-# {
-#   if (is_Matrix) {
-#     Matrix::Matrix(0, nrow=nrow, ncol=ncol)
-#   } else {
-#     matrix(dat, nrow=nrow, ncol=ncol)
-#   }
-# }
-
-
-#
-# set_expand_value <- function(is_Matrix, exp_val)
-# {
-#   if (is.logical(exp_val) && !is.na(exp_val)) {
-#     if (is_Matrix) return(0) else return(NA)
-#   }
-#   exp_val
-#   # if (is_Matrix && (is.logical(exp_val) && !is.na(exp_val))) 0 else exp_val
-# }
 
 
 
-
-
+#' Create a New Empty Matrix with Optional S4 Matrix Class
+#'
+#' Internal utility to initialize an empty matrix of given dimensions and class,
+#' optionally using the `Matrix` package for sparse or general matrix types.
+#'
+#' If `is_Matrix = TRUE`, the function creates an S4 matrix using
+#' [Matrix::Matrix()], and coerces it to `"generalMatrix"` when the padding
+#' value is `NA` or non-zero (including non-zero integers). Zero padding is
+#' left as sparse.
+#'
+#' If `is_Matrix = FALSE`, a base R matrix is created using [matrix()].
+#'
+#' @param dat          Scalar value to fill the matrix. Typically a padding
+#'                     value like `NA`, `0`, or `-1`.
+#' @param nrow         Integer. Number of rows.
+#' @param ncol         Integer. Number of columns.
+#' @param rownms       Character vector. Row names for the matrix.
+#' @param colnms       Character vector. Column names for the matrix.
+#' @param is_Matrix    Logical. Whether to use the `Matrix` package class.
+#'
+#' @returns
+#' A matrix (either base or from the `Matrix` package) of the specified
+#' dimensions and initialized with the given value.
+#'
+#' @noRd
 new_empty_matrix <- function(dat, nrow, ncol, rownms, colnms, is_Matrix = FALSE)
 {
   if (is_Matrix) {

@@ -1584,91 +1584,39 @@ MatrixAdjuster <- R6::R6Class(
 
 
 
-#
-# expand_matrices <- function(matrix_list, matrix_info, expand)
-# {
-#   need_expand <- matrix_info$need_expand
-#   if (!need_expand) return(matrix_list)
-#
-#   nmatrix <- length(matrix_list)
-#
-#   expand_list <- vector('list', nmatrix)
-#   names(expand_list) <- names(matrix_list)
-#
-#   nr <- matrix_info$n_row
-#   nc <- matrix_info$n_col
-#   rnms <- matrix_info$row_names
-#   cnms <- matrix_info$col_names
-#   for (l in 1:nmatrix) {
-#     NR <- nrow(matrix_list[[l]])
-#     NC <- ncol(matrix_list[[l]])
-#     if (!is.null(matrix_list[[l]])) {
-#       is_Matrix <- is(matrix_list[[l]], "Matrix")
-#
-#       if (NR != nr || NC != nc) {
-#         expand_value <- set_expand_value(is_Matrix, if (is.logical(expand)) expand else expand[[l]])
-#         expand_list[[l]] <- MATRIX(expand_value, nrow = nr, ncol = nc, is_Matrix)
-#       } else {
-#         expand_list[[l]] <- matrix_list[[l]]
-#       }
-#
-#       rownames(expand_list[[l]]) <- rnms
-#       colnames(expand_list[[l]]) <- cnms
-#       if (is_Matrix) {
-#         expand_list[[l]][] <- expand_value
-#         expand_list[[l]] <- methods::as(expand_list[[l]], class(matrix_list[[l]]))
-#         if ((NR < nr || NC < nc) &&
-#             ((is.integer(expand_value) && expand_value == 0L) ||
-#              (is.numeric(expand_value) && abs(expand_value) < .Machine$double.eps^.5)))
-#           expand_list[[l]] <- methods::as(expand_list[[l]], "sparseMatrix")
-#       }
-#       old_rnms <- rownames(matrix_list[[l]])
-#       old_cnms <- colnames(matrix_list[[l]])
-#       ridx <- rnms %in% old_rnms
-#       cidx <- cnms %in% old_cnms
-#       ri <- match(rnms, old_rnms, 0)
-#       ci <- match(cnms, old_cnms, 0)
-#       if (any(ridx) && any(cidx) && (any(ri != seq_along(ri)) || any(ci != seq_along(ci)))) {
-#         expand_list[[l]][rnms[ridx], cnms[cidx]] <- matrix_list[[l]][ri, ci]
-#       }
-#
-#
-#       # is_Matrix <- is(matrix_list[[l]], "Matrix")
-#       # expand_value <- set_expand_value(is_Matrix, if (is.logical(expand)) expand else expand[[l]])
-#       # expand_list[[l]] <- MATRIX(expand_value, nrow = nr, ncol = nc, is_Matrix)
-#       # # expand_list[[l]] <- MATRIX(expand[[l]], nrow = nr, ncol = nc, is_Matrix)
-#       # rownames(expand_list[[l]]) <- rnms
-#       # colnames(expand_list[[l]]) <- cnms
-#       # if (is_Matrix) {
-#       #   # expand_list[[l]][] <- expand[[l]]
-#       #   expand_list[[l]][] <- expand_value
-#       #   expand_list[[l]] <- methods::as(expand_list[[l]], class(matrix_list[[l]]))
-#       #   if ((NR < nr || NC < nc) &&
-#       #       ((is.integer(expand_value) && expand_value == 0L) ||
-#       #        (is.numeric(expand_value) && abs(expand_value) < .Machine$double.eps^.5)))
-#       #     expand_list[[l]] <- methods::as(expand_list[[l]], "sparseMatrix")
-#       # }
-#       # old_rnms <- rownames(matrix_list[[l]])
-#       # old_cnms <- colnames(matrix_list[[l]])
-#       # ridx <- rnms %in% old_rnms
-#       # cidx <- cnms %in% old_cnms
-#       # ri <- match(rnms, old_rnms, 0)
-#       # ci <- match(cnms, old_cnms, 0)
-#       # if (any(ridx) && any(cidx)) {
-#       #   expand_list[[l]][rnms[ridx], cnms[cidx]] <- matrix_list[[l]][ri, ci]
-#       # }
-#     }
-#   }
-#
-#   expand_list
-# }
 
-
-
-# the 'adjust' parameter allows to validate some elements of 'meta' without
-# transforming it (adjusting) to make it conform to the matrixset call. This is
-# useful if it is already known that no adjustment is necessary and thus save
-# some (mostly negligeable, though) time
+#' Set and Validate Metadata for Matrix Rows or Columns
+#'
+#' Internal helper function to prepare and validate metadata for either the
+#' rows or columns of a matrixset.
+#'
+#' The function ensures that metadata contains a key column identifying each
+#' row or column. If the metadata is `NULL`, a minimal metadata frame is
+#' constructed using known row or column names. It validates key integrity,
+#' uniqueness, and, if requested, adjusts (`subset/reorder`) the metadata to
+#' align with the matrix structure.
+#'
+#' The `adjust` flag allows skipping reordering when known to be unnecessary,
+#' providing a small optimization.
+#'
+#' @param side    Character string. Either `"row"` or `"col"`, indicating the
+#'                matrix dimension to process.
+#' @param meta    A `data.frame` or `NULL`. Metadata to associate with the rows
+#'                or columns.
+#' @param info    A list containing matrix structure information, including
+#'                unique names for rows or columns.
+#' @param key     Character string. Name of the column in `meta` that contains
+#'                the row or column identifiers.
+#' @param tag     Character string. The standardized name that the key column
+#'                should be renamed to in the output.
+#' @param adjust  Logical. Whether to subset and reorder the metadata to match
+#'                the matrix structure (`TRUE`) or simply validate (`FALSE`).
+#'
+#' @returns
+#' A data frame with validated and optionally reordered metadata, with its key
+#' column renamed to `tag`.
+#'
+#' @noRd
 set_meta <- function(side, meta, info, key, tag, adjust)
 {
   side_name <- if (side == "row") "row_names_unique" else "col_names_unique"

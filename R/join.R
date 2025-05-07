@@ -369,11 +369,78 @@
 
 
 
+
+#' MSJoiner: A class o perform join operations
+#'
+#' An internal class used to perform join operations between a `matrixset`
+#' object and an external data frame — which may also be a metadata data frame
+#' from another `matrixset` — targeting either row or column metadata.
+#'
+#' This class encapsulates the logic required to:
+#'
+#' - Validate inputs and join keys.
+#' - Handle suffixes and column name conflicts.
+#' - Perform `left_join`, `right_join`, `inner_join`, and `full_join` operations.
+#' - Update the `matrixset` object with the joined metadata.
+#'
+#' @docType class
+#' @noRd
+#' @name MatrixAdjuster
 MSJoiner <- R6::R6Class(
   "MSJoiner",
 
   public = list(
 
+
+
+
+    #' @description
+    #' Initializes an `MSJoiner` object to join metadata from a data frame or
+    #' another `matrixset` onto a `matrixset`, targeting either row or column
+    #' metadata.
+    #'
+    #' It validates inputs, resolves join keys, manages conflicts, and supports
+    #' optional  expansion of metadata and matrix dimensions.
+    #'
+    #' @param x               A `matrixset` object. The primary object to which
+    #'                        metadata will be joined.
+    #' @param y               A `data.frame` or another `matrixset`. The source
+    #'                        of metadata.
+    #' @param margin          `character`; either `"row"` or `"col"`, indicating
+    #'                        the dimension to join on.
+    #' @param by              `character` vector of key column(s) for the join.
+    #'                        If `NULL`, defaults depend on `y`:
+    #'                        - If `matrixset`: uses the meta tag column
+    #'                          (e.g., `.rowname` or `.colname`).
+    #'                        - If `data.frame`: uses a natural join as in
+    #'                          [dplyr::join()]. Cross-joins are not
+    #'                          supported.
+    #' @param adjust          `logical` or `character`. If `FALSE` (default),
+    #'                        prevents changes to metadata dimensions. If
+    #'                        `TRUE`, allows expanding metadata (and matrices)
+    #'                        by padding with `NA` (or with `0` for S4-class
+    #'                        `Matrix` objects).
+    #'
+    #'                        As a string, must be one of `r flatten_or(adjust_opts)`:
+    #'                        - "`r adjust_opts["x_only"]`": equivalent to `TRUE`.
+    #'                        - "`r adjust_opts["from_y"]`": uses values from
+    #'                          `y` if it is a `matrixset` for padding, but only
+    #'                          for overlapping names and traits.
+    #' @param name_template   Controls renaming of conflicting tag names.
+    #'                        - `NULL` (default): disallows non-unique tag
+    #'                          names.
+    #'                        - `TRUE`: ensures uniqueness by appending numeric
+    #'                          suffixes.
+    #'                        - A string: a [glue](https://glue.tidyverse.org)
+    #'                          template using variables from `y`. The special
+    #'                          variable `.tag` refers to the original tag name.
+    #'                          Currently, only curly-brace (`{}`) syntax is
+    #'                          supported.
+    #'
+    #'                        Only non-unique names are modified. Requires
+    #'                        `adjust = TRUE`.
+    #'
+    #' @noRd
     initialize = function(x, y, margin, by, adjust, name_template) {
 
       private$._x <- x
@@ -388,6 +455,8 @@ MSJoiner <- R6::R6Class(
       private$._set_meta()
 
     },
+
+
 
 
     join = function(type, suffix = c(".x", ".y"), na_matches = "never") {

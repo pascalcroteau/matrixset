@@ -459,6 +459,28 @@ MSJoiner <- R6::R6Class(
 
 
 
+
+
+    #' @description
+    #' Performs the merge while ensuring that `matrixset` conventions are respected.
+    #' Also issues a warning if any trait classes change as a result of the merge.
+    #'
+    #' @param type          A character string specifying the type of join.
+    #'                      One of `"left"`, `"right"`, `"full"`, `"semi"`, or
+    #'                      `"anti"`.
+    #' @param suffix        A character vector of length 2. Suffixes added to
+    #'                      duplicated non-join traits from `x` and `y` to
+    #'                      disambiguate them.
+    #' @param na_matches    Specifies how `NA` values are matched:
+    #'                      * `"na"` (default): treats two `NA` or two `NaN`
+    #'                        values as equal, similar to `%in%`, `match()`,
+    #'                        and `merge()`.
+    #'                      * `"never"`: treats `NA` or `NaN` values as
+    #'                        distinct, meaning they will not match each other
+    #'                        or any other values. This mimics joins from
+    #'                        database systems or `base::merge(incomparables = NA)`.
+    #'
+    #' @noRd
     join = function(type, suffix = c(".x", ".y"), na_matches = "never") {
 
       private$._join(type, suffix, na_matches)

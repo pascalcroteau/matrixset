@@ -496,6 +496,22 @@ MSJoiner <- R6::R6Class(
 
 
   active = list(
+
+    #' @field matrix_set       A list of updated matrices after the merge.
+    #' @field info             The updated metadata data frame for the margin
+    #'                         used in the merge.
+    #' @field n_row            Number of rows in the `matrixset` after merging.
+    #' @field n_col            Number of columns in the `matrixset` after
+    #'                         merging.
+    #' @field traits           Updated row or column traits after the merge.
+    #' @field margin_names     New row or column names for the merged margin.
+    #' @field new_tag          The updated tag name for the margin used in the
+    #'                         merge.
+    #' @field new_class        Updated S3 class (when merging affects group
+    #'                         structure).
+    #' @field new_group_attrs  Updated row or column group attributes after
+    #'                         merging.
+
     matrix_set = function() private$new_matrix_set_,
     info = function() private$new_info_,
     n_row = function() private$n_row_,

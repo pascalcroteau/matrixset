@@ -651,6 +651,18 @@ MSJoiner <- R6::R6Class(
 
 
 
+    #' @description
+    #' Private method
+    #'
+    #' Identifies the metadata traits used in the join, based on the selected
+    #' margin  (`"row"` or `"col"`). Extracts trait and tag names from both
+    #' `x` and `y`, whether they are `matrixset` objects or data frames.
+    #'
+    #' Stores the results in `._x_traits` and `._y_traits` for use in later
+    #' steps.
+    #'
+    #' @returns
+    #' Invisible `NULL`. Called for its side effects.
     ._set_traits = function() {
 
       if (private$._margin == "row") {
@@ -679,6 +691,18 @@ MSJoiner <- R6::R6Class(
 
 
 
+
+    #' @description
+    #' Private method
+    #'
+    #' Sets the tag variable names used for joining, based on the selected
+    #' margin (`"row"` or `"col"`). Extracts the tag from `x` and, if `y` is a
+    #' `matrixset`, also from `y`.
+    #'
+    #' Stores the results in `x_tag_` and `._y_tag` for internal use.
+    #'
+    #' @returns
+    #' Invisible `NULL`. Called for its side effects.
     ._set_tags = function() {
 
       if (private$._margin == "row") {
@@ -698,6 +722,14 @@ MSJoiner <- R6::R6Class(
 
 
 
+    #' @description
+    #' Validates that `by`, when a list, contains only character vectors of
+    #' length 1.
+    #'
+    #' @returns
+    #' Invisibly returns `NULL`. Called for its side effects. Throws an error if
+    #' validation fails.
+    #'
     ._assess_by_list_validity = function() {
 
       if (is.list(private$._by) && !all(sapply(private$._by, is.character)))
@@ -712,50 +744,17 @@ MSJoiner <- R6::R6Class(
 
 
 
-    # assess_by_vars_margin <- function(vars, nms)
-    # {
-    #   dup <- duplicated(vars)
-    #   if (any(dup)) {
-    #     msg <- "Join variables must be unique."
-    #     stop(msg)
-    #   }
-    #
-    #   if (!all(is_in <- vars %in% nms)) {
-    #     msg <- if (sum(!is_in) > 1) "variables" else "variable"
-    #     vars_quoted <- encodeString(vars[!is_in], quote = "\"")
-    #     msg <- paste(msg, paste(vars_quoted, collapse = ", "), "is not a known trait")
-    #     stop(msg)
-    #   }
-    #   NULL
-    # }
-
-
-    # ._assess_by_vars = function(by, margin) {
-    #
-    #   dup <- duplicated(by)
-    #
-    #   if (any(dup)) {
-    #     msg <- "Join variables must be unique."
-    #     stop(msg)
-    #   }
-    #
-    #   nms <- if (margin == "row") private$._x_traits else private$._y_traits
-    #
-    #   if (!all(is_in <- by %in% nms)) {
-    #
-    #     msg_tplt <- "variable{S_MARK} {VAR_TXT} {IS_OR_ARE} not {MAYBE_A} known trait{S_MARK}"
-    #     vars_quoted <- encodeString(by[!is_in], quote = "\"")
-    #     msg <- stringr::str_glue(msg_tplt,
-    #                              S_MARK = if (sum(!is_in) > 1) "s" else "",
-    #                              VAR_TXT = paste(vars_quoted, collapse = ", "),
-    #                              IS_OR_ARE = if (sum(!is_in) > 1) "are" else "is",
-    #                              MAYBE_A = if (sum(!is_in) > 1) "" else "a")
-    #
-    #     stop(msg)
-    #   }
-    #
-    #
-    # },
+    #' @description
+    #' Validates that join variables (`by`) are unique and exist in the traits
+    #' of the specified object (`x` or `y`).
+    #'
+    #' @param by   A character vector of join variable names.
+    #' @param obj  Either `"x"` or `"y"`, indicating which object's traits to
+    #'             check.
+    #'
+    #' @returns
+    #' Invisibly returns `NULL`. Called for its side effects. Throws an error if
+    #' `by` contains duplicates or unknown variables.
     ._assess_by_vars = function(by, obj) {
 
       dup <- duplicated(by)
@@ -786,6 +785,30 @@ MSJoiner <- R6::R6Class(
 
 
 
+    #' @description
+    #' Determines and validates the join variables (`by`) used to align traits
+    #' between `x` and `y` during a merge.
+    #'
+    #' If `by` is `NULL`, it attempts to infer suitable join variables:
+    #' - If both `x` and `y` have tag variables present in their respective
+    #'   trait sets, the `by` is inferred from matching tags.
+    #' - Otherwise, it uses the intersection of trait names. If no common traits
+    #'   are found, an error is raised.
+    #'
+    #' If `by` is provided (as a character vector or a named list), its validity
+    #' is assessed:
+    #' - Ensures it is either a character vector or a list of character scalars.
+    #' - Ensures all join variables are unique.
+    #' - Ensures the specified variables exist in the trait names of `x` and `y`.
+    #'
+    #' @details
+    #' The resulting validated and fully named `by` vector is stored in the
+    #' private field `.by`. Matching of trait names considers the merge margin
+    #' (`row` or `column`).
+    #'
+    #' @returns
+    #' Invisibly returns `NULL`. The function is used for its side effects
+    #' (updating `.by`).
     ._set_by_param = function() {
 
       if (is.null(private$._by)) {
@@ -821,15 +844,8 @@ MSJoiner <- R6::R6Class(
         by_nms <- names(private$._by)
         by <- unname(private$._by)
 
-        # if (is.list(by) && !all(sapply(by, is.character)))
-        #   stop("`by` must be a list of character when a list")
-        #
-        # if (is.list(by) && !all(sapply(by, function(x) length(x) == 1L)))
-        #   stop("elements of `by` must be of length 1 when it is a list")
-
         by <- unlist(by)
 
-        # by_x <- rlang::`%||%`(by_nms, by)
         by_x <- by_nms %OR% by
         by_y <- by
 
@@ -838,8 +854,6 @@ MSJoiner <- R6::R6Class(
         stop(msg)
       }
 
-      # private$._assess_by_vars(by_x, "row")
-      # private$._assess_by_vars(by_y, "col")
       private$._assess_by_vars(by_x, "x")
       private$._assess_by_vars(by_y, "y")
 
@@ -864,32 +878,6 @@ MSJoiner <- R6::R6Class(
 
 
 
-
-    # ._warn_if_class_change = function() {
-    #
-    #   info_id <- if (private$._margin == "row") "row_info" else "column_info"
-    #
-    #   var_class_orig <- lapply(.subset2(private$._x, info_id), data.class)
-    #   var_class <- lapply(private$new_info_, data.class)
-    #
-    #   ## THIS DOESN'T WORK AS IT DOESN'T ACCOUNT FOR POSSIBLE TRAIT LABEL CHANGE!!!
-    #   var_class_orig_kept <- var_class_orig[names(var_class_orig) %in% names(var_class)]
-    #   var_class_still <- var_class[names(var_class) %in% names(var_class_orig)]
-    #
-    #   if (length(var_class_orig_kept) && length(var_class_still) &&
-    #       !identical(var_class_orig_kept, var_class_still)) {
-    #
-    #     idx <- purrr::map2_lgl(var_class_orig_kept, var_class_still,
-    #                            function(x, y) !identical(x, y))
-    #     chg_vars <- names(idx[idx])
-    #
-    #     warning(paste0("some traits have changed type (",
-    #                    stringr::str_flatten(sQuote(chg_vars), collapse = ", "),
-    #                    ")"),
-    #             call. = FALSE)
-    #   }
-    #
-    # },
     ._warn_if_class_change = function() {
 
       info_id <- if (private$._margin == "row") "row_info" else "column_info"

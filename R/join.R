@@ -527,40 +527,60 @@ MSJoiner <- R6::R6Class(
 
   private = list(
 
-    new_info_ = NULL,
-    new_matrix_set_ = NULL,
-    n_row_ = NULL,
-    n_col_ = NULL,
-    new_traits_ = NULL,
-    ._n_margin = NULL,
-    margin_names_ = NULL,
-    ._margin_names_unique = NULL,
-    ._margin_names_new = NULL,
-    new_class_ = NULL,
-    new_group_attrs_ = NULL,
+    new_info_ = NULL,                 # The updated metadata data frame for the
+                                      # margin used in the merge.
+    new_matrix_set_ = NULL,           # A list of updated matrices after the
+                                      # merge.
+    n_row_ = NULL,                    # Number of rows in the `matrixset` after
+                                      # merging.
+    n_col_ = NULL,                    # Number of columns in the `matrixset`
+                                      # after merging.
+    new_traits_ = NULL,               #
+    ._n_margin = NULL,                #
+    margin_names_ = NULL,             #
+    ._margin_names_unique = NULL,     #
+    ._margin_names_new = NULL,        #
+    new_class_ = NULL,                #
+    new_group_attrs_ = NULL,          #
 
-    ._x = NULL,
-    ._y = NULL,
-    ._y_is_ms = logical(),
+    ._x = NULL,                       #
+    ._y = NULL,                       #
+    ._y_is_ms = logical(),            #
 
-    ._x_traits = NULL,
-    ._y_traits = NULL,
-    x_tag_ = NULL,
-    ._y_tag = NULL,
+    ._x_traits = NULL,                #
+    ._y_traits = NULL,                #
+    x_tag_ = NULL,                    #
+    ._y_tag = NULL,                   #
 
-    ._margin = NULL,
+    ._margin = NULL,                  #
 
-    ._by = NULL,
+    ._by = NULL,                      #
 
-    ._adjust = NULL,
-    ._adjust_method = NULL,
+    ._adjust = NULL,                  #
+    ._adjust_method = NULL,           #
 
-    ._name_template = NULL,
-    ._duplication_accepted = NULL,
-    ._unique_names_post = TRUE,
+    ._name_template = NULL,           #
+    ._duplication_accepted = NULL,    #
+    ._unique_names_post = TRUE,       #
 
 
 
+
+
+
+
+    #' Private Method
+    #'
+    #' Determines whether dimension adjustment is allowed and, if so, how it
+    #' should be handled. Valid options are listed in `adjust_opts`.
+    #'
+    #' The actual adjustment is performed later in the process.
+    #'
+    #' @param adj   A `logical` or `character` value. If a string, it must be
+    #'              one of `r flatten_or(adjust_opts)`.
+    #'
+    #' @returns
+    #' Invisibly returns `NULL`. This function is called for its side effects.
     ._set_adjust = function(adj)
     {
       adj_type <- typeof(adj)
@@ -592,6 +612,24 @@ MSJoiner <- R6::R6Class(
 
 
 
+
+
+    #' Private Method
+    #'
+    #' Sets the glue name template, unless `tplt` is `NULL` or `FALSE`, in which
+    #' case no action is taken.
+    #'
+    #' If `tplt` is a [glue](https://glue.tidyverse.org) template, the special
+    #' variable `.tag` refers to the original tag name. If `.tag` is not present
+    #' in the template, it is automatically added as a prefix.
+    #'
+    #' Currently, only the curly-brace (`{}`) syntax is supported.
+    #'
+    #' @param tplt   `NULL`, `logical`, or `character` (a
+    #'               [glue](https://glue.tidyverse.org) template).
+    #'
+    #' @returns
+    #' Invisibly returns `NULL`. This function is used for its side effects.
     ._set_name_template = function(tplt) {
 
       if (is.null(tplt) || (is.logical(tplt) && isFALSE(tplt)))
@@ -608,6 +646,8 @@ MSJoiner <- R6::R6Class(
       private$._name_template <- tplt
 
     },
+
+
 
 
 

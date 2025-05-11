@@ -535,13 +535,36 @@ MSJoiner <- R6::R6Class(
                                       # merging.
     n_col_ = NULL,                    # Number of columns in the `matrixset`
                                       # after merging.
-    new_traits_ = NULL,               #
-    ._n_margin = NULL,                #
-    margin_names_ = NULL,             #
-    ._margin_names_unique = NULL,     #
-    ._margin_names_new = NULL,        #
+
+
+
+    new_traits_ = NULL,               # Trait (metadata) names present in
+                                      # `new_info_` after merging.
+    ._n_margin = NULL,                # Number of elements (rows or columns) in
+                                      # `new_info_`, depending on the merge
+                                      # margin.
+    margin_names_ = NULL,             # Names along the merge margin after the
+                                      # merge operation, as defined in
+                                      # `new_info_`. Equivalent to
+                                      # ._margin_names_unique, except prior to
+                                      # matrix adjustment where they could
+                                      # differ.
+    ._original_margin_names = NULL,   # Original names along the merge margin in
+                                      # `x`, before merging.
+    ._margin_names_new = NULL,        # Names in the merged metadata that were
+                                      # not originally present in `x`.
+    ._lost_names = NULL,              # Names from `x` that are missing in the
+                                      # merged result.
+    ._new_names_unique = NULL,        # New names introduced by the merge that
+                                      # were not in `x`, once uniqueness has
+                                      # been ensured. `NULL` when there aren't
+                                      # any new names.
+    ._margin_names_unique = NULL,     # Version of `margin_names_` with enforced
+                                      # uniqueness (e.g., via suffixes).
     new_class_ = NULL,                #
     new_group_attrs_ = NULL,          #
+
+
 
     ._x = NULL,                       #
     ._y = NULL,                       #
@@ -678,7 +701,6 @@ MSJoiner <- R6::R6Class(
       }
 
 
-
       private$._x_traits <- c(.coltag(private$._x), .coltraits(private$._x))
       private$._y_traits <- if (private$._y_is_ms) {
         c(.coltag(private$._y), .coltraits(private$._y))
@@ -813,56 +835,89 @@ MSJoiner <- R6::R6Class(
 
       if (is.null(private$._by)) {
 
-        by <- NULL
-
         if (private$x_tag_ %in% private$._x_traits &&
             !is.null(private$._y_tag) && private$._y_tag %in% private$._y_traits) {
-
-          by <- private$._y_tag
-          names(by) <- private$x_tag_
-
+          private$._by <- setNames(private$._y_tag, private$x_tag_)
         } else {
-
-          by <- intersect(private$._x_traits, private$._y_traits)
-          if (length(by) == 0) {
-            msg <- "`by` must be supplied when `x` and `y` have no common variables."
-            stop(msg)
-          }
-
+          common <- intersect(private$._x_traits, private$._y_traits)
+          if (length(common) == 0)
+            stop("`by` must be supplied when `x` and `y` have no common variables.")
+          private$._by <- common
         }
-
-        private$._by <- by
-
       }
 
+      by <- private$._by
 
+      if (!is.character(by) && !is.list(by))
+        stop("`by` must be a (named) character vector, list, or NULL")
 
-      if (is.character(private$._by) || is.list(private$._by)) {
+      private$._assess_by_list_validity()
 
-        private$._assess_by_list_validity()
-
-        by_nms <- names(private$._by)
-        by <- unname(private$._by)
-
-        by <- unlist(by)
-
-        by_x <- by_nms %OR% by
-        by_y <- by
-
-      } else {
-        msg <- "`by` must be a (named) character vector, list, or NULL"
-        stop(msg)
-      }
+      by <- unlist(by)
+      by_x <- names(private$._by) %OR% by
+      by_y <- by
 
       private$._assess_by_vars(by_x, "x")
       private$._assess_by_vars(by_y, "y")
 
-
-      by <- by_y
-      names(by) <- by_x
-
-      private$._by <- by
+      private$._by <- setNames(by_y, by_x)
     },
+
+
+    # ._set_by_param = function() {
+    #
+    #   if (is.null(private$._by)) {
+    #
+    #     by <- NULL
+    #
+    #     if (private$x_tag_ %in% private$._x_traits &&
+    #         !is.null(private$._y_tag) && private$._y_tag %in% private$._y_traits) {
+    #
+    #       by <- private$._y_tag
+    #       names(by) <- private$x_tag_
+    #
+    #     } else {
+    #
+    #       by <- intersect(private$._x_traits, private$._y_traits)
+    #       if (length(by) == 0) {
+    #         msg <- "`by` must be supplied when `x` and `y` have no common variables."
+    #         stop(msg)
+    #       }
+    #
+    #     }
+    #
+    #     private$._by <- by
+    #
+    #   }
+    #
+    #
+    #
+    #   if (is.character(private$._by) || is.list(private$._by)) {
+    #
+    #     private$._assess_by_list_validity()
+    #
+    #     by_nms <- names(private$._by)
+    #     by <- unname(private$._by)
+    #
+    #     by <- unlist(by)
+    #
+    #     by_x <- by_nms %OR% by
+    #     by_y <- by
+    #
+    #   } else {
+    #     msg <- "`by` must be a (named) character vector, list, or NULL"
+    #     stop(msg)
+    #   }
+    #
+    #   private$._assess_by_vars(by_x, "x")
+    #   private$._assess_by_vars(by_y, "y")
+    #
+    #
+    #   by <- by_y
+    #   names(by) <- by_x
+    #
+    #   private$._by <- by
+    # },
 
 
 
@@ -876,32 +931,6 @@ MSJoiner <- R6::R6Class(
     },
 
 
-
-
-    ._warn_if_class_change = function() {
-
-      info_id <- if (private$._margin == "row") "row_info" else "column_info"
-
-      var_class_orig <- lapply(.subset2(private$._x, info_id), data.class)
-      var_class <- lapply(private$new_info_, data.class)
-
-      var_class_orig_kept <- var_class_orig[private$._x_traits %in% private$new_traits_]
-      var_class_still <- var_class[private$new_traits_ %in% private$._x_traits]
-
-      if (length(var_class_orig_kept) && length(var_class_still) &&
-          !identical(var_class_orig_kept, var_class_still)) {
-
-        idx <- purrr::map2_lgl(var_class_orig_kept, var_class_still,
-                               function(x, y) !identical(x, y))
-        chg_vars <- names(idx[idx])
-
-        warning(paste0("some traits have changed type (",
-                       stringr::str_flatten(sQuote(chg_vars), collapse = ", "),
-                       ")"),
-                call. = FALSE)
-      }
-
-    },
 
 
 
@@ -930,177 +959,242 @@ MSJoiner <- R6::R6Class(
 
 
 
+    #' @description
+    #' Private method.
+    #'
+    #' Assesses and assigns metadata after merging by checking and adjusting tag names and ensuring conformity with `matrixset` constraints.
+    #' It ensures metadata consistency (number of rows/columns, trait names), handles duplicates using suffixes, and validates that name changes are allowed depending on the `adjust` and `duplication_accepted` flags.
+    #'
+    #' @param suffix Character vector of length 2 used to disambiguate conflicting trait names in `x` and `y`.
+    #'
+    #' @returns
+    #' Invisibly returns `NULL`. Called for its side effects: updates internal fields related to metadata (`_n_margin`, `new_traits_`, `margin_names_`, etc.).
+
+    # ._assess_and_assign_meta = function(suffix) {
+    #
+    #
+    #   private$._n_margin <- nrow(private$new_info_)
+    #   private$new_traits_ <- colnames(private$new_info_)
+    #
+    #   private$._handle_trait_name_change(suffix)
+    #   private$._assess_names_unique()
+    #
+    #
+    #   if (private$._margin == "row") {
+    #     mrg_names <- rownames(private$._x)
+    #     mrg_names_comp <- colnames(private$._x)
+    #   } else {
+    #     mrg_names <- colnames(private$._x)
+    #     mrg_names_comp <- rownames(private$._x)
+    #   }
+    #   mrg_names_new <- private$new_info_[[private$x_tag_]]
+    #
+    #
+    #
+    #   private$margin_names_ <- mrg_names_new
+    #
+    #   if (private$._unique_names_post) {
+    #
+    #     private$._margin_names_unique <- mrg_names_new
+    #     new_names_unique <- NULL
+    #
+    #   } else {
+    #
+    #     if (!private$._duplication_accepted)
+    #       stop(
+    #         paste("'by' does not result in unique", private$._margin, "names")
+    #       )
+    #
+    #
+    #     private$._margin_names_unique <- private$._differentiate_names(mrg_names_new,
+    #                                                                    private$._n_margin)
+    #     new_names_unique <- setdiff(private$._margin_names_unique , mrg_names)
+    #
+    #     warning(
+    #       paste0(private$._margin, " names (", private$x_tag_,
+    #              ") have changed following matrix adjustment"),
+    #       call. = FALSE)
+    #
+    #
+    #   }
+    #
+    #
+    #   private$._margin_names_new <- setdiff(mrg_names_new, mrg_names)
+    #   lost_names <- setdiff(mrg_names, mrg_names_new)
+    #
+    #   has_new_names <- length(private$._margin_names_new) > 0
+    #   has_new_names_unique <- length(new_names_unique) > 0
+    #   has_lost_names <- length(lost_names) > 0
+    #
+    #
+    #
+    #   if (has_new_names || has_new_names_unique || has_lost_names)
+    #   {
+    #     if (!private$._adjust) {
+    #
+    #       tag <- if (private$._margin == "col") "columns" else "rows"
+    #       msg <- paste("the number of", tag,
+    #                    "is modified by the join operation, which is against",
+    #                    "the 'matrixset' paradigm. Use 'adjust' to still",
+    #                    "perform the operation.")
+    #       stop(msg)
+    #
+    #     }
+    #
+    #   }
+    #
+    # },
     ._assess_and_assign_meta = function(suffix) {
-
-
       private$._n_margin <- nrow(private$new_info_)
       private$new_traits_ <- colnames(private$new_info_)
 
       private$._handle_trait_name_change(suffix)
       private$._assess_names_unique()
 
-
-      if (private$._margin == "row") {
-        mrg_names <- rownames(private$._x)
-        mrg_names_comp <- colnames(private$._x)
-      } else {
-        mrg_names <- colnames(private$._x)
-        mrg_names_comp <- rownames(private$._x)
-      }
-      mrg_names_new <- private$new_info_[[private$x_tag_]]
+      private$._assign_margin_names()
+      private$._handle_name_uniqueness()
+      private$._check_adjust_validity()
+    },
 
 
 
-      private$margin_names_ <- mrg_names_new
+
+    #' @description
+    #' Identifies and stores the row or column names along the merge margin
+    #' before and after the join operation.
+    #' This includes tracking which names are new and which have been lost as a
+    #' result of the merge.
+    #'
+    #' @details
+    #' The function updates the following internal fields:
+    #' - `._original_margin_names`: Names of the original rows or columns before
+    #'   the merge.
+    #' - `margin_names_`: Names along the merge margin after merging, taken from
+    #'   the `new_info_` table.
+    #' - `._margin_names_new`: Names introduced by the merge (i.e., present in
+    #'   `margin_names_` but not in the original set).
+    #' - `._lost_names`: Names that were present before the merge but are no
+    #'   longer included in `margin_names_`.
+    #'
+    #' The merge margin (row or column) is determined by `private$._margin`.
+    ._assign_margin_names = function() {
+
+      private$._original_margin_names <- if (private$._margin == "row") rownames(private$._x) else colnames(private$._x)
+      private$margin_names_ <- private$new_info_[[private$x_tag_]]
+      private$._margin_names_new <- setdiff(private$margin_names_, private$._original_margin_names)
+      private$._lost_names <- setdiff(private$._original_margin_names, private$margin_names_)
+
+      },
+
+
+
+
+    #' @description
+    #' Ensures that the names along the merge margin are unique, either by
+    #' keeping them as-is (if already unique), or by disambiguating them when
+    #' allowed. Also detects and stores newly introduced unique names.
+    #'
+    #' @details
+    #' If `._unique_names_post` is `TRUE`, no disambiguation is needed, and
+    #' `._margin_names_unique` is set to `margin_names_`.
+    #'
+    #' If duplicate names exist and `._duplication_accepted` is `FALSE`, the
+    #' function throws an error.
+    #'
+    #' Otherwise, duplicate names are resolved using  `._differentiate_names()`,
+    #' and the list of new unique names (i.e., those not present in the original
+    #' margin names) is saved in `._new_names_unique`.
+    #'
+    #' A warning is issued when name disambiguation has occurred, indicating
+    #' that original tag values have changed.
+    ._handle_name_uniqueness = function() {
 
       if (private$._unique_names_post) {
 
-        private$._margin_names_unique <- mrg_names_new
-        new_names_unique <- NULL
+        private$._margin_names_unique <- private$margin_names_
+        private$._new_names_unique <- NULL
 
       } else {
 
         if (!private$._duplication_accepted)
-          stop(
-            paste("'by' does not result in unique", private$._margin, "names")
-          )
+          stop(paste("'by' does not result in unique", private$._margin, "names"))
 
+        private$._margin_names_unique <- private$._differentiate_names(
+          private$margin_names_,
+          private$._n_margin
+        )
 
-        private$._margin_names_unique <- private$._differentiate_names(mrg_names_new,
-                                                                       private$._n_margin)
-        new_names_unique <- setdiff(private$._margin_names_unique , mrg_names)
+        private$._new_names_unique <- setdiff(private$._margin_names_unique, private$._original_margin_names)
 
-        warning(
-          paste0(private$._margin, " names (", private$x_tag_,
-                 ") have changed following matrix adjustment"),
-          call. = FALSE)
-
-
+        warning(paste0(
+          private$._margin, " names (", private$x_tag_,
+          ") have changed following matrix adjustment"
+        ), call. = FALSE)
       }
 
-
-      private$._margin_names_new <- setdiff(mrg_names_new, mrg_names)
-      lost_names <- setdiff(mrg_names, mrg_names_new)
-
-      has_new_names <- length(private$._margin_names_new) > 0
-      has_new_names_unique <- length(new_names_unique) > 0
-      has_lost_names <- length(lost_names) > 0
+    },
 
 
 
-      if (has_new_names || has_new_names_unique || has_lost_names)
-      {
-        if (!private$._adjust) {
 
-          tag <- if (private$._margin == "col") "columns" else "rows"
-          msg <- paste("the number of", tag,
-                       "is modified by the join operation, which is against",
-                       "the 'matrixset' paradigm. Use 'adjust' to still",
-                       "perform the operation.")
-          stop(msg)
+    ##' @description
+    #' Validates that the structural integrity of the matrixset is preserved
+    #' when `adjust` is `FALSE`. If row or column names have changed (added,
+    #' lost, or renamed) and `adjust` is not enabled, the function stops with an
+    #' informative error.
+    #'
+    #' @details
+    #' The function checks whether any of the following occurred:
+    #' - New names were introduced (`._margin_names_new`)
+    #' - Newly generated disambiguated names exist (`._new_names_unique`)
+    #' - Original names were lost (`._lost_names`)
+    #'
+    #' If any of these apply, and `._adjust` is `FALSE`, the function halts the
+    #' operation with a message explaining that it would violate the matrixset
+    #' structural paradigm unless `adjust = TRUE` is specified.
+    ._check_adjust_validity = function() {
+      if (!private$._adjust &&
+          (length(private$._margin_names_new) > 0 ||
+           length(private$._new_names_unique %||% character(0)) > 0 ||
+           length(private$._lost_names) > 0)) {
 
-        }
-
+        tag <- if (private$._margin == "col") "columns" else "rows"
+        stop(paste(
+          "the number of", tag, "is modified by the join operation, which is against",
+          "the 'matrixset' paradigm. Use 'adjust' to still perform the operation."
+        ))
       }
+    },
 
 
-        # joined_names <- info[[x_tag]]           <--- OK   = mrg_names_new
-        # nms <- margin_names(.ms_x, margin)      <--- OK   = irrelevant
-        # x_names <- nms$nms                      <--- OK   = mrg_names
-        # compl_names <- nms$compl                <--- OK   = mrg_names_comp
-        #
-        #  OK
-        #  |
-        #  |
-        #  V
-        # joined_names_unique <- if (not_unique) {     <------ margin_names_unique
-        #   warning(paste0(margin, " names (", x_tag, ") have changed following matrix adjustment"), call. = FALSE)
-        #   unique_names(names_glue, x_tag, info)
-        # } else  NULL
-        #
-        #
-        # new_names <- setdiff(joined_names, x_names)
-        # new_names_unique <- setdiff(joined_names_unique, x_names)
-        # lost_names <- setdiff(x_names, joined_names)
-        #
-        # has_new_names <- length(new_names) > 0
-        # has_new_names_unique <- length(new_names_unique) > 0
-        # has_lost_names <- length(lost_names) > 0
-        #
-        #
-        # if (has_new_names || has_new_names_unique || has_lost_names)
-      #   {
-      #     if (adjust) {
-      #       nr <- if (margin == "row") ni else nrow(.ms_x)
-      #       nc <- if (margin == "row") ncol(.ms_x) else ni
-      #       mats <- .ms_x$matrix_set
-      #
-      #       if (has_new_names || has_new_names_unique) {
-      #
-      #         if (not_unique) {
-      #           info[[x_tag]] <- joined_names_unique
-      #         }
-      #
-      #         if (adjust_from_y) Y <- .ms_y$matrix_set
-      #         mats_nms <- names(mats)
-      #         mats <- lapply(mats_nms,
-      #                        function(m_nm) {
-      #                          m <- mats[[m_nm]]
-      #                          newm <- fill_matrix(m, margin, nr, nc, x_names,
-      #                                              joined_names, compl_names,
-      #                                              joined_names_unique)
-      #                          if (adjust_from_y) {
-      #                            if (m_nm %in% names(Y)) {
-      #                              y <- Y[[m_nm]]
-      #                              newm <- fill_from_y(newm, y, margin, new_names,
-      #                                                  compl_names, joined_names)
-      #                            }
-      #                          }
-      #                          newm
-      #                        })
-      #         names(mats) <- mats_nms
-      #
-      #       }
-      #
-      #
-      #       if (has_lost_names) {
-      #         mats <- lapply(mats,
-      #                        function(m) sub_matrix(m, margin, x_names, joined_names,
-      #                                               compl_names))
-      #       }
-      #
-      #
-      #       .ms_x$matrix_set <- mats
-      #       if (margin == "row") {
-      #         attr(.ms_x, "n_row") <- ni
-      #         attr(.ms_x, "row_names") <- if (is.null(joined_names_unique)) {
-      #           joined_names
-      #         } else joined_names_unique
-      #       } else {
-      #         attr(.ms_x, "n_col") <- ni
-      #         attr(.ms_x, "col_names") <- if (is.null(joined_names_unique)) {
-      #           joined_names
-      #         } else joined_names_unique
-      #       }
-      #
-      #
-      #     } else {
-      #       tag <- if (margin == "col") "columns" else "rows"
-      #       stop(paste("the number of", tag, "is modified by the join operation, which is against the 'matrixset' paradigm. Use 'adjust' to still perform the operation."))
-      #     }
-      #
-      #   }
 
 
-      # tag <- if (private$._margin == "row") "rows" else "columns"
 
-      # if (cond) {
-      #   msd <- paste("the number of", tag, "is modified by the join operation,",
-      #                "which is against the 'matrixset' paradigm. Use 'adjust'",
-      #                "to still perform the operation.")
-      #   stop(msg)
-      # }
 
+
+
+    ._warn_if_class_change = function() {
+
+      info_id <- if (private$._margin == "row") "row_info" else "column_info"
+
+      var_class_orig <- lapply(.subset2(private$._x, info_id), data.class)
+      var_class <- lapply(private$new_info_, data.class)
+
+      var_class_orig_kept <- var_class_orig[private$._x_traits %in% private$new_traits_]
+      var_class_still <- var_class[private$new_traits_ %in% private$._x_traits]
+
+      if (length(var_class_orig_kept) && length(var_class_still) &&
+          !identical(var_class_orig_kept, var_class_still)) {
+
+        idx <- purrr::map2_lgl(var_class_orig_kept, var_class_still,
+                               function(x, y) !identical(x, y))
+        chg_vars <- names(idx[idx])
+
+        warning(paste0("some traits have changed type (",
+                       stringr::str_flatten(sQuote(chg_vars), collapse = ", "),
+                       ")"),
+                call. = FALSE)
+      }
 
     },
 

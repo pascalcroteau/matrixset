@@ -1408,11 +1408,16 @@ MSJoiner <- R6::R6Class(
 
 
 
+    #' @description
+    #' Private Method
+    #'
+    #' Checks whether the margin names in `new_info_` are unique.
+    #'
+    #' Sets the internal flag `._unique_names_post` to `TRUE` if all names are
+    #' unique, or `FALSE` otherwise. Names are extracted from the column
+    #' indicated by `x_tag_`.
     ._assess_names_unique = function() {
 
-
-      # n_mrg <- nrow(private$._target_info$info)
-      # n_mrg <- nrow(private$new_info_)
       n_mrg <- private$._n_margin
       mrg_names <- private$new_info_[[private$x_tag_]]
 
@@ -1428,16 +1433,6 @@ MSJoiner <- R6::R6Class(
       }
 
       private$._unique_names_post <- !not_unique
-
-      # mrg_nm_id <- paste(private$._target_info$margin, "names_", sep = "_")
-      # mrg_nm_unq_id <- paste(private$._target_info$margin, "names_unique_", sep = "_")
-      #
-      # private[[mrg_nm_unq_id]] <- if (not_unique) {
-      #   private$._differentiate_names(mrg_names, n_mrg)
-      # } else mrg_names
-      #
-      # private[[mrg_nm_id]] <- mrg_names
-
 
     },
 

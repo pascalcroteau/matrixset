@@ -1357,6 +1357,26 @@ MSJoiner <- R6::R6Class(
     #
     # },
 
+
+    #' @description
+    #' Private Method
+    #'
+    #' Checks for and reports any trait name changes resulting from a join
+    #' operation.
+    #'
+    #' This function uses the trait name mapping stored in
+    #' `private$._trait_name_map`, where each original trait name maps to either
+    #' the same name (if unchanged) or a new name (if renamed). It also detects
+    #' traits that are no longer present in the updated data.
+    #'
+    #' If any traits have been renamed, a warning is issued showing the name
+    #' changes. If any traits have been lost entirely, a separate warning is
+    #' issued. If the margin name tag (i.e., `x_tag_`) is among the renamed
+    #' traits, it is automatically updated to reflect its new name.
+    #'
+    #' @note
+    #' This function should be called after `private$._trait_name_map` has been
+    #' populated by `.get_trait_name_map()`.
     ._handle_trait_name_change = function() {
 
       map <- private$._trait_name_map

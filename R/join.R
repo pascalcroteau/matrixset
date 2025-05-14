@@ -1440,52 +1440,22 @@ MSJoiner <- R6::R6Class(
 
 
 
-    # ._assess_names_uniqueness = function() {
-    #
-    #
-    #   # n_mrg <- nrow(private$._target_info$info)
-    #   # n_mrg <- nrow(private$new_info_)
-    #   n_mrg <- private$._n_margin
-    #   mrg_names <- private$new_info_[[private$x_tag_]]
-    #
-    #   not_unique <- FALSE
-    #   if (n_mrg > 0) {
-    #
-    #     n_tag <- table(mrg_names)
-    #     n_tag <- unique(n_tag)
-    #
-    #     if (length(n_tag) > 1 || n_tag > 1) {
-    #       if (!private$._duplication_accepted)
-    #         stop(
-    #           paste("'by' does not result in unique", private$._margin, "names")
-    #         )
-    #
-    #       warning(
-    #         paste0(private$._margin, " names (", private$x_tag_,
-    #                ") have changed following matrix adjustment"),
-    #         call. = FALSE)
-    #       not_unique <- TRUE
-    #     }
-    #   }
-    #
-    #   private$._unique_names_post <- !not_unique
-    #
-    #   # mrg_nm_id <- paste(private$._target_info$margin, "names_", sep = "_")
-    #   # mrg_nm_unq_id <- paste(private$._target_info$margin, "names_unique_", sep = "_")
-    #   #
-    #   # private[[mrg_nm_unq_id]] <- if (not_unique) {
-    #   #   private$._differentiate_names(mrg_names, n_mrg)
-    #   # } else mrg_names
-    #   #
-    #   # private[[mrg_nm_id]] <- mrg_names
-    #
-    #
-    # },
-
-
-
-
-
+    #' @description
+    #' Private Method
+    #'
+    #' Differentiate duplicate names using a specified template
+    #'
+    #' This function checks for duplicate names and differentiates them using a
+    #' custom template. If the template is "{.tag}", it simply makes names
+    #' unique. Otherwise, it generates new names based on the provided template
+    #' and ensures uniqueness.
+    #'
+    #' @param names     A character vector of names to be differentiated.
+    #' @param n_names   A numeric vector corresponding to the number of
+    #'                  occurrences of each name.
+    #'
+    #' @returns
+    #' A character vector of names, with duplicates differentiated if necessary.
     ._differentiate_names = function(names, n_names) {
 
       if (private$._name_template == "{.tag}") return(make_unique(names))
@@ -1494,7 +1464,6 @@ MSJoiner <- R6::R6Class(
       id_unq <- unique_id(names, n_names)
 
       working_df <- private$new_info_[id_unq > 0, ]
-      # working_df <- list2env(working_df, parent = emptyenv())
       working_df[[".tag"]] <- working_df[[private$x_tag_]]
       new_tag <- stringr::str_glue_data(private$._name_template, .x=working_df)
       if (length(unique(new_tag)) != length(new_tag))

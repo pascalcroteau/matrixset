@@ -575,6 +575,8 @@ MSJoiner <- R6::R6Class(
     x_tag_ = NULL,                    #
     ._y_tag = NULL,                   #
 
+    ._trait_name_map = NULL,          #
+
     ._margin = NULL,                  #
 
     ._by = NULL,                      #
@@ -1048,7 +1050,10 @@ MSJoiner <- R6::R6Class(
       private$._n_margin <- nrow(private$new_info_)
       private$new_traits_ <- colnames(private$new_info_)
 
-      private$._handle_trait_name_change(suffix)
+      private$._get_trait_name_map(suffix)
+
+      # private$._handle_trait_name_change(suffix)
+      private$._handle_trait_name_change()
       private$._assess_names_unique()
 
       private$._assign_margin_names()
@@ -1060,6 +1065,8 @@ MSJoiner <- R6::R6Class(
 
 
     #' @description
+    #' Private Method
+    #'
     #' Identifies and stores the row or column names along the merge margin
     #' before and after the join operation.
     #' This includes tracking which names are new and which have been lost as a
@@ -1090,6 +1097,8 @@ MSJoiner <- R6::R6Class(
 
 
     #' @description
+    #' Private Method
+    #'
     #' Ensures that the names along the merge margin are unique, either by
     #' keeping them as-is (if already unique), or by disambiguating them when
     #' allowed. Also detects and stores newly introduced unique names.
@@ -1137,7 +1146,9 @@ MSJoiner <- R6::R6Class(
 
 
 
-    ##' @description
+    #' @description
+    #' Private Method
+    #'
     #' Validates that the structural integrity of the matrixset is preserved
     #' when `adjust` is `FALSE`. If row or column names have changed (added,
     #' lost, or renamed) and `adjust` is not enabled, the function stops with an
@@ -1172,69 +1183,207 @@ MSJoiner <- R6::R6Class(
 
 
 
+    #' Generate a map of original to current trait names
+    #'
+    #' Creates a named character vector that maps each original trait name (before the join)
+    #' to its corresponding name after the join. If a trait has been renamed using the provided suffix,
+    #' the new name is recorded. Traits that did not change names are mapped to themselves.
+    #'
+    #' This mapping is stored in the private field \code{._trait_name_map} for later reference,
+    #' such as when checking for type consistency or displaying renamed traits.
+    #'
+    #' @param suffix A character string appended to original trait names that were renamed
+    #'               to avoid conflicts during the join operation.
+    #'
+    #' @return Invisibly returns \code{NULL}. Updates \code{private$._trait_name_map}.
+    #'
+    #' @keywords internal
+    ._get_trait_name_map = function(suffix) {
 
+      original <- private$._x_traits
+      current <- private$new_traits_
+
+      name_map <- setNames(original, original)
+
+      renamed <- original[!(original %in% current)]
+      renamed_new <- paste0(renamed, suffix)
+      renamed_valid <- renamed[renamed_new %in% current]
+
+      name_map[renamed_valid] <- renamed_new
+
+      private$._trait_name_map <- name_map
+    },
+
+
+
+
+
+
+
+
+
+    #' @description
+    #' Issues a warning if any trait variable has changed its class (type) after
+    #' a join or update.
+    #'
+    #' @details
+    #' This function compares the classes of the trait variables in the original
+    #' metadata (`row_info` or `column_info`) with those in the updated metadata
+    #' (`new_info_`) along the current merge margin (`row` or `column`).
+    #'
+    #' Only the traits present in both the original and new metadata are checked.
+    #' If any of them differ in class, a warning is issued listing the affected
+    #' trait names.
+    #'
+    #' The comparison ensures that traits with the same name remain semantically
+    #' compatible after a join. For example, a trait that was originally a
+    #' `character` should not become a `factor`, `numeric`, or other class
+    #' unless explicitly intended.
+    #'
+    #' @note
+    #' This function does not stop execution but only warns the user of possible
+    #' unintended trait reinterpretation.
+    # ._warn_if_class_change = function() {
+    #
+    #   info_id <- if (private$._margin == "row") "row_info" else "column_info"
+    #
+    #   var_class_orig <- lapply(.subset2(private$._x, info_id), data.class)
+    #   var_class <- lapply(private$new_info_, data.class)
+    #
+    #   var_class_orig_kept <- var_class_orig[private$._x_traits %in% private$new_traits_]
+    #   var_class_still <- var_class[private$new_traits_ %in% private$._x_traits]
+    #
+    #   if (length(var_class_orig_kept) && length(var_class_still) &&
+    #       !identical(var_class_orig_kept, var_class_still)) {
+    #
+    #     idx <- purrr::map2_lgl(var_class_orig_kept, var_class_still,
+    #                            function(x, y) !identical(x, y))
+    #     chg_vars <- names(idx[idx])
+    #
+    #     warning(paste0("some traits have changed type (",
+    #                    stringr::str_flatten(sQuote(chg_vars), collapse = ", "),
+    #                    ")"),
+    #             call. = FALSE)
+    #   }
+    #
+    # },
+
+
+
+    #' @description
+    #' Private Method
+    #'
+    #' Issues a warning if any traits (variables) in the margin metadata have
+    #' changed class after a join or merge operation. This comparison uses the
+    #' mapping of original to current trait names stored in
+    #' `private$._trait_name_map`, which accounts for potential renaming of
+    #' traits (e.g., due to suffixing).
+    #'
+    #' @details
+    #' This function compares the class of each trait before and after the join
+    #' by aligning original and new trait names through the internal trait name
+    #' map. If any trait has a class that differs from its original version, a
+    #' warning is issued. Only traits that exist both before and after (as
+    #' determined by the map) are considered.
     ._warn_if_class_change = function() {
 
+      # Determine the appropriate metadata slot based on the margin
       info_id <- if (private$._margin == "row") "row_info" else "column_info"
 
+      # Get the original trait classes from the input object
       var_class_orig <- lapply(.subset2(private$._x, info_id), data.class)
+
+      # Get the updated trait classes from the new metadata
       var_class <- lapply(private$new_info_, data.class)
 
-      var_class_orig_kept <- var_class_orig[private$._x_traits %in% private$new_traits_]
-      var_class_still <- var_class[private$new_traits_ %in% private$._x_traits]
+      # Map original trait names to their new names using the name map
+      name_map <- private$._trait_name_map %||% setNames(private$._x_traits, private$._x_traits)
 
-      if (length(var_class_orig_kept) && length(var_class_still) &&
-          !identical(var_class_orig_kept, var_class_still)) {
+      # Filter original and new classes to matched pairs based on the map
+      matched_old <- name_map %in% names(var_class)
+      var_class_orig_mapped <- var_class_orig[names(name_map)[matched_old]]
+      var_class_new_mapped <- var_class[name_map[matched_old]]
 
-        idx <- purrr::map2_lgl(var_class_orig_kept, var_class_still,
-                               function(x, y) !identical(x, y))
-        chg_vars <- names(idx[idx])
+      # Compare the classes and report any mismatches
+      if (length(var_class_orig_mapped) && length(var_class_new_mapped) &&
+          !identical(unname(var_class_orig_mapped), unname(var_class_new_mapped))) {
+
+        changed <- purrr::map2_lgl(var_class_orig_mapped, var_class_new_mapped,
+                                   function(x, y) !identical(x, y))
+
+        changed_vars <- names(changed[changed])
 
         warning(paste0("some traits have changed type (",
-                       stringr::str_flatten(sQuote(chg_vars), collapse = ", "),
+                       stringr::str_flatten(sQuote(changed_vars), collapse = ", "),
                        ")"),
                 call. = FALSE)
       }
-
     },
 
 
 
 
-    ._handle_trait_name_change = function(suffix) {
+    # ._handle_trait_name_change = function(suffix) {
+    #
+    #   tr <- private$new_traits_
+    #
+    #   if (any(notin <- !(private$._x_traits %in% tr))) {
+    #     notin <- private$._x_traits[notin]
+    #     chg_to <- paste0(notin, suffix)
+    #     if (any(gone <- !(chg_to %in% tr))) {
+    #       gone_away <- notin[gone]
+    #       chg_to <- chg_to[!gone]
+    #     }
+    #
+    #     # somehow the column with the names had a name change
+    #     if (private$x_tag_ %in% notin) {
+    #       if (private$x_tag_ %in% gone_away)
+    #         stop("The column holding the margin names has disapeared")
+    #
+    #       private$x_tag_ <- chg_to[notin == private$x_tag_]
+    #     }
+    #
+    #     chg_to_msg <- paste(paste("", paste(shQuote(notin[!gone]), shQuote(chg_to),
+    #                                         sep = " -> ")), collapse = "\n")
+    #
+    #     warning(paste0("some traits have changed name:\n", chg_to_msg),
+    #             call. = FALSE)
+    #     if (any(gone)) {
+    #       warning(paste0("some traits have disappeared: ",
+    #                      stringr::str_flatten_comma(sQuote(gone_away)),
+    #                      call. = FALSE))
+    #     }
+    #   }
+    #
+    # },
 
-      tr <- private$new_traits_
-      # tr <- colnames(private$new_info_ )
+    ._handle_trait_name_change = function() {
 
-      if (any(notin <- !(private$._x_traits %in% tr))) {
-        notin <- private$._x_traits[notin]
-        chg_to <- paste0(notin, suffix)
-        if (any(gone <- !(chg_to %in% tr))) {
-          gone_away <- notin[gone]
-          chg_to <- chg_to[!gone]
-        }
+      map <- private$._trait_name_map
+      unchanged <- names(map)[map == names(map)]
+      renamed <- names(map)[map != names(map)]
 
-        # somehow the column with the names had a name change
-        if (private$x_tag_ %in% notin) {
-          if (private$x_tag_ %in% gone_away)
-            stop("The column holding the margin names has disapeared")
+      if (length(renamed) > 0) {
+        chg_to_msg <- paste(paste("", paste(shQuote(renamed), "->", shQuote(map[renamed]))),
+                            collapse = "\n")
 
-          private$x_tag_ <- chg_to[notin == private$x_tag_]
-        }
+        warning(paste0("some traits have changed name:\n", chg_to_msg), call. = FALSE)
+      }
 
-        chg_to_msg <- paste(paste("", paste(shQuote(notin[!gone]), shQuote(chg_to),
-                                            sep = " -> ")), collapse = "\n")
-
-        warning(paste0("some traits have changed name:\n", chg_to_msg),
+      gone <- setdiff(private$._x_traits, names(map))
+      if (length(gone) > 0) {
+        warning(paste0("some traits have disappeared: ",
+                       stringr::str_flatten_comma(sQuote(gone))),
                 call. = FALSE)
-        if (any(gone)) {
-          warning(paste0("some traits have disappeared: ",
-                         stringr::str_flatten_comma(sQuote(gone_away)),
-                         call. = FALSE))
-        }
+      }
+
+      # Update x_tag_ if its name changed
+      if (private$x_tag_ %in% renamed) {
+        private$x_tag_ <- map[[private$x_tag_]]
       }
 
     },
+
 
 
 

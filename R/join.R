@@ -866,61 +866,6 @@ MSJoiner <- R6::R6Class(
     },
 
 
-    # ._set_by_param = function() {
-    #
-    #   if (is.null(private$._by)) {
-    #
-    #     by <- NULL
-    #
-    #     if (private$x_tag_ %in% private$._x_traits &&
-    #         !is.null(private$._y_tag) && private$._y_tag %in% private$._y_traits) {
-    #
-    #       by <- private$._y_tag
-    #       names(by) <- private$x_tag_
-    #
-    #     } else {
-    #
-    #       by <- intersect(private$._x_traits, private$._y_traits)
-    #       if (length(by) == 0) {
-    #         msg <- "`by` must be supplied when `x` and `y` have no common variables."
-    #         stop(msg)
-    #       }
-    #
-    #     }
-    #
-    #     private$._by <- by
-    #
-    #   }
-    #
-    #
-    #
-    #   if (is.character(private$._by) || is.list(private$._by)) {
-    #
-    #     private$._assess_by_list_validity()
-    #
-    #     by_nms <- names(private$._by)
-    #     by <- unname(private$._by)
-    #
-    #     by <- unlist(by)
-    #
-    #     by_x <- by_nms %OR% by
-    #     by_y <- by
-    #
-    #   } else {
-    #     msg <- "`by` must be a (named) character vector, list, or NULL"
-    #     stop(msg)
-    #   }
-    #
-    #   private$._assess_by_vars(by_x, "x")
-    #   private$._assess_by_vars(by_y, "y")
-    #
-    #
-    #   by <- by_y
-    #   names(by) <- by_x
-    #
-    #   private$._by <- by
-    # },
-
 
 
 
@@ -964,95 +909,25 @@ MSJoiner <- R6::R6Class(
     #' @description
     #' Private method.
     #'
-    #' Assesses and assigns metadata after merging by checking and adjusting tag names and ensuring conformity with `matrixset` constraints.
-    #' It ensures metadata consistency (number of rows/columns, trait names), handles duplicates using suffixes, and validates that name changes are allowed depending on the `adjust` and `duplication_accepted` flags.
+    #' Assesses and assigns metadata after merging by checking and adjusting tag
+    #' names and ensuring conformity with `matrixset` constraints.
+    #' It ensures metadata consistency (number of rows/columns, trait names),
+    #' handles duplicates using suffixes, and validates that name changes are
+    #' allowed depending on the `adjust` and `duplication_accepted` flags.
     #'
-    #' @param suffix Character vector of length 2 used to disambiguate conflicting trait names in `x` and `y`.
+    #' @param suffix   Character vector of length 2 used to disambiguate
+    #'                 conflicting trait names in `x` and `y`.
     #'
     #' @returns
-    #' Invisibly returns `NULL`. Called for its side effects: updates internal fields related to metadata (`_n_margin`, `new_traits_`, `margin_names_`, etc.).
-
-    # ._assess_and_assign_meta = function(suffix) {
-    #
-    #
-    #   private$._n_margin <- nrow(private$new_info_)
-    #   private$new_traits_ <- colnames(private$new_info_)
-    #
-    #   private$._handle_trait_name_change(suffix)
-    #   private$._assess_names_unique()
-    #
-    #
-    #   if (private$._margin == "row") {
-    #     mrg_names <- rownames(private$._x)
-    #     mrg_names_comp <- colnames(private$._x)
-    #   } else {
-    #     mrg_names <- colnames(private$._x)
-    #     mrg_names_comp <- rownames(private$._x)
-    #   }
-    #   mrg_names_new <- private$new_info_[[private$x_tag_]]
-    #
-    #
-    #
-    #   private$margin_names_ <- mrg_names_new
-    #
-    #   if (private$._unique_names_post) {
-    #
-    #     private$._margin_names_unique <- mrg_names_new
-    #     new_names_unique <- NULL
-    #
-    #   } else {
-    #
-    #     if (!private$._duplication_accepted)
-    #       stop(
-    #         paste("'by' does not result in unique", private$._margin, "names")
-    #       )
-    #
-    #
-    #     private$._margin_names_unique <- private$._differentiate_names(mrg_names_new,
-    #                                                                    private$._n_margin)
-    #     new_names_unique <- setdiff(private$._margin_names_unique , mrg_names)
-    #
-    #     warning(
-    #       paste0(private$._margin, " names (", private$x_tag_,
-    #              ") have changed following matrix adjustment"),
-    #       call. = FALSE)
-    #
-    #
-    #   }
-    #
-    #
-    #   private$._margin_names_new <- setdiff(mrg_names_new, mrg_names)
-    #   lost_names <- setdiff(mrg_names, mrg_names_new)
-    #
-    #   has_new_names <- length(private$._margin_names_new) > 0
-    #   has_new_names_unique <- length(new_names_unique) > 0
-    #   has_lost_names <- length(lost_names) > 0
-    #
-    #
-    #
-    #   if (has_new_names || has_new_names_unique || has_lost_names)
-    #   {
-    #     if (!private$._adjust) {
-    #
-    #       tag <- if (private$._margin == "col") "columns" else "rows"
-    #       msg <- paste("the number of", tag,
-    #                    "is modified by the join operation, which is against",
-    #                    "the 'matrixset' paradigm. Use 'adjust' to still",
-    #                    "perform the operation.")
-    #       stop(msg)
-    #
-    #     }
-    #
-    #   }
-    #
-    # },
+    #' Invisibly returns `NULL`. Called for its side effects: updates internal
+    #' fields related to metadata (`_n_margin`, `new_traits_`, `margin_names_`,
+    #' etc.).
     ._assess_and_assign_meta = function(suffix) {
       private$._n_margin <- nrow(private$new_info_)
       private$new_traits_ <- colnames(private$new_info_)
 
       private$._get_trait_name_map(suffix)
 
-      # private$._handle_trait_name_change(suffix)
       private$._handle_trait_name_change()
       private$._assess_names_unique()
 
@@ -1216,57 +1091,6 @@ MSJoiner <- R6::R6Class(
 
 
 
-
-
-
-
-
-
-    #' @description
-    #' Issues a warning if any trait variable has changed its class (type) after
-    #' a join or update.
-    #'
-    #' @details
-    #' This function compares the classes of the trait variables in the original
-    #' metadata (`row_info` or `column_info`) with those in the updated metadata
-    #' (`new_info_`) along the current merge margin (`row` or `column`).
-    #'
-    #' Only the traits present in both the original and new metadata are checked.
-    #' If any of them differ in class, a warning is issued listing the affected
-    #' trait names.
-    #'
-    #' The comparison ensures that traits with the same name remain semantically
-    #' compatible after a join. For example, a trait that was originally a
-    #' `character` should not become a `factor`, `numeric`, or other class
-    #' unless explicitly intended.
-    #'
-    #' @note
-    #' This function does not stop execution but only warns the user of possible
-    #' unintended trait reinterpretation.
-    # ._warn_if_class_change = function() {
-    #
-    #   info_id <- if (private$._margin == "row") "row_info" else "column_info"
-    #
-    #   var_class_orig <- lapply(.subset2(private$._x, info_id), data.class)
-    #   var_class <- lapply(private$new_info_, data.class)
-    #
-    #   var_class_orig_kept <- var_class_orig[private$._x_traits %in% private$new_traits_]
-    #   var_class_still <- var_class[private$new_traits_ %in% private$._x_traits]
-    #
-    #   if (length(var_class_orig_kept) && length(var_class_still) &&
-    #       !identical(var_class_orig_kept, var_class_still)) {
-    #
-    #     idx <- purrr::map2_lgl(var_class_orig_kept, var_class_still,
-    #                            function(x, y) !identical(x, y))
-    #     chg_vars <- names(idx[idx])
-    #
-    #     warning(paste0("some traits have changed type (",
-    #                    stringr::str_flatten(sQuote(chg_vars), collapse = ", "),
-    #                    ")"),
-    #             call. = FALSE)
-    #   }
-    #
-    # },
 
 
 

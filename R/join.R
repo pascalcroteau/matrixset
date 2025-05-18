@@ -1479,37 +1479,37 @@ MSJoiner <- R6::R6Class(
 
 
 
+    #' @description
+    #' Private Method
+    #'
+    #' Constructs an environment containing metadata about the matrix structure
+    #' after joining. This environment is used internally by `MatrixMeta` to
+    #' guide structural adjustments.
+    #'
+    #' @returns
+    #' An `environment` with the following bindings:
+    #'
+    #' - `size`:                     Integer. Number of elements along the join
+    #'                               margin.
+    #' - `margin`:                   `"row"` or `"col"`. The margin being joined.
+    #' - `margin_comp`:              The complementary margin (e.g., `"col"` if
+    #'                               `margin == "row"`).
+    #' - `margin_names`:             Character vector. Names along the join
+    #'                               margin after merging.
+    #' - `margin_names_unique`:      Character vector. Unique version of
+    #'                               `margin_names`.
+    #' - `margin_comp_names`:        Character vector. Names along the
+    #'                               complementary margin.
+    #' - `margin_comp_names_unique`: Identical to `margin_comp_names` (no
+    #'                               adjustment expected).
     ._target_meta = function() {
 
       enclos = new.env(parent = emptyenv())
 
-      # enclos$info <- private$new_info_
-      enclos$size <- nrow(private$new_info_)
+      # enclos$size <- nrow(private$new_info_)
+      enclos$size <- private$._n_margin
       enclos$margin <- private$._margin
       enclos$margin_comp <- if (private$._margin == "row") "col" else "row"
-      # enclos$tag <- private$x_tag_
-      # enclos$duplication_accepted <- !is.null(private$._name_template)
-      # enclos$name_template <- private$._name_template
-
-
-      # mrg_names <- private$new_info_[[private$x_tag_]]
-      #
-      # enclos$margin_names_unique <- if (private$._unique_names_post) {
-      #   mrg_names
-      # } else private$._differentiate_names(mrg_names, nrow(private$new_info_))
-      #
-      #
-      # mrg_comp_names <- if (private$._margin == "row") {
-      #   colnames(private$._x)
-      # } else {
-      #   rownames(private$._x)
-      # }
-      #
-      # enclos$margin_names <- mrg_names
-      # enclos$margin_comp_names <- mrg_comp_names
-      # enclos$margin_comp_names_unique <- mrg_comp_names
-
-
 
       enclos$margin_names_unique <- private$._margin_names_unique
 
@@ -1532,6 +1532,33 @@ MSJoiner <- R6::R6Class(
 
 
 
+    #' @description
+    #' Project Method
+    #'
+    #' Sets or adjusts the matrix set (`matrix_set`) component of the object
+    #' after the join.
+    #'
+    #' @details
+    #' This function updates the internal matrix set and its dimensions to
+    #' reflect the post-join structure. If `adjust = TRUE`, the function uses
+    #' `MatrixMeta` and  `MatrixAdjuster` to align the `matrix_set` along the
+    #' new margin layout.
+    #'
+    #' The adjustment process ensures that matrix dimensions and names remain
+    #' consistent with the newly joined info table. It supports the addition of
+    #' rows or columns when necessary (e.g., in `from_y` adjustments).
+    #'
+    #' If no adjustment is requested, the original matrix set is preserved as-is.
+    #'
+    #' @section Behavior:
+    #' - Updates `private$new_matrix_set_` with the adjusted or original matrix
+    #'   set.
+    #' - Updates `private$n_row_` and `private$n_col_` to reflect new dimensions.
+    #' - If adjustment is enabled, also updates:
+    #'   - `private$margin_names_` with unique margin names.
+    #'   - The corresponding margin name column in `private$new_info_`.
+    #'
+    #' @seealso [MatrixMeta], [MatrixAdjuster]
     ._set_matrixset = function() {
 
       if (private$._adjust) {
@@ -1547,13 +1574,6 @@ MSJoiner <- R6::R6Class(
         private$n_col_ <- matrix_meta$n_col
 
         private$margin_names_ <- private$._margin_names_unique
-        # private$margin_names_ <-  private$new_info_[[private$x_tag_]]
-        # private$margin_names_ <- if (private$._margin == "row") {
-        #   matrix_meta$row_names_unique
-        # } else {
-        #   matrix_meta$col_names_unique
-        # }
-        # if (is.null(private$margin_names_)) private$margin_names_ <- character(0)
         private$new_info_[[private$x_tag_]] <- private$margin_names_
 
 
@@ -1575,23 +1595,7 @@ MSJoiner <- R6::R6Class(
       private$n_row_ <- nrow(private$._x)
       private$n_col_ <- ncol(private$._x)
 
-      # private$margin_names_ <- if (private$._margin == "row") {
-      #   rownames(private$._x)
-      # } else {
-      #   colnames(private$._x)
-      # }
-
       private$new_matrix_set_ <- .subset2(private$._x, "matrix_set")
-
-
-      # attributes(.ms_x) <- attrs
-      # class(.ms_x) <- meta$class
-      # if (is.null(meta$attrs$group_vars)) class(.ms_x) <- "matrixset"
-      # if (!is.null(meta$attrs$group_vars)) {
-      #
-      # } else class(.ms_x) <- "matrixset"
-
-
 
     },
 

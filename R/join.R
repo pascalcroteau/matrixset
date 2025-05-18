@@ -1602,6 +1602,20 @@ MSJoiner <- R6::R6Class(
 
 
 
+    #' @description
+    #' Private Method
+    #'
+    #' Updates the grouping structure of the matrix set after the merge
+    #' operation.
+    #'
+    #' This function compares the original and new grouping metadata for the
+    #' relevant margin (row or column). If the grouping keys have changed, it
+    #' issues a warning. It also determines the appropriate class for the new
+    #' matrix set object and stores updated group attributes.
+    #'
+    #' If grouping variables are no longer defined after the merge, the matrix
+    #' set class is downgraded accordingly (e.g., from `"dual_grouped_ms"` to `
+    #' "col_grouped_ms"` or `"row_grouped_ms"`).
     ._set_group_structure = function() {
 
       info_id <- if (private$._margin == "row") "row_info" else "column_info"
@@ -1610,16 +1624,13 @@ MSJoiner <- R6::R6Class(
                                   class(private$._x), private$._margin)
       meta <- get_group_info(private$new_info_, class(private$._x),
                              private$._margin)
-      # meta_comp <- get_group_info(.subset2(private$._x, info_comp_id),
-      #                             class(private$._x), margin_comp)
+
       if (!identical(meta_orig$attrs$group_keys, meta$attrs$group_keys))
         warning("grouping structure of '.ms_x' has changed.", call. = FALSE)
-      # attrs <- set_group_attrs(attributes(private$._x), meta$attrs,
-      #                          private$._margin)
 
       new_class <- meta$class
       if (is.null(meta$attrs$group_vars)) {
-        # new_class <- "matrixset"
+
         demoted_class <- if (private$._margin == "row") {
           "col_grouped_ms"
         }  else {
@@ -1631,18 +1642,12 @@ MSJoiner <- R6::R6Class(
       }
 
       names(meta$attrs) <- paste(private$._margin, names(meta$attrs), sep = "_")
-      # names(meta_comp$attrs) <- paste(margin_comp, names(meta_comp$attrs),
-      #                                 sep = "_")
 
       private$new_class_ <- new_class
       private$new_group_attrs_ <- meta$attrs
 
     }
 
-
-
-
-#BUILD NEW OBJECT!!!!!!
 
 
   )

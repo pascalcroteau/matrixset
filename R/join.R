@@ -561,33 +561,65 @@ MSJoiner <- R6::R6Class(
                                       # any new names.
     ._margin_names_unique = NULL,     # Version of `margin_names_` with enforced
                                       # uniqueness (e.g., via suffixes).
-    new_class_ = NULL,                #
-    new_group_attrs_ = NULL,          #
+    new_class_ = NULL,                # updated class vector to be assigned to
+                                      # the output matrixset, based on the
+                                      # grouping structure after the join. For
+                                      # example, it may become "matrixset",
+                                      # "row_grouped_ms", or "dual_grouped_ms".
+    new_group_attrs_ = NULL,          # named list of updated grouping a
+                                      # ttributes (e.g., group keys, group
+                                      # variables) to be attached to the
+                                      # resulting metadata.
 
 
+    `._x` = NULL,                     # The source `matrixset` object to be
+                                      # updated (typically `.ms_x`). Contains
+                                      # the matrices and associated metadata.
+    `._y` = NULL,                     # The object to be joined with `._x`. Can
+                                      # be a `data.frame` or another `matrixset`.
+    `._y_is_ms` = logical(),          # Logical flag indicating whether `._y` is
+                                      # a `matrixset`. Affects how the metadata
+                                      # and traits are handled.
 
-    ._x = NULL,                       #
-    ._y = NULL,                       #
-    ._y_is_ms = logical(),            #
+    `._x_traits` = NULL,              # Names of metadata traits in `._x`
+                                      # (excluding the ID tag column). Used to
+                                      # determine which columns are eligible for
+                                      # joining.
+    `._y_traits` = NULL,              # Names of traits in `._y` that are
+                                      # matched to and merged with `._x_traits`.                                                  |
+    `x_tag_` = NULL,                  # Name of the column in `._x` metadata
+                                      # that identifies margin IDs (rownames or
+                                      # colnames).
+    `._y_tag` = NULL,                 # Name of the column in `._y` used to
+                                      # identify margin IDs.
 
-    ._x_traits = NULL,                #
-    ._y_traits = NULL,                #
-    x_tag_ = NULL,                    #
-    ._y_tag = NULL,                   #
+    `._trait_name_map` = NULL,        # Named vector mapping original trait
+                                      # names in `._x` to their post-join names,
+                                      # including suffix adjustments where
+                                      # applicable.
 
-    ._trait_name_map = NULL,          #
+    `._margin` = NULL,                # The margin being joined: `"row"` or
+                                      # `"column"`. Determines which side of the
+                                      # `matrixset` metadata is targeted.
+    `._by` = NULL,                    # Join key(s) used for merging metadata.
+                                      # Usually inferred from tag columns but
+                                      # can be set explicitly.
+    `._adjust` = NULL,                # Logical flag indicating whether the
+                                      # `matrix_set` itself should be adjusted
+                                      # based on updated metadata.
+    `._adjust_method` = NULL,         # Method used for matrix adjustment (e.g.,
+                                      # `"from_y"`), specifying how to expand or
+                                      # align the matrix dimensions.
 
-    ._margin = NULL,                  #
-
-    ._by = NULL,                      #
-
-    ._adjust = NULL,                  #
-    ._adjust_method = NULL,           #
-
-    ._name_template = NULL,           #
-    ._duplication_accepted = NULL,    #
-    ._unique_names_post = TRUE,       #
-
+    `._name_template` = NULL,         # String template (e.g., `"{.tag}"`) for
+                                      # generating or disambiguating margin
+                                      # names after merging.
+    `._duplication_accepted` = NULL,  # Logical flag set to `TRUE` when name
+                                      # duplication is allowed (typically when
+                                      # `._name_template` is used).
+    `._unique_names_post` = NULL,     # Logical flag indicating whether margin
+                                      # names are unique after merging. Used for
+                                      # post-join validation.
 
 
 

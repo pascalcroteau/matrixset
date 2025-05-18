@@ -869,6 +869,22 @@ MSJoiner <- R6::R6Class(
 
 
 
+    #' @description
+    #' Private Method
+    #'
+    #' Initializes internal metadata used to manage the merge process.
+    #'
+    #' @details
+    #' This method sets flags and extracts relevant components from the source
+    #' object before performing the actual join. In particular:
+    #'
+    #' - Sets whether duplicated names are accepted based on whether a name
+    #'   template is provided.
+    #' - Extracts trait names from the input object (`._set_traits()`).
+    #' - Extracts tag values (i.e., margin identifiers) via `._set_tags()`.
+    #' - Resolves the join keys using `._set_by_param()`.
+    #'
+    #' This step is required prior to invoking the actual join.
     ._set_meta = function() {
 
       private$._duplication_accepted <- !is.null(private$._name_template)
@@ -881,6 +897,31 @@ MSJoiner <- R6::R6Class(
 
 
 
+    #' @description
+    #' Private Method
+    #'
+    #' Performs the actual join between the margin-level metadata of `.ms_x` and
+    #' the input data.
+    #'
+    #' @param type         The type of join to perform (e.g., `"left"`,
+    #'                     `"right"`, `"inner"`).
+    #' @param suffix       Character vector of length 2 providing suffixes for
+    #'                     renamed overlapping columns.
+    #' @param na_matches   How `NA` values should be matched. Passed to `dplyr`
+    #'                     join.
+    #'
+    #' @details
+    #' Uses a join function from `dplyr` (e.g., `left_join`, `inner_join`, etc.)
+    #' dynamically selected based on the `type` argument. The function builds a
+    #' join call with the appropriate inputs:
+    #'
+    #' - The metadata from `.ms_x` for the current margin (row or column).
+    #' - The data to be joined (`private$._y`), which may be another `matrixset` or a standalone `data.frame`.
+    #'
+    #' The result of the join is stored in `private$new_info_`.
+    #'
+    #' If the join type supports suffixes (i.e., is not a filter join like
+    #' `semi` or `anti`), suffixes are passed along.
     ._join = function(type, suffix, na_matches) {
 
       join_fn <- getFromNamespace(paste0(type, "_join"), "dplyr")

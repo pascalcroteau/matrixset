@@ -624,6 +624,25 @@ MSJoiner <- R6::R6Class(
 
 
 
+    #' Private Method
+    #'
+    #' Get Metadata Slot Name Based on Margin
+    #' Returns the appropriate metadata slot name from the `matrixset` object
+    #' depending on whether the join is done by row or column.
+    #'
+    #' @return A string: `"row_info"` if the margin is `"row"`,
+    #' otherwise `"column_info"`.
+    ._get_info_id = function() {
+      if (private$._margin == "row") "row_info" else "column_info"
+    },
+
+
+    ._get_trait_attr_id = function() {
+      if (private$._margin == "row") "row_traits" else "col_traits"
+    },
+
+
+
 
 
     #' Private Method
@@ -722,22 +741,11 @@ MSJoiner <- R6::R6Class(
     #' Invisible `NULL`. Called for its side effects.
     ._set_traits = function() {
 
-      if (private$._margin == "row") {
+      trait_attr_id <- private$._get_trait_attr_id()
 
-        private$._x_traits <- c(.rowtag(private$._x), .rowtraits(private$._x))
-        private$._y_traits <- if (private$._y_is_ms) {
-          c(.rowtag(private$._y), .rowtraits(private$._y))
-        } else {
-          colnames(private$._y)
-        }
-
-        return()
-      }
-
-
-      private$._x_traits <- c(.coltag(private$._x), .coltraits(private$._x))
+      private$._x_traits <- attr(private$._x, trait_attr_id)
       private$._y_traits <- if (private$._y_is_ms) {
-        c(.coltag(private$._y), .coltraits(private$._y))
+        attr(private$._y, trait_attr_id)
       } else {
         colnames(private$._y)
       }
@@ -958,7 +966,8 @@ MSJoiner <- R6::R6Class(
 
       join_fn <- getFromNamespace(paste0(type, "_join"), "dplyr")
 
-      info_id <- if (private$._margin == "row") "row_info" else "column_info"
+      # info_id <- if (private$._margin == "row") "row_info" else "column_info"
+      info_id <- private$._get_info_id()
       y_info_sym <- if (private$._y_is_ms) {
         substitute(.subset2(private$._y, what), list(what = info_id))
       } else quote(private$._y)
@@ -1185,7 +1194,8 @@ MSJoiner <- R6::R6Class(
     ._warn_if_class_change = function() {
 
       # Determine the appropriate metadata slot based on the margin
-      info_id <- if (private$._margin == "row") "row_info" else "column_info"
+      # info_id <- if (private$._margin == "row") "row_info" else "column_info"
+      info_id <- private$._get_info_id()
 
       # Get the original trait classes from the input object
       var_class_orig <- lapply(.subset2(private$._x, info_id), data.class)
@@ -1220,39 +1230,7 @@ MSJoiner <- R6::R6Class(
 
 
 
-    # ._handle_trait_name_change = function(suffix) {
-    #
-    #   tr <- private$new_traits_
-    #
-    #   if (any(notin <- !(private$._x_traits %in% tr))) {
-    #     notin <- private$._x_traits[notin]
-    #     chg_to <- paste0(notin, suffix)
-    #     if (any(gone <- !(chg_to %in% tr))) {
-    #       gone_away <- notin[gone]
-    #       chg_to <- chg_to[!gone]
-    #     }
-    #
-    #     # somehow the column with the names had a name change
-    #     if (private$x_tag_ %in% notin) {
-    #       if (private$x_tag_ %in% gone_away)
-    #         stop("The column holding the margin names has disapeared")
-    #
-    #       private$x_tag_ <- chg_to[notin == private$x_tag_]
-    #     }
-    #
-    #     chg_to_msg <- paste(paste("", paste(shQuote(notin[!gone]), shQuote(chg_to),
-    #                                         sep = " -> ")), collapse = "\n")
-    #
-    #     warning(paste0("some traits have changed name:\n", chg_to_msg),
-    #             call. = FALSE)
-    #     if (any(gone)) {
-    #       warning(paste0("some traits have disappeared: ",
-    #                      stringr::str_flatten_comma(sQuote(gone_away)),
-    #                      call. = FALSE))
-    #     }
-    #   }
-    #
-    # },
+
 
 
     #' @description
@@ -1320,13 +1298,8 @@ MSJoiner <- R6::R6Class(
 
       not_unique <- FALSE
       if (n_mrg > 0) {
-
-        n_tag <- table(mrg_names)
-        n_tag <- unique(n_tag)
-
-        if (length(n_tag) > 1 || n_tag > 1) {
-          not_unique <- TRUE
-        }
+        counts <- table(mrg_names)
+        not_unique <- any(counts > 1)
       }
 
       private$._unique_names_post <- !not_unique
@@ -1403,7 +1376,6 @@ MSJoiner <- R6::R6Class(
 
       enclos = new.env(parent = emptyenv())
 
-      # enclos$size <- nrow(private$new_info_)
       enclos$size <- private$._n_margin
       enclos$margin <- private$._margin
       enclos$margin_comp <- if (private$._margin == "row") "col" else "row"
@@ -1515,7 +1487,7 @@ MSJoiner <- R6::R6Class(
     #' "col_grouped_ms"` or `"row_grouped_ms"`).
     ._set_group_structure = function() {
 
-      info_id <- if (private$._margin == "row") "row_info" else "column_info"
+      info_id <- private$._get_info_id()
 
       meta_orig <- get_group_info(.subset2(private$._x, info_id),
                                   class(private$._x), private$._margin)

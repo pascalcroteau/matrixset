@@ -630,13 +630,23 @@ MSJoiner <- R6::R6Class(
     #' Returns the appropriate metadata slot name from the `matrixset` object
     #' depending on whether the join is done by row or column.
     #'
-    #' @return A string: `"row_info"` if the margin is `"row"`,
-    #' otherwise `"column_info"`.
+    #' @returns
+    #' A string: `"row_info"` if the margin is `"row"`, otherwise
+    #' `"column_info"`.
     ._get_info_id = function() {
       if (private$._margin == "row") "row_info" else "column_info"
     },
 
 
+
+
+    #' Private Method
+    #'
+    #' Get Trait Attribute Name Based on Margin
+    #' Returns the name of the attribute used to store traits in the `matrixset`
+    #' metadata, depending on whether the margin is `"row"` or `"column"`.
+    #'
+    #' @return A string: `"row_traits"` if the margin is `"row"`, otherwise `"col_traits"`.
     ._get_trait_attr_id = function() {
       if (private$._margin == "row") "row_traits" else "col_traits"
     },
@@ -1526,6 +1536,36 @@ MSJoiner <- R6::R6Class(
 
 
 
+
+#' Private Method
+#'
+#' Join Metadata Information for matrixset Objects
+#' Performs a metadata join operation on two `matrixset` objects (`.ms_x` and
+#' `.ms_y`) using the specified `dplyr` join type and returns a new `matrixset`
+#' object with updated metadata, traits, and group structure.
+#'
+#' @param type          A string specifying the type of join to use. Should be
+#'                      one of `"left"`, `"right"`, `"inner"`, `"full"`,
+#'                      `"semi"`, or `"anti"`.
+#' @param margin        A string indicating which metadata to join: `"row"` or
+#'                      `"col"`.
+#' @param .ms_x         The first (left) `matrixset` object.
+#' @param .ms_y         The second (right) object to join with. Can be a
+#'                      `matrixset` or a data frame.
+#' @param by            A character vector specifying the join keys. If `NULL`,
+#'                      a default will be inferred.
+#' @param suffix        A character vector of length 2, used to disambiguate
+#'                      overlapping column names.
+#' @param na_matches    A string passed to `dplyr::join`, controlling how `NA`s
+#'                      are matched. Typically `"never"` or `"na"`.
+#' @param adjust        Logical. Whether to expand and align the matrix set to
+#'                      reflect the metadata join.
+#' @param names_glue    Optional string specifying a glue template used to
+#'                      construct new tag names if duplicates arise.
+#'
+#' @returns
+#' A new `matrixset` object with joined metadata and adjusted internal structure
+#' (traits, group attributes, matrix alignment).
 .join_info <- function(type, margin, .ms_x, .ms_y, by = NULL,
                        suffix = c(".x", ".y"), na_matches = "never",
                        adjust = FALSE, names_glue = NULL)
@@ -1535,32 +1575,8 @@ MSJoiner <- R6::R6Class(
   ms_joiner$join(type = type)
 
 
-  # PROBABLY NEED TO DISABLE SOME CHECKS IN CREATING MATRIXSET OBJECT SINCE SOME
-  # HAVE BEEN DONE ALREADY
-
   if (margin == "row") {
 
-    # print(
-    #   as.call(c(list(as.name(".matrixset"),
-    #          quote(ms_joiner$matrix_set),
-    #          row_info = quote(ms_joiner$info),
-    #          col_info = quote(column_info(.ms_x)),
-    #          n_row = quote(ms_joiner$n_row),
-    #          n_col = quote(ms_joiner$n_col),
-    #          matrix_names = quote(names(ms_joiner$matrix_set)),
-    #          n_matrix = quote(length(ms_joiner$matrix_set)),
-    #          row_traits = quote(ms_joiner$traits),
-    #          col_traits = quote(c(.coltag(.ms_x), .coltraits(.ms_x))),
-    #          row_names = quote(ms_joiner$margin_names),
-    #          col_names = quote(colnames(.ms_x)),
-    #          row_tag = quote(ms_joiner$new_tag),
-    #          col_tag = quote(.coltag(.ms_x))),
-    #     ms_joiner$new_group_attrs
-    #     ))
-    #
-    #
-    #
-    #   )
 
     meta_comp <- get_group_info(.subset2(.ms_x, "column_info"), class(.ms_x),
                                 "col")
@@ -1569,19 +1585,6 @@ MSJoiner <- R6::R6Class(
 
     return(
 
-      # .matrixset(ms_joiner$matrix_set,
-      #            row_info = ms_joiner$info,
-      #            col_info = column_info(.ms_x),
-      #            n_row = ms_joiner$n_row,
-      #            n_col = ms_joiner$n_col,
-      #            matrix_names = names(ms_joiner$matrix_set),
-      #            n_matrix = length(ms_joiner$matrix_set),
-      #            row_traits = ms_joiner$traits,
-      #            col_traits = c(.coltag(.ms_x), .coltraits(.ms_x)),
-      #            row_names = ms_joiner$margin_names,
-      #            col_names = colnames(.ms_x),
-      #            row_tag = ms_joiner$new_tag,
-      #            col_tag = .coltag(.ms_x))
       eval(as.call(c(list(as.name(".matrixset"),
                           quote(ms_joiner$matrix_set),
                           row_info = quote(ms_joiner$info),
@@ -1605,19 +1608,6 @@ MSJoiner <- R6::R6Class(
     )
   }
 
-  # print(list(ms_joiner$matrix_set,
-  #            row_info = row_info(.ms_x),
-  #            col_info = ms_joiner$info,,
-  #            n_row = ms_joiner$n_row,
-  #            n_col = ms_joiner$n_col,
-  #            matrix_names = names(ms_joiner$matrix_set),
-  #            n_matrix = length(ms_joiner$matrix_set),
-  #            row_traits = c(.rowtag(.ms_x), .rowtraits(.ms_x)),
-  #            col_traits = ms_joiner$traits,
-  #            row_names = rownames(private$.ms_x),
-  #            col_names = ms_joiner$margin_names,
-  #            row_tag = .rowtag(.ms_x),
-  #            col_tag = ms_joiner$new_tag))
 
   .matrixset(ms_joiner$matrix_set,
              row_info = row_info(.ms_x),
@@ -1633,312 +1623,12 @@ MSJoiner <- R6::R6Class(
              row_tag = .rowtag(.ms_x),
              col_tag = ms_joiner$new_tag)
 
-  # GROUPING!!!
-
-  ## WARN WHEN MATRIX CHANGE S4 TYPE!!!
 }
 
 
 
 
 
-
-
-
-# .join_info <- function(type, margin, .ms_x, .ms_y, by = NULL,
-#                        suffix = c(".x", ".y"), na_matches = "never",
-#                        adjust = FALSE, names_glue = NULL)
-# {
-#   cl <- sys.call()
-#   cash_status$set(cl)
-#   on.exit(cash_status$clear(cl))
-#
-#   adjust_meta <- set_adjust(adjust, is_matrixset(.ms_y))
-#   adjust <- adjust_meta$adjust
-#   adjust_how <- adjust_meta$adjust_how
-#   adjust_from_y <- adjust_how != adjust_opts["x_only"]
-#
-#   names_glue <- build_glue(names_glue)
-#   accept_dupl <- !is.null(names_glue)
-#
-#   x_nms <- join_names(.ms_x, margin)
-#   y_nms <- join_names(.ms_y, margin)
-#   x_tag <- join_tag(.ms_x, margin)
-#   y_tag <- join_tag(.ms_y, margin)
-#
-#   by <- set_by_null(by, x_nms, y_nms, x_tag, y_tag)
-#   by <- set_by_vars(by, x_nms, y_nms)
-#
-#   info_x <- join_info(.ms_x, margin)
-#   info_y <- join_info(.ms_y, margin)
-#
-#   meta_orig <- get_group_info(info_x, class(.ms_x), margin)
-#   var_class_orig <- lapply(info_x, class)
-#
-#
-#   args <- list("info_x", "info_y", by = as.name("by"),
-#                na_matches = as.name('na_matches'))
-#   if (!(type %in% filt_join_opts)) args <- c(args, suffix = as.name("suffix"))
-#   join_call <- rlang::call2(paste0(type, "_join"), !!!rlang::syms(args),
-#                             .ns = "dplyr")
-#   info <- rlang::eval_tidy(join_call)
-#
-#   var_class <- lapply(info, class)
-#   var_class_orig_kept <- var_class_orig[names(var_class_orig) %in% names(var_class)]
-#   var_class_still <- var_class[names(var_class) %in% names(var_class_orig)]
-#   if (length(var_class_orig_kept) && length(var_class_still) &&
-#       !identical(var_class_orig_kept, var_class_still)) {
-#     idx <- purrr::map2_lgl(var_class_orig_kept, var_class_still,
-#                            function(x, y) !identical(x, y))
-#     chg_vars <- names(idx[idx])
-#     warning(paste0("some traits have changed type (",
-#                    stringr::str_flatten(sQuote(chg_vars), collapse = ", "),
-#                    ")"),
-#             call. = FALSE)
-#   }
-#
-#   ni <- nrow(info)
-#
-#   not_unique <- FALSE
-#   if (ni > 0) {
-#     # make sure the new key (row/col name has no duplicates)
-#     ntag <- dplyr::count(info, !!as.name(x_tag))
-#     ntag <- if(x_tag == "n") {
-#       ntag[["nn"]]
-#     } else {
-#       ntag[["n"]]
-#     }
-#     ntag <- unique(ntag)
-#
-#     if (length(ntag) > 1 || ntag > 1) {
-#       if (!accept_dupl) stop(paste("'by' does not result in unique", margin, "names"))
-#       not_unique <- TRUE
-#     }
-#   }
-#
-#
-#   joined_names <- info[[x_tag]]
-#   nms <- margin_names(.ms_x, margin)
-#   x_names <- nms$nms
-#   compl_names <- nms$compl
-#
-#
-#   joined_names_unique <- if (not_unique) {
-#     warning(paste0(margin, " names (", x_tag, ") have changed following matrix adjustment"), call. = FALSE)
-#     unique_names(names_glue, x_tag, info)
-#   } else  NULL
-#
-#
-#   new_names <- setdiff(joined_names, x_names)
-#   new_names_unique <- setdiff(joined_names_unique, x_names)
-#   lost_names <- setdiff(x_names, joined_names)
-#
-#   has_new_names <- length(new_names) > 0
-#   has_new_names_unique <- length(new_names_unique) > 0
-#   has_lost_names <- length(lost_names) > 0
-#
-#   if (has_new_names || has_new_names_unique || has_lost_names)
-#   {
-#     if (adjust) {
-#       nr <- if (margin == "row") ni else nrow(.ms_x)
-#       nc <- if (margin == "row") ncol(.ms_x) else ni
-#       mats <- .ms_x$matrix_set
-#
-#       if (has_new_names || has_new_names_unique) {
-#
-#         if (not_unique) {
-#           info[[x_tag]] <- joined_names_unique
-#         }
-#
-#         if (adjust_from_y) Y <- .ms_y$matrix_set
-#         mats_nms <- names(mats)
-#         mats <- lapply(mats_nms,
-#                        function(m_nm) {
-#                          m <- mats[[m_nm]]
-#                          newm <- fill_matrix(m, margin, nr, nc, x_names,
-#                                              joined_names, compl_names,
-#                                              joined_names_unique)
-#                          if (adjust_from_y) {
-#                            if (m_nm %in% names(Y)) {
-#                              y <- Y[[m_nm]]
-#                              newm <- fill_from_y(newm, y, margin, new_names,
-#                                                  compl_names, joined_names)
-#                            }
-#                          }
-#                          newm
-#                        })
-#         names(mats) <- mats_nms
-#
-#       }
-#
-#
-#       if (has_lost_names) {
-#         mats <- lapply(mats,
-#                        function(m) sub_matrix(m, margin, x_names, joined_names,
-#                                               compl_names))
-#       }
-#
-#
-#       .ms_x$matrix_set <- mats
-#       if (margin == "row") {
-#         attr(.ms_x, "n_row") <- ni
-#         attr(.ms_x, "row_names") <- if (is.null(joined_names_unique)) {
-#           joined_names
-#         } else joined_names_unique
-#       } else {
-#         attr(.ms_x, "n_col") <- ni
-#         attr(.ms_x, "col_names") <- if (is.null(joined_names_unique)) {
-#           joined_names
-#         } else joined_names_unique
-#       }
-#
-#
-#     } else {
-#       tag <- if (margin == "col") "columns" else "rows"
-#       stop(paste("the number of", tag, "is modified by the join operation, which is against the 'matrixset' paradigm. Use 'adjust' to still perform the operation."))
-#     }
-#
-#   }
-#
-#
-#
-#   tr <- colnames(info)
-#
-#   if (any(notin <- !(x_nms %in% tr))) {
-#     notin <- x_nms[notin]
-#     chg_to <- paste0(notin, suffix[1])
-#     if (any(gone <- !(chg_to %in% tr))) {
-#       gone_away <- chg_to[gone]
-#       chg_to <- chg_to[!gone]
-#     }
-#
-#     chg_to_msg <- paste(paste("", paste(shQuote(notin[!gone]), shQuote(chg_to),
-#                                         sep = " -> ")), collapse = "\n")
-#
-#     warning(paste0("some traits have changed name:\n", chg_to_msg),
-#             call. = FALSE)
-#     if (any(gone)) {
-#       warning(paste0("some traits have disappeared: ",
-#                      stringr::str_flatten_comma(sQuote(gone_away)),
-#                      call. = FALSE))
-#     }
-#   }
-#
-#   if (margin == "row") {
-#     .ms_x$row_info <- info
-#     attr(.ms_x, "row_traits") <- tr
-#   } else {
-#     .ms_x$column_info <- info
-#     attr(.ms_x, "col_traits") <- tr
-#   }
-#
-#
-#   meta <- get_group_info(info, class(.ms_x), margin)
-#   if (!identical(meta_orig$attrs$group_keys, meta$attrs$group_keys))
-#     warning("grouping structure of '.ms_x' has changed.", call. = FALSE)
-#   attrs <- set_group_attrs(attributes(.ms_x), meta$attrs, margin)
-#   attributes(.ms_x) <- attrs
-#   class(.ms_x) <- meta$class
-#   if (is.null(meta$attrs$group_vars)) class(.ms_x) <- "matrixset"
-#   # if (!is.null(meta$attrs$group_vars)) {
-#   #
-#   # } else class(.ms_x) <- "matrixset"
-#
-#
-#   .ms_x
-#
-# }
-
-
-# Add meta info from another `matrixset` or a `data.frame`
-#
-# @description
-# The operation is done through a join operation between the row meta info
-# data.frame ([join_row_info()]) of `.ms` and `y` (or its row meta info
-# data.frame if it is a `matrixset` object). The function [join_column_info()]
-# does the equivalent operation for column meta info.
-#
-# The default join operation is a `r join_opts["default"]` join
-# (type == `r sQuote(join_opts["default"])`), but most of dplyr's
-# joins are available (`r flatten_or(join_opts)`).
-#
-# The `matrixset` paradigm of unique row/column names is enforced so if a
-# `.ms` data.frame row matches multiple ones in `y`, this results in an
-# error.
-#
-# @param .ms           A `matrixset` object
-# @param y             A `matrixset` object or a `data.frame`.
-# @param type          Joining type, one of `r sQuote(join_opts["default"])`,
-#                      `r flatten_or(join_opts[join_opts != join_opts["default"]])`.
-# @param by            The names of the variable to join by.
-#                      The default, `NULL`, results in slightly different
-#                      behavior depending if `y` is a `matrixset` or a
-#                      `data.frame`.
-#                      If a `matrixset`, the meta info tag of each object (the
-#                      tag is the column that holds the row names/column names
-#                      in the meta info data frame - typically ".rowname" or
-#                      ".colname" unless specified otherwise at `matrixset`
-#                      creation) is used for `by`.
-#                      If a `data.frame`, a natural join is used. For more
-#                      details, see `dplyr`'s [dplyr::join()].
-#                      Note that the cross-join is not available.
-# @param adjust        A logical. By default (`FALSE`), the join operation is
-#                      not permitted to filter or augment the number of rows of
-#                      the meta info data frame.
-#                      If `TRUE`, this will be allowed. In the case where the
-#                      data frame is augmented, the matrices of `.ms`
-#                      will be augmented accordingly by padding with `NA`s (
-#                      except for the `NULL` matrices).
-#
-#    Alternatively, `adjust` can be a single string, one of
-#    `r flatten_or(adjust_opts)`. Choosing "`r adjust_opts["x_only"]`"
-#    is equivalent to `TRUE`. When choosing "`r adjust_opts["from_y"]`",
-#    padding is done using values from `y`, but only
-#
-#    1. if `y` is a `matrixset`
-#    2. for `y` matrices that are named the same in `x`
-#    3. If padding rows, only columns common between `x` and `y` will use `y`
-#      values. The same logic is applied when padding columns.
-#
-#    Other values are padded with `NA`.
-# @param suffix        Suffixes added to disambiguate trait variables. See
-#                      `dplyr`'s [dplyr::join()].
-# @param na_matches    How to handle missing values when matching. See
-#                      `dplyr`'s [dplyr::join()].
-#
-# @section Groups:
-# When `y` is a `matrixset`, only groups from `.ms` are used, if any. Group
-# update is the same as in `dplyr`.
-#
-# @returns
-# A `matrixset` with updated row or column meta info, with all `.ms` traits and
-# `y` traits. If some traits share the same names - and were not included in
-# `by` - `suffix`es will be appended to these names.
-#
-# If adjustment was allowed, the dimensions of the new `matrixset` may differ
-# from the original one.
-#
-# @examples
-# ms1 <- remove_row_annotation(student_results, class, teacher)
-# ms <- join_row_info(ms1, student_results)
-#
-# ms <- join_row_info(ms1, student_results, by = c(".rowname", "previous_year_score"))
-#
-# # This will throw an error
-# ms2 <- remove_row_annotation(filter_row(student_results, class %in% c("classA", "classC")),
-#                              class, teacher, previous_year_score)
-# ms <- ms <- tryCatch(join_row_info(ms2, student_results, type = "full"),
-#                      error = function(e) e)
-# is(ms, "error") # TRUE
-# ms$message
-#
-# # Now it works.
-# ms <- join_row_info(ms2, student_results, type = "full", adjust = TRUE)
-# dim(ms2)
-# dim(ms)
-# matrix_elm(ms, 1)
-#
-# @name join
 
 #' Add meta info from another `matrixset` or a `data.frame`
 #'
@@ -2118,42 +1808,6 @@ MSJoiner <- R6::R6Class(
 #'                                adjust = TRUE,  names_glue = TRUE))$warnings
 #'
 #' @name join
-
-
-
-# # @rdname join
-# # @export
-# join_row_info <- function(.ms, y, type = "left", by = NULL, adjust = FALSE,
-#                           suffix = c(".x", ".y"), na_matches = c("na", "never"))
-#   UseMethod("join_row_info")
-#
-# # @export
-# join_row_info.matrixset <- function(.ms, y, type = "left", by = NULL,
-#                                     adjust = FALSE, suffix = c(".x", ".y"),
-#                                     na_matches = c("na", "never"))
-# {
-#   na_matches <- match.arg(na_matches)
-#   .join_info(type, "row", .ms, y, by = by, suffix = suffix,
-#              na_matches = na_matches, adjust = adjust)
-# }
-#
-#
-#
-# # @rdname join
-# # @export
-# join_column_info <- function(.ms, y, type = "left", by = NULL, adjust = FALSE,
-#                              suffix = c(".x", ".y"), na_matches = c("na", "never"))
-#   UseMethod("join_column_info")
-#
-# # @export
-# join_column_info.matrixset <- function(.ms, y, type = "left", by = NULL,
-#                                        adjust = FALSE, suffix = c(".x", ".y"),
-#                                        na_matches = c("na", "never"))
-# {
-#   na_matches <- match.arg(na_matches)
-#   .join_info(type, "col", .ms, y, by = by, suffix = suffix,
-#              na_matches = na_matches, adjust = adjust)
-# }
 
 
 #' @rdname join

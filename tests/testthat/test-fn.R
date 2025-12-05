@@ -991,7 +991,7 @@ test_that("matrixset 'long' loop works", {
   mn_ref <- lapply(mn_ref, function(u) tidyr::unnest_longer(u, .rows))
   mn_ref <- lapply(mn_ref, function(u) tidyr::unnest_wider(u, .rows))
   mn_ref <- lapply(mn_ref, function(u) {
-   u <- u[, c(1,4,2,3)]
+   u <- u[, c("program", ".rows_id", "mean", "median")]
    colnames(u)[2] <- ".rowname"
    u
   })
@@ -1016,7 +1016,7 @@ test_that("matrixset 'long' loop works", {
   grmn_ref <- lapply(grmn_ref, function(u) tidyr::unnest_longer(u, .columns))
   grmn_ref <- lapply(grmn_ref, function(u) tidyr::unnest_wider(u, .columns))
   grmn_ref <- lapply(grmn_ref, function(u) {
-    u <- u[, c(1,2,5,3,4)]
+    u <- u[, c("teacher", "class", ".columns_id", "mean", "median")]
     colnames(u)[3] <- ".colname"
     u
   })
@@ -1041,7 +1041,7 @@ test_that("matrixset 'long' loop works", {
   mn_ref <- lapply(mn_ref, function(u) tidyr::unnest_longer(u, .rows))
   mn_ref <- lapply(mn_ref, function(u) tidyr::unnest_wider(u, .rows))
   mn_ref <- lapply(mn_ref, function(u) {
-    u <- u[, c(1,4,2,3)]
+    u <- u[, c("program", ".rows_id", "mn", "md")]
     colnames(u)[2] <- ".rowname"
     u
   })
@@ -1066,7 +1066,7 @@ test_that("matrixset 'long' loop works", {
   grmn_ref <- lapply(grmn_ref, function(u) tidyr::unnest_longer(u, .columns))
   grmn_ref <- lapply(grmn_ref, function(u) tidyr::unnest_wider(u, .columns))
   grmn_ref <- lapply(grmn_ref, function(u) {
-    u <- u[, c(1,2,5,3,4)]
+    u <- u[, c("teacher", "class", ".columns_id", "mn", "md")]
     colnames(u)[3] <- ".colname"
     u
   })
@@ -1091,7 +1091,7 @@ test_that("matrixset 'long' loop works", {
   mn_ref <- lapply(mn_ref, function(u) tidyr::unnest_wider(u, .rows))
   mn_ref <- lapply(mn_ref, function(u) tidyr::unnest(u, c(ct.name, ct)))
   mn_ref <- lapply(mn_ref, function(u) {
-    u <- u[, c(1,4,2,3)]
+    u <- u[, c("program", ".rows_id", "ct.name", "ct")]
     colnames(u)[2] <- ".rowname"
     u
   })
@@ -1116,7 +1116,7 @@ test_that("matrixset 'long' loop works", {
   grmn_ref <- lapply(grmn_ref, function(u) tidyr::unnest_wider(u, .columns))
   grmn_ref <- lapply(grmn_ref, function(u) tidyr::unnest(u, c(ct.name, ct)))
   grmn_ref <- lapply(grmn_ref, function(u) {
-    u <- u[, c(1,2,5,3,4)]
+    u <- u[, c("teacher", "class", ".columns_id", "ct.name", "ct")]
     colnames(u)[3] <- ".colname"
     u
   })
@@ -1353,7 +1353,7 @@ test_that("matrixset 'wide' loop works", {
   mn_ref <- lapply(mn_ref, function(u) tidyr::unnest_longer(u, .rows))
   mn_ref <- lapply(mn_ref, function(u) tidyr::unnest_wider(u, .rows))
   mn_ref <- lapply(mn_ref, function(u) {
-    u <- u[, c(1,4,2,3)]
+    u <- u[, c("program", ".rows_id", "mean", "median")]
     colnames(u)[2] <- ".rowname"
     u
   })
@@ -1378,7 +1378,7 @@ test_that("matrixset 'wide' loop works", {
   grmn_ref <- lapply(grmn_ref, function(u) tidyr::unnest_longer(u, .columns))
   grmn_ref <- lapply(grmn_ref, function(u) tidyr::unnest_wider(u, .columns))
   grmn_ref <- lapply(grmn_ref, function(u) {
-    u <- u[, c(1,2,5,3,4)]
+    u <- u[, c("teacher", "class", ".columns_id", "mean", "median")]
     colnames(u)[3] <- ".colname"
     u
   })
@@ -1403,7 +1403,7 @@ test_that("matrixset 'wide' loop works", {
   mn_ref <- lapply(mn_ref, function(u) tidyr::unnest_longer(u, .rows))
   mn_ref <- lapply(mn_ref, function(u) tidyr::unnest_wider(u, .rows))
   mn_ref <- lapply(mn_ref, function(u) {
-    u <- u[, c(1,4,2,3)]
+    u <- u[, c("program", ".rows_id", "mn", "md")]
     colnames(u)[2] <- ".rowname"
     u
   })
@@ -1428,7 +1428,7 @@ test_that("matrixset 'wide' loop works", {
   grmn_ref <- lapply(grmn_ref, function(u) tidyr::unnest_longer(u, .columns))
   grmn_ref <- lapply(grmn_ref, function(u) tidyr::unnest_wider(u, .columns))
   grmn_ref <- lapply(grmn_ref, function(u) {
-    u <- u[, c(1,2,5,3,4)]
+    u <- u[, c("teacher", "class", ".columns_id", "mn", "md")]
     colnames(u)[3] <- ".colname"
     u
   })

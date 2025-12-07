@@ -50,7 +50,8 @@ add_matrix.matrixset <- function(.ms, ...)
 
   matrix_set <- c(old_set, matrix_set)
 
-  matrix_info <- info_matrices(matrix_set, NULL)
+  # matrix_info <- info_matrices(matrix_set, NULL)
+  matrix_info <- MatrixMeta$new(matrix_set)
 
   n_matrix <- length(matrix_set)
 

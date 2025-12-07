@@ -35,6 +35,8 @@
 
 
 #' @importFrom stats setNames
+NULL
+
 # set_by_null <- function (by, x_nms, y_nms, x_tag, y_tag)
 # {
 #   if (is.null(by)) {
@@ -102,53 +104,53 @@
 
 
 
-#' join_names <- function(obj, mrg = NULL) UseMethod("join_names")
-#'
-#' #' @export
-#' join_names.matrixset <- function(obj, mrg = NULL)
-#' {
-#'   if (mrg == "row") {
-#'     c(.rowtag(obj), .rowtraits(obj))
-#'   } else {
-#'     c(.coltag(obj), .coltraits(obj))
-#'   }
-#' }
-#' #' @export
-#' join_names.data.frame <- function(obj, mrg = NULL) colnames(obj)
+# join_names <- function(obj, mrg = NULL) UseMethod("join_names")
+#
+# #' @export
+# join_names.matrixset <- function(obj, mrg = NULL)
+# {
+#   if (mrg == "row") {
+#     c(.rowtag(obj), .rowtraits(obj))
+#   } else {
+#     c(.coltag(obj), .coltraits(obj))
+#   }
+# }
+# #' @export
+# join_names.data.frame <- function(obj, mrg = NULL) colnames(obj)
 
 
-#' join_tag <- function(obj, mrg = NULL) UseMethod("join_tag")
-#'
-#' #' @export
-#' join_tag.matrixset <- function(obj, mrg = NULL)
-#' {
-#'   if (mrg == "row") {
-#'     .rowtag(obj)
-#'   } else {
-#'     .coltag(obj)
-#'   }
-#' }
-#' #' @export
-#' join_tag.data.frame <- function(obj, mrg = NULL) NULL
+# join_tag <- function(obj, mrg = NULL) UseMethod("join_tag")
+#
+# #' @export
+# join_tag.matrixset <- function(obj, mrg = NULL)
+# {
+#   if (mrg == "row") {
+#     .rowtag(obj)
+#   } else {
+#     .coltag(obj)
+#   }
+# }
+# #' @export
+# join_tag.data.frame <- function(obj, mrg = NULL) NULL
 
 
-#' join_info <- function(obj, mrg = NULL) UseMethod("join_info")
-#' #' @export
-#' join_info.matrixset <- function(obj, mrg = NULL)
-#' {
-#'   cl <- sys.call()
-#'   cash_status$set(cl)
-#'   on.exit(cash_status$clear(cl))
-#'
-#'
-#'   if (mrg == "row") {
-#'     obj$row_info
-#'   } else {
-#'     obj$column_info
-#'   }
-#' }
-#' #' @export
-#' join_info.data.frame <- function(obj, mrg = NULL) obj
+# join_info <- function(obj, mrg = NULL) UseMethod("join_info")
+# #' @export
+# join_info.matrixset <- function(obj, mrg = NULL)
+# {
+#   cl <- sys.call()
+#   cash_status$set(cl)
+#   on.exit(cash_status$clear(cl))
+#
+#
+#   if (mrg == "row") {
+#     obj$row_info
+#   } else {
+#     obj$column_info
+#   }
+# }
+# #' @export
+# join_info.data.frame <- function(obj, mrg = NULL) obj
 
 
 

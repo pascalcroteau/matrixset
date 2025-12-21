@@ -75,9 +75,8 @@ norm_filt_expr <- function(...)
 #'
 #' # The potential difference between grouped and non-grouped.
 #' filter_row(student_results, previous_year_score > mean(previous_year_score))
-#' student_results |>
-#'   row_group_by(teacher) |>
-#'   filter_row(previous_year_score > mean(previous_year_score))
+#' sr <- row_group_by(student_results, teacher)
+#' filter_row(sr, previous_year_score > mean(previous_year_score))
 #'
 #
 #' @export
@@ -231,9 +230,8 @@ filter_row.dual_grouped_ms <- function(.ms, ..., .preserve = FALSE)
 #'
 #' # The potential difference between grouped and non-grouped.
 #' filter_column(student_results, school_average > mean(school_average))
-#' student_results |>
-#'   column_group_by(program) |>
-#'   filter_column(school_average > mean(school_average))
+#' sr <- column_group_by(student_results, program)
+#' filter_column(sr, school_average > mean(school_average))
 #'
 #' @export
 filter_column <- function(.ms, ..., .preserve = FALSE) UseMethod("filter_column")

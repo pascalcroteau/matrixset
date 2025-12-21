@@ -1,5 +1,10 @@
 # matrixset (development version)
 
+# Internal changes
+
+The documentation no longer uses the pipe (|>) operator, to avoid dependency on
+R >= 4.1.0.
+
 # matrixset 0.4.0
 
 ## Changes to `apply_matrix()`, `apply_row()` and `apply_column()`

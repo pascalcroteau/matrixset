@@ -76,8 +76,7 @@ filter_column(student_results, program == "Applied Science", school_average > 0.
 
 # The potential difference between grouped and non-grouped.
 filter_column(student_results, school_average > mean(school_average))
-student_results |>
-  column_group_by(program) |>
-  filter_column(school_average > mean(school_average))
+sr <- column_group_by(student_results, program)
+filter_column(sr, school_average > mean(school_average))
 
 }

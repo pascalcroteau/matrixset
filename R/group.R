@@ -221,9 +221,9 @@ column_group_by.matrixset <- function(.ms, ..., .add = FALSE, .drop = column_gro
 #' `.drop = FALSE`.
 #'
 #' @examples
-#' student_results |>
-#'     row_group_by(class, .drop = FALSE) |>
-#'     row_group_by_drop_default()
+#' sr_grouped <- row_group_by(student_results, class, .drop = FALSE)
+#' row_group_by_drop_default(sr_grouped)
+#'
 #'
 #'
 #' @export
@@ -251,9 +251,8 @@ row_group_by_drop_default.matrixset <- function(.ms)
 #' `.drop = FALSE`.
 #'
 #' @examples
-#' student_results |>
-#'     row_group_by(class, .drop = FALSE) |>
-#'     row_group_by_drop_default()
+#' sr <- row_group_by(student_results, class, .drop = FALSE)
+#' row_group_by_drop_default(sr)
 #'
 #' @export
 column_group_by_drop_default <- function(.ms) UseMethod("column_group_by_drop_default")

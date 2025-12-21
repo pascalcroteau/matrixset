@@ -18,8 +18,7 @@ the default is also \code{TRUE} unless \code{.ms} has been previously grouped wi
 Default value for \code{.drop} argument of function \code{\link[=column_group_by]{column_group_by()}}
 }
 \examples{
-student_results |>
-    row_group_by(class, .drop = FALSE) |>
-    row_group_by_drop_default()
+sr <- row_group_by(student_results, class, .drop = FALSE)
+row_group_by_drop_default(sr)
 
 }

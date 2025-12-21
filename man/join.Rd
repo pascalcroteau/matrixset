@@ -194,11 +194,15 @@ meta <- tibble::tibble(sample = c("student 2", "student 2"),
 
 # Groups are automatically adjusted
 sr_gr <- row_group_by(student_results, class)
-gr_orig <- row_group_meta(row_group_by(student_results, class)) |> tidyr::unnest(.rows)
+gr_orig_tmp <- row_group_meta(row_group_by(student_results, class))
+gr_orig <- tidyr::unnest(gr_orig_tmp, .rows)
 suppressWarnings(
-  new_gr <- join_row_info(sr_gr, meta, by = c(".rowname" = "sample", "class"),
-                          adjust = TRUE, names_glue = TRUE) |>
-   row_group_meta() |> tidyr::unnest(.rows)
+  {
+    jn <- join_row_info(sr_gr, meta, by = c(".rowname" = "sample", "class"),
+                      adjust = TRUE, names_glue = TRUE)
+    new_gr_tmp <- row_group_meta(jn)
+    new_gr <- tidyr::unnest(new_gr_tmp, .rows)
+  }
 )
 list(gr_orig, new_gr)
 

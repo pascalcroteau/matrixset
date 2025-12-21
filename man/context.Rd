@@ -73,7 +73,7 @@ relative to the current matrix. They are equivalent to
 is(try(current_n_row(), silent = TRUE), "try-error")
 
 # this is one way to know the number of students per class in 'student_results'
-student_results |>
-    apply_matrix_dfl(n = ~ current_n_row(), .matrix = 1)
+sr <- row_group_by(student_results, class)
+apply_matrix_dfl(sr, n = ~ current_n_row(), .matrix = 1)
 
 }

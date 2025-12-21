@@ -75,8 +75,7 @@ filter_row(student_results, class == "classA", previous_year_score > 0.75)
 
 # The potential difference between grouped and non-grouped.
 filter_row(student_results, previous_year_score > mean(previous_year_score))
-student_results |>
-  row_group_by(teacher) |>
-  filter_row(previous_year_score > mean(previous_year_score))
+sr <- row_group_by(student_results, teacher)
+filter_row(sr, previous_year_score > mean(previous_year_score))
 
 }

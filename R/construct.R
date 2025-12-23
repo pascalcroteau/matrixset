@@ -240,7 +240,15 @@ expand_matrices <- function(matrix_list, matrix_info, expand)
       if (is_Matrix) {
         # expand_list[[l]][] <- expand[[l]]
         expand_list[[l]][] <- expand_value
-        expand_list[[l]] <- methods::as(expand_list[[l]], class(matrix_list[[l]]))
+
+        orig_class <- class(matrix_list[[l]])
+        if (orig_class == "dgeMatrix") {
+          expand_list[[l]] <- methods::as(methods::as(expand_list[[l]], "generalMatrix"),
+                                          "unpackedMatrix")
+        } else {
+          expand_list[[l]] <- methods::as(expand_list[[l]], orig_class)
+        }
+
         if ((NR < nr || NC < nc) &&
             ((is.integer(expand_value) && expand_value == 0L) ||
              (is.numeric(expand_value) && abs(expand_value) < .Machine$double.eps^.5)))

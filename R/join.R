@@ -263,6 +263,7 @@ fill_matrix <- function(m, margin, nr, nc, old_names, joined_names, compl_names,
     unlist(lapply(common, function(.x) which(.x == joined_names)))
   }
 
+  class_m <- class(m)
   if (margin == "row") {
 
     newm <- MATRIX(na_val, nrow = length(joined_names), ncol = nc, is_Matrix)
@@ -270,7 +271,9 @@ fill_matrix <- function(m, margin, nr, nc, old_names, joined_names, compl_names,
     colnames(newm) <- compl_names
     if (is_Matrix) {
       newm[] <- na_val
-      newm <- methods::as(newm, class(m))
+      newm <- if (class_m == "dgeMatrix"){
+        methods::as(methods::as(newm, "generalMatrix"), "unpackedMatrix")
+      } else methods::as(newm, class_m)
     }
     newm[pos, ] <- if (is.null(joined_names_unique)) {
       m
@@ -287,7 +290,9 @@ fill_matrix <- function(m, margin, nr, nc, old_names, joined_names, compl_names,
     colnames(newm) <- joined_names
     if (is_Matrix) {
       newm[] <- na_val
-      newm <- methods::as(newm, class(m))
+      newm <- if (class_m == "dgeMatrix"){
+        methods::as(methods::as(newm, "generalMatrix"), "unpackedMatrix")
+      } else methods::as(newm, class_m)
     }
     newm[, pos] <- if (is.null(joined_names_unique)) {
       m

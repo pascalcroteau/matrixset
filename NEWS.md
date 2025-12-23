@@ -1,6 +1,11 @@
-# matrixset (development version)
+# matrixset 0.4.1
 
-# Internal changes
+## Internal changes
+
+Patch to comply with
+
+* tidyverse/tidyr#1622
+* Matrix deprecating the use of as(., "dgeMatrix")
 
 The documentation no longer uses the pipe (|>) operator, to avoid dependency on
 R >= 4.1.0.

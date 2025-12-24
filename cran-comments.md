@@ -1,3 +1,15 @@
+# Version 0.4.1
+
+This patch fixes errors introduced by changes in the latest version of the 
+dependency package `tidyr`.
+
+It also resolves NOTES caused by the deprecated use of as(., "dgeMatrix") and by 
+the use of the native pipe (|>) operator.
+
+## R CMD check results
+
+0 errors | 0 warnings | 0 notes
+
 # Version 0.4.0
 
 ## R CMD check results
